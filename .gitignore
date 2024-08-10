@@ -1,6 +1,18 @@
-project-description/*
-!project-description/project-description.tex
-!project-description/refs.bib
+*.blg
+*.bbl
+*.fls
+*.aux
+*.bcf
+*.fdb_latexmk
+*.out
+*.log
+*.mw
+*.synctex.gz
+*.toc
+svg-inkscape/
+*.run.xml
+_minted-main/
+*.pdf
 
 bin/
 node_modules/

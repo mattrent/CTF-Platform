@@ -1,0 +1,75 @@
+% !TeX root = main.tex
+%%%%%%%%%%%%%%%%%%%%%%%%% PREAMBLE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{template/preamble}
+
+\usepackage[block=ragged, sorting=nyt, style=authoryear-ibid, backend=biber]{biblatex}
+\setlength\bibitemsep{1.5\itemsep}
+\addbibresource{mybib.bib}
+
+%%%%%%%%%%%%% ACTUAL VISIBLE CONTENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\begin{titlepage}
+    \begin{centering}
+    \vspace*{-20px}\large Department of Mathematics \& Computer Science\\
+    University of Southern Denmark $|$ IMADA \\
+    \today \\
+    
+    \vspace{\fill}
+    
+    \huge{\bf  CTF Platform Optimization} \\
+    \Large{\bf SPDM801: Master's Thesis}
+    
+    \vspace{\fill}
+    
+    \begin{minipage}{0.45\textwidth} 
+    \begin{flushleft}
+        \Large
+        \textit{Author}\\
+        KIAN BANKE LARSEN\\
+        kilar20@student.sdu.dk
+    \end{flushleft}
+    \end{minipage}
+    
+    \vspace{\fill}
+    
+    \begin{minipage}{0.45\textwidth}
+    \begin{flushleft}
+        \Large
+        \textit{Supervisor}\\
+        Jacopo Mauro\\
+        Professor
+    \end{flushleft}
+    \end{minipage}
+    
+    \vspace{\fill}
+    
+    \includesvg[width=.4\textwidth]{template/SDU.svg}
+    
+    \vspace*{0.1cm}
+    
+    \end{centering}
+    
+    \thispagestyle{empty}
+\end{titlepage}
+
+\pagenumbering{roman}
+
+\begin{abstract}
+\paragraph{English}
+
+\paragraph{Danish}
+\end{abstract}
+
+{ \hypersetup{hidelinks} \tableofcontents \addtocontents{toc}{\vskip-40pt}}
+
+\newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter{Introduction}
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{References}
+\printbibliography
+\end{document}

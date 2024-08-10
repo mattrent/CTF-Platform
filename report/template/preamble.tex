@@ -1,0 +1,103 @@
+%%%%%%%%%%%%%%%%%%%%%%%% BASIC DOCUMENT SETUP %%%%%%%%%%%%%%%%%%%%%
+\documentclass[a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% PACKAGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{datetime}
+\usepackage{datenumber}
+\usepackage{parskip}
+\usepackage{forest}
+\usepackage{svg}        % makes it possible to use svg files
+\usepackage{graphics}
+\usepackage{multicol}
+\usepackage{icomma}
+\usepackage{microtype}  % microscopic typography refinement
+\usepackage{lastpage}   % used to reference last page in footer
+\usepackage{fancyhdr}   % Header
+\usepackage{tcolorbox}
+\usepackage{amssymb}
+\usepackage[Bjornstrup]{fncychap}
+\usepackage[titles]{tocloft}
+\usepackage{amsmath}    % mathematics for matrices and more
+\usepackage{amsfonts}
+\usepackage{csquotes}
+\usepackage{morewrites}
+
+\usepackage{tikz}
+\usetikzlibrary{calc}   % position og tikz labels
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{decorations.pathreplacing,calligraphy}
+
+\usepackage{float}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage{xcolor}
+\definecolor{blueplot}{RGB}{60, 64, 198}
+\definecolor{yellowplot}{RGB}{255, 211, 42}
+\definecolor{redplot}{RGB}{255, 63, 52}
+\definecolor{greenplot}{RGB}{5, 196, 107}
+\definecolor{greyplot}{RGB}{72, 84, 96}
+
+\usepackage{siunitx}
+\sisetup{%quotient-mode=fraction,
+		output-decimal-marker = {,},
+		per-mode = fraction,
+		separate-uncertainty = true,
+		multi-part-units=single,
+		exponent-product = \cdot,
+		range-phrase=--}
+		
+\usepackage{minted} % Syntax highlighting 
+%\usemintedstyle{monokai}
+\setminted[]{breaklines, 
+    breakafter=d,
+    frame=lines,
+    framesep=2mm,
+    baselinestretch=1.2,
+    fontsize=\footnotesize,
+    tabsize=4,
+    linenos}
+
+
+\makeatletter
+\renewcommand\@makefnmark{\textsuperscript{[\@thefnmark]}}
+\renewcommand\@makefntext[1]{\textsuperscript{[\@thefnmark]}\enspace #1}
+\makeatother
+
+\usepackage[hidelinks, linktoc=all]{hyperref} % links, references, \ref{...}
+\hypersetup{
+    colorlinks = true,
+    linkcolor = blue,
+    citecolor = blue,
+    urlcolor = blue
+}
+\urlstyle{same}
+
+\usepackage{todonotes}
+
+\usepackage{subcaption}
+
+\usepackage{forest}
+
+\usepackage{lipsum}  
+
+\usepackage{wrapfig}
+
+\usepackage[export]{adjustbox}
+
+
+\usepackage[pdf]{graphviz}
+
+%%% Helper code for Overleaf's build system to
+%%% automatically update output drawings when
+%%% code in a \digraph{...} is modified
+\usepackage{xpatch}
+\makeatletter
+\newcommand*{\addFileDependency}[1]{% argument=file name and extension
+  \typeout{(#1)}
+  \@addtofilelist{#1}
+  \IfFileExists{#1}{}{\typeout{No file #1.}}
+}
+\makeatother
+\xpretocmd{\digraph}{\addFileDependency{#2.dot}}{}{}
