@@ -1,0 +1,63 @@
+% !TeX root = project-description.tex
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{parskip}
+\usepackage{cite}
+\usepackage{hyperref}
+\usepackage{todonotes}
+
+\title{CTF Platform Optimization \\[2ex]
+       {\large (CTF Platform Optimering)}}
+\author{Kian Banke Larsen \\[2ex]
+Advisor: Jacopo Mauro}
+\date{\today}
+
+\pagestyle{empty}
+
+\begin{document}
+
+\maketitle
+
+\thispagestyle{empty}
+
+\section*{Motivation}
+The motivation behind this Master's Thesis lies in the need for a robust and secure Capture The Flag (CTF) platform. 
+CTF is a type of cybersecurity competition designed to challenge participants' knowledge and skills in various aspects of information security. These competitions are often used as educational tools, team-building exercises, or even as recruiting grounds for cybersecurity talent. 
+
+As cybersecurity challenges become increasingly complex, educational institutions and organizations seek effective ways to train students and professionals in offensive and defensive techniques. We aim to facilitate this by exploring the development of a CTF platform tacking into account the following aspects.
+
+\begin{description}
+    \item[Accessibility:] To ease the deployment we would like to deploy the CTF platform on a cloud infrastructure. We will explore the usage of The University of Southern Denmark's UCloud\cite{ucloud} as a starting point, possibly using networkig tools like Tailscale to facilitate communication between nodes. If we encounter significant challenges, we remain open to exploring other cloud providers to ensure seamless deployment and accessibility.
+    \item[Infrastructure:] We would like to leveraging modern DevOps tools like Pulumi\cite{pulumi}, Keycloak\cite{keycloak}, Kubernetes\cite{kubernetes}, Jenkins\cite{jenkins}, Prometheus\cite{prometheus}, Grafana\cite{grafana}, CTFd\cite{ctfd}, Docker\cite{docker}, KubeVirt\cite{kubevirt}, local image registries, and BLOBs, for deployment and orchestration. Establishing a well-organized, secure deployment pipeline is essential. Our goal is to automate the deployment process while maintaining security best practices. This pipeline will facilitate efficient deployments of the platform and reliable deployments of the CTF challenges in question.
+    \item[Security:] A CTF platform places a strong emphasis on isolation to prevent interference between challenges. To achieve this, we will explore containerization strategies, ensuring that no privileged containers compromise the integrity of other challenges. Virtual machines (VMs) will play a crucial role in maintaining this isolation. Furthermore, we will carefully assess network security risks to safeguard our platform and consider how players will interfact with our exposed services/endpoints.
+    \item[Resource Footprint Minimization:] Beyond user experience, a CTF platform should try to minimize the resource footprint on the server. Our goal is to optimize resource utilization, ensuring efficient use of computational resources while maintaining robust functionality.
+\end{description}
+
+\section*{Tentative Timeplan}
+A tentative timeplan could be as follows:
+
+\begin{itemize}
+    \item September: Consult state-of-the-art tools. Inspiration as a starting point can be found in the following litterature: \cite{Handbook,Phoenix,delivery}.
+    \item October-December: Focus on making most of the platform production-ready.
+    \item January-April: Platform refinement.
+    \item Throughout the project: Simultaneously work on the report, with increased focus on the report as the deadline approaches.
+\end{itemize}
+
+\section*{Risk Assessment}
+Unforeseen technical hurdles during development can cause chaos, and we will remedy risks as follows:
+\begin{itemize}
+    \item Technical Challenges: Regular iterations and touch-base meetings to address challenges promptly.
+    \item Scope Changes: Maintain flexibility and adapt the project plan as needed, adjusting the project scope based on evolving requirements.
+\end{itemize}
+
+\section*{Outcome}
+At the end of this project, we anticipate the following outcomes:
+\begin{itemize}
+    \item A comprehensive report discussing the CTF platform's design, implementation, challenges, and lessons learned.
+    \item The complete codebase and any relevant data generated during the development process.
+\end{itemize}
+
+\bibliographystyle{plain}
+\bibliography{refs}
+\end{document}
