@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Enable Ingress",
+            "group": "build",
+            "type": "shell",
+            "command": "minikube addons enable ingress"
+        },
+    ]
+}
