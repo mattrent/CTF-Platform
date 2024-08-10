@@ -1,5 +1,5 @@
 theme: jekyll-theme-slate
 title: CTF Platform
 description: >
-  This Master's Thesis aims to develop a robust and secure Capture The Flag (CTF) platform to challenge and enhance participants' cybersecurity skills. We will focus on accessibility by deploying on cloud infrastructure, leveraging modern DevOps tools for infrastructure, ensuring strong security through containerization and VMs, and optimizing resource utilization to minimize the server footprint.
+  Capture The Flag (CTF) platform development focussing on accessibility by deploying on cloud infrastructure, leveraging modern DevOps tools for infrastructure, ensuring strong security through containerization and VMs, and optimizing resource utilization to minimize the server footprint.
 show_downloads: true
