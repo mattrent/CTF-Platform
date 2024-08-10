@@ -1,3 +1,6 @@
 project-description/*
 !project-description/project-description.tex
 !project-description/refs.bib
+
+bin/
+node_modules/

@@ -14,7 +14,7 @@ CTF is a type of cybersecurity competition designed to challenge participants' k
 
 As cybersecurity challenges become increasingly complex, educational institutions and organizations seek effective ways to train students and professionals in offensive and defensive techniques. We aim to facilitate this by exploring the development of a CTF platform tacking into account the following aspects.
 
-* To ease the deployment we would like to deploy the CTF platform on a cloud infrastructure. We will explore the usage of The University of Southern Denmark's UCloud\cite{ucloud} as a starting point, possibly using networking tools like Tailscale to facilitate communication between nodes. If we encounter significant challenges, we remain open to exploring other cloud providers to ensure seamless deployment and accessibility.
+* To ease the deployment we would like to deploy the CTF platform on a cloud infrastructure. We will explore the usage of The University of Southern Denmark's UCloud as a starting point, possibly using networking tools like Tailscale to facilitate communication between nodes. If we encounter significant challenges, we remain open to exploring other cloud providers to ensure seamless deployment and accessibility.
 * We would like to leveraging modern DevOps tools like Pulumi, Keycloak, Kubernetes, Jenkins, Prometheus, Grafana, CTFd, Docker, KubeVirt, local image registries, and BLOBs, for deployment and orchestration. Establishing a well-organized, secure deployment pipeline is essential. Our goal is to automate the deployment process while maintaining security best practices. This pipeline will facilitate efficient deployments of the platform and reliable deployments of the CTF challenges in question.
 * A CTF platform places a strong emphasis on isolation to prevent interference between challenges. To achieve this, we will explore containerization strategies, ensuring that no privileged containers compromise the integrity of other challenges. Virtual machines (VMs) will play a crucial role in maintaining this isolation. Furthermore, we will carefully assess network security risks to safeguard our platform and consider how players will interact with our exposed services/endpoints.
 * Beyond user experience, a CTF platform should try to minimize the resource footprint on the server. Our goal is to optimize resource utilization, ensuring efficient use of computational resources while maintaining robust functionality.
@@ -22,5 +22,5 @@ As cybersecurity challenges become increasingly complex, educational institution
 ## Requirements
 To run the platform locally, you will need to have the following tools installed:
 * [Minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fdebian+package)
-* [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
 * [Pulumi](https://www.pulumi.com/docs/install/)
+* [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
