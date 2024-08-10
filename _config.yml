@@ -1,9 +1,5 @@
 theme: jekyll-theme-slate
 title: CTF Platform
 description: >
-  The motivation behind this Master's Thesis lies in the need for a robust and secure Capture The Flag (CTF) platform. 
-  CTF is a type of cybersecurity competition designed to challenge participants' knowledge and skills in various aspects of information security. 
-  These competitions are often used as educational tools, team-building exercises, or even as recruiting grounds for cybersecurity talent. 
-  As cybersecurity challenges become increasingly complex, educational institutions and organizations seek effective ways to train students and professionals in offensive and defensive techniques. 
-  We aim to facilitate this by exploring the development of a CTF platform taking into account the following aspects.
+  This Master's Thesis aims to develop a robust and secure Capture The Flag (CTF) platform to challenge and enhance participants' cybersecurity skills. We will focus on accessibility by deploying on cloud infrastructure, leveraging modern DevOps tools for infrastructure, ensuring strong security through containerization and VMs, and optimizing resource utilization to minimize the server footprint.
 show_downloads: true
