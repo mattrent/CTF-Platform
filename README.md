@@ -24,3 +24,7 @@ To run the platform locally, you will need to have the following tools installed
 * [Minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fdebian+package)
 * [Pulumi](https://www.pulumi.com/docs/install/)
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
+
+## TODO
+- [ ] Optimize deployment using [Nx](https://nx.dev/getting-started/intro)
+- [ ] Configure Keycloak to use external AD
