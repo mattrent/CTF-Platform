@@ -35,7 +35,7 @@ export function singleContainerDeploymentTemplate(
     volumes?: Volume[],
     containerOverrides?: Partial<k8s.types.input.core.v1.Container>,
     argOverrides?: DeploymentArgs
-) : Deployment {
+): Deployment {
 
     const baseConfig: DeploymentArgs = {
         metadata: { namespace: config.ns },
