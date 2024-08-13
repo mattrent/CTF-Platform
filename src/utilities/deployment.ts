@@ -4,9 +4,9 @@ import * as k8s from "@pulumi/kubernetes";
 
 interface Container {
     image: Output<string> | string;
-    name: string;
     imagePullPolicy?: string;
     env?: { [key: string]: string };
+    args?: [string];
     imagePullSecrets?: Output<string>
 }
 
@@ -28,18 +28,14 @@ interface Volume {
     type: VolumeType;
 }
 
-interface VolumeConfig {
-    volumeMounts: Volume[];
-}
-
-export function singleContainerDeploymentInterface(
+export function singleContainerDeploymentTemplate(
     resource: string,
     config: DeploymentConfig,
     container: Container,
-    volumes?: VolumeConfig,
+    volumes?: Volume[],
     containerOverrides?: Partial<k8s.types.input.core.v1.Container>,
     argOverrides?: DeploymentArgs
-) {
+) : Deployment {
 
     const baseConfig: DeploymentArgs = {
         metadata: { namespace: config.ns },
@@ -48,20 +44,22 @@ export function singleContainerDeploymentInterface(
             replicas: config.replicas,
             template: {
                 metadata: {
-                    labels: config.labels
+                    labels: config.labels,
+                    name: resource
                 },
                 spec: {
                     containers: [
                         {
                             image: container.image,
                             imagePullPolicy: container.imagePullPolicy,
-                            name: container.name,
+                            name: resource,
                             env: Object.entries(container.env ?? {}).map(([name, value]) => ({ name: name, value: value })),
-                            volumeMounts: volumes?.volumeMounts,
+                            volumeMounts: volumes,
+                            args: container.args,
                             ...containerOverrides
                         },
                     ],
-                    volumes: volumes?.volumeMounts.map(volumeMount => {
+                    volumes: volumes?.map(volumeMount => {
                         if (volumeMount.type === VolumeType.volume) {
                             return {
                                 name: volumeMount.name,

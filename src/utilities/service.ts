@@ -13,10 +13,11 @@ export function serviceTemplate(
     ns: Output<string> | string,
     ports: Port[],
     selector: Record<string, Input<string>>
-) {
+) : Service {
     return new Service(resource, {
         metadata: {
-            namespace: ns
+            namespace: ns,
+            name: resource
         },
         spec: {
             ports: ports,
