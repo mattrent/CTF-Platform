@@ -8,7 +8,6 @@ config:
     secure: v1:fighScfO+lhUH+2M:7CcMNuFY/mdt5b6MY6d9lymJWoJzK3nt
   authentication:POSTGRES_USER:
     secure: v1:7o+Pfdyo81FCXjxm:x3zphG2dWlPSTv8dSVCjjD70g6FlTAon
-  authentication:host: localhost
-  authentication:keycloak-image: keycloak/keycloak:24.0.5
-  authentication:ns: dev
-  authentication:postgres-image: postgres:14.13
+  authentication:HOST: localhost
+  authentication:KEYCLOAK_IMAGE: keycloak/keycloak:24.0.5
+  authentication:POSTGRES_IMAGE: postgres:14.13

@@ -1,7 +1,7 @@
 import { singleContainerDeploymentTemplate } from "../utilities/deployment";
 import { ingressTemplate } from "../utilities/ingress";
 import { serviceTemplate } from "../utilities/service";
-import { Config } from "@pulumi/pulumi"
+import * as pulumi from "@pulumi/pulumi";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -14,15 +14,21 @@ const appLabels = {
     }
 }
 
-const config = new Config();
+const stack = pulumi.getStack();
+const org = pulumi.getOrganization();
+
+const stackRef = new pulumi.StackReference(`${org}/infrastructure/${stack}`);
+const config = new pulumi.Config();
 
 /* --------------------------------- config --------------------------------- */
 
-const NS = config.require("ns");
-const KEYCLOAK_IMAGE = config.require("keycloak-image");
-const POSTGRES_IMAGE = config.require("postgres-image");
+const NS = stackRef.getOutput("NS").apply(ns => ns as string);
+const KEYCLOAK_IMAGE = config.require("KEYCLOAK_IMAGE");
+const POSTGRES_IMAGE = config.require("POSTGRES_IMAGE");
+const KEYCLOAK_PORT = 8080;
+const POSTGRES_PORT = 5432;
 const DB = "keycloak";
-const HOST = config.require("host");
+const HOST = config.require("HOST");
 
 /* --------------------------------- secrets -------------------------------- */
 
@@ -52,7 +58,7 @@ singleContainerDeploymentTemplate(
 const postgresService = serviceTemplate(
     "postgres-keycloak",
     NS,
-    [{ port: 5432 }],
+    [{ port: POSTGRES_PORT }],
     appLabels.postgres
 )
 
@@ -76,7 +82,7 @@ singleContainerDeploymentTemplate(
             KC_DB_USERNAME: POSTGRES_USER,
             KC_DB_PASSWORD: POSTGRES_PWD,
             KC_DB_URL: postgresService.metadata.name.apply(
-                postgres => `jdbc:postgresql://${postgres}:5432/${DB}`
+                postgres => `jdbc:postgresql://${postgres}:${POSTGRES_PORT}/${DB}`
             )
         }
     }
@@ -85,7 +91,7 @@ singleContainerDeploymentTemplate(
 const keycloakService = serviceTemplate(
     "keycloak",
     NS,
-    [{ port: 8080 }],
+    [{ port: KEYCLOAK_PORT }],
     appLabels.keycloak
 )
 
@@ -102,6 +108,6 @@ ingressTemplate(
         pathType: "ImplementationSpecific",
         path: "/keycloak(/|$)(.*)",
         name: keycloakService.metadata.name,
-        port: 8080
+        port: KEYCLOAK_PORT
     }]
 );

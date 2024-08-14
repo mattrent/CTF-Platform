@@ -10,7 +10,7 @@ interface Path {
 }
 
 interface Config {
-    ns: string;
+    ns: Output<string> | string;
     rt: string;
     bp: string;
 }
