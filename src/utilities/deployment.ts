@@ -5,16 +5,15 @@ import * as k8s from "@pulumi/kubernetes";
 interface Container {
     image: Output<string> | string;
     imagePullPolicy?: string;
-    env?: { [key: string]: string };
+    env?: { [key: string]: Output<string> | string };
     args?: [string];
     imagePullSecrets?: Output<string>
 }
 
 interface DeploymentConfig {
     ns: Output<string> | string;
-    replicas: number;
     matchLabels: Record<string, Input<string>>;
-    labels: Record<string, Input<string>>;
+    replicas?: number;
 }
 
 export enum VolumeType {
@@ -41,17 +40,16 @@ export function singleContainerDeploymentTemplate(
         metadata: { namespace: config.ns },
         spec: {
             selector: { matchLabels: config.matchLabels },
-            replicas: config.replicas,
+            replicas: config.replicas ?? 1,
             template: {
                 metadata: {
-                    labels: config.labels,
-                    name: resource
+                    labels: config.matchLabels
                 },
                 spec: {
                     containers: [
                         {
                             image: container.image,
-                            imagePullPolicy: container.imagePullPolicy,
+                            imagePullPolicy: container.imagePullPolicy ?? "Always",
                             name: resource,
                             env: Object.entries(container.env ?? {}).map(([name, value]) => ({ name: name, value: value })),
                             volumeMounts: volumes,
@@ -77,7 +75,7 @@ export function singleContainerDeploymentTemplate(
         },
     }
 
-    return new Deployment(resource, { ...baseConfig, ...argOverrides });
+    return new Deployment(`${resource}-deployment`, { ...baseConfig, ...argOverrides });
 };
 
 

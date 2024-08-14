@@ -1,28 +1,32 @@
 
 import * as k8s from "@pulumi/kubernetes";
+import { Output } from "@pulumi/pulumi";
 
 interface Path {
     pathType: string;
     path: string;
-    name: string;
+    name: Output<string>;
     port: number;
+}
+
+interface Config {
+    ns: string;
+    rt: string;
+    bp: string;
 }
 
 export function ingressTemplate(
     resource: string,
-    ns: string,
-    rt: string,
-    bp: string,
-    host: string,
+    config: Config,
     paths: Path[]
 ) : k8s.networking.v1.Ingress {
-    return new k8s.networking.v1.Ingress(resource, {
+    return new k8s.networking.v1.Ingress(`${resource}-ingress`, {
         metadata: {
-            namespace: ns,
+            namespace: config.ns,
             name: resource,
             annotations: {
-                "nginx.ingress.kubernetes.io/rewrite-target": rt,
-                "nginx.ingress.kubernetes.io/backend-protocol": bp,
+                "nginx.ingress.kubernetes.io/rewrite-target": config.rt,
+                "nginx.ingress.kubernetes.io/backend-protocol": config.bp,
                 "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
                 "nginx.ingress.kubernetes.io/ssl-passthrough": "true",
                 "nginx.ingress.kubernetes.io/enable-cors": "true",
@@ -34,7 +38,6 @@ export function ingressTemplate(
             ingressClassName: "nginx",
             rules: [
                 {
-                    host: host,
                     http: {
                         paths: paths.map(path => {
                             return {

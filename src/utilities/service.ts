@@ -14,7 +14,7 @@ export function serviceTemplate(
     ports: Port[],
     selector: Record<string, Input<string>>
 ) : Service {
-    return new Service(resource, {
+    return new Service(`${resource}-service`, {
         metadata: {
             namespace: ns,
             name: resource
