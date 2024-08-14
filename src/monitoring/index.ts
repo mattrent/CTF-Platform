@@ -21,6 +21,7 @@ const config = new pulumi.Config();
 
 const NS = stackRef.getOutput("NS").apply(ns => ns as string);
 const GRAFANA_IMAGE = config.require("GRAFANA_IMAGE");
+const GRAFANA_PORT = 3000;
 const HOST = config.require("HOST");
 
 /* --------------------------------- secrets -------------------------------- */
@@ -48,7 +49,7 @@ singleContainerDeploymentTemplate(
 const grafanaService = serviceTemplate(
     "grafana",
     NS,
-    [{ port: 3000 }],
+    [{ port: GRAFANA_PORT }],
     appLabels.grafana
 )
 
@@ -65,6 +66,6 @@ ingressTemplate(
         pathType: "ImplementationSpecific",
         path: "/grafana(/|$)(.*)",
         name: grafanaService.metadata.name,
-        port: 3000
+        port: GRAFANA_PORT
     }]
 );
