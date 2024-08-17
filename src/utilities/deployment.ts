@@ -6,7 +6,7 @@ interface Container {
     image: Output<string> | string;
     imagePullPolicy?: string;
     env?: { [key: string]: Output<string> | string };
-    args?: [string];
+    args?: string[];
     imagePullSecrets?: Output<string>
 }
 
@@ -36,6 +36,11 @@ export function singleContainerDeploymentTemplate(
     argOverrides?: DeploymentArgs
 ): Deployment {
 
+    const volumeMounts = volumes?.map(volume => ({
+        mountPath: volume.mountPath,
+        name: volume.name
+    }));
+
     const baseConfig: DeploymentArgs = {
         metadata: { namespace: config.ns },
         spec: {
@@ -52,7 +57,7 @@ export function singleContainerDeploymentTemplate(
                             imagePullPolicy: container.imagePullPolicy ?? "Always",
                             name: resource,
                             env: Object.entries(container.env ?? {}).map(([name, value]) => ({ name: name, value: value })),
-                            volumeMounts: volumes,
+                            volumeMounts: volumeMounts,
                             args: container.args,
                             ...containerOverrides
                         },

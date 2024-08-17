@@ -1,7 +1,9 @@
-import { singleContainerDeploymentTemplate } from "../utilities/deployment";
+import * as k8s from "@pulumi/kubernetes";
+import * as pulumi from "@pulumi/pulumi";
+import { singleContainerDeploymentTemplate, VolumeType } from "../utilities/deployment";
 import { ingressTemplate } from "../utilities/ingress";
 import { serviceTemplate } from "../utilities/service";
-import * as pulumi from "@pulumi/pulumi";
+import * as fs from 'fs';
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -15,14 +17,12 @@ const appLabels = {
 }
 
 const stack = pulumi.getStack();
-const org = pulumi.getOrganization();
 
-const stackRef = new pulumi.StackReference(`${org}/infrastructure/${stack}`);
 const config = new pulumi.Config();
 
 /* --------------------------------- config --------------------------------- */
 
-const NS = stackRef.getOutput("NS").apply(ns => ns as string);
+const NS = stack;
 const KEYCLOAK_IMAGE = config.require("KEYCLOAK_IMAGE");
 const POSTGRES_IMAGE = config.require("POSTGRES_IMAGE");
 const KEYCLOAK_PORT = 8080;
@@ -64,6 +64,17 @@ const postgresService = serviceTemplate(
 
 /* -------------------------------- keycloak -------------------------------- */
 
+const realmConfiguration = fs.readFileSync("realm.json", "utf-8");
+
+const configMapKeycloak = new k8s.core.v1.ConfigMap("realm-configmap", {
+    metadata: {
+        namespace: NS
+    },
+    data: {
+        "realm.json": realmConfiguration
+    },
+});
+
 singleContainerDeploymentTemplate(
     "keycloak",
     {
@@ -72,7 +83,7 @@ singleContainerDeploymentTemplate(
     },
     {
         image: KEYCLOAK_IMAGE,
-        args: ["start-dev"],
+        args: ["start-dev", "--import-realm"],
         env: {
             KC_HOSTNAME_ADMIN_URL: `https://${HOST}/keycloak/`,
             KC_HOSTNAME_URL: `https://${HOST}/keycloak/`,
@@ -85,7 +96,14 @@ singleContainerDeploymentTemplate(
                 postgres => `jdbc:postgresql://${postgres}:${POSTGRES_PORT}/${DB}`
             )
         }
-    }
+    },
+    [
+        {
+            mountPath: "/opt/keycloak/data/import",
+            type: VolumeType.configMap,
+            name: configMapKeycloak.metadata.name
+        }
+    ]
 );
 
 const keycloakService = serviceTemplate(
