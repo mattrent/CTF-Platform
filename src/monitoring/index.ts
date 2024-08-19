@@ -52,7 +52,6 @@ singleContainerDeploymentTemplate(
             GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "http://keycloak:8080/realms/ctf/protocol/openid-connect/token",
             GF_AUTH_GENERIC_OAUTH_API_URL: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/userinfo`,
             GF_AUTH_GENERIC_OAUTH_AUTH_URL: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/auth`
-
         }
     }
 );
