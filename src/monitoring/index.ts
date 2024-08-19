@@ -1,7 +1,7 @@
+import * as pulumi from "@pulumi/pulumi";
 import { singleContainerDeploymentTemplate } from "../utilities/deployment";
 import { ingressTemplate } from "../utilities/ingress";
 import { serviceTemplate } from "../utilities/service";
-import * as pulumi from "@pulumi/pulumi";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -12,19 +12,18 @@ const appLabels = {
 }
 
 const stack = pulumi.getStack();
+const org = pulumi.getOrganization();
 
+const stackReference = new pulumi.StackReference(`${org}/authentication/${stack}`);
 const config = new pulumi.Config();
 
 /* --------------------------------- config --------------------------------- */
 
 const NS = stack
+const GRAFANA_CLIENT_SECRET = stackReference.requireOutput("grafanaRealmSecret") as pulumi.Output<string>;
 const GRAFANA_IMAGE = config.require("GRAFANA_IMAGE");
 const GRAFANA_PORT = 3000;
 const HOST = config.require("HOST");
-
-/* --------------------------------- secrets -------------------------------- */
-
-// TODO finish configuration of Grafana
 
 /* ------------------------------- deployments ------------------------------ */
 
@@ -38,10 +37,8 @@ singleContainerDeploymentTemplate(
         image: GRAFANA_IMAGE,
         env: {
             GF_SERVER_ROOT_URL: `https://${HOST}/grafana/`,
-            GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: "", // TODO Configure this value
+            GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: GRAFANA_CLIENT_SECRET,
             GF_AUTH_DISABLE_LOGIN_FORM: "true",
-            GF_AUTH_GENERIC_OAUTH_ALLOW_ASSIGN_GRAFANA_ADMIN: "true",
-            GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "true",
             GF_AUTH_GENERIC_OAUTH_CLIENT_ID: "grafana",
             GF_AUTH_GENERIC_OAUTH_EMAIL_ATTRIBUTE_PATH: "email",
             GF_AUTH_GENERIC_OAUTH_ENABLED: "true",
@@ -52,9 +49,9 @@ singleContainerDeploymentTemplate(
             GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT: "true",
             GF_AUTH_GENERIC_OAUTH_SCOPES: "openid",
             GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE: "true", // TODO this should be fixed
-            GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "http://keycloak:8080/realms/DM885/protocol/openid-connect/token",
-            GF_AUTH_GENERIC_OAUTH_API_URL: `https://${HOST}/keycloak/realms/DM885/protocol/openid-connect/userinfo`,
-            GF_AUTH_GENERIC_OAUTH_AUTH_URL: `https://${HOST}/keycloak/realms/DM885/protocol/openid-connect/auth`
+            GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "http://keycloak:8080/realms/ctf/protocol/openid-connect/token",
+            GF_AUTH_GENERIC_OAUTH_API_URL: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/userinfo`,
+            GF_AUTH_GENERIC_OAUTH_AUTH_URL: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/auth`
 
         }
     }

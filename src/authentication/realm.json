@@ -1,6 +1,6 @@
 {
     "id": "f92fc187-208d-4dac-9a0c-5509ebb16712",
-    "realm": "CTF",
+    "realm": "ctf",
     "displayName": "CTF",
     "displayNameHtml": "",
     "notBefore": 0,
@@ -224,8 +224,8 @@
                 "realm-management": [
                   "manage-authorization",
                   "view-authorization",
-                  "manage-users",
                   "impersonation",
+                  "manage-users",
                   "view-clients",
                   "create-client",
                   "query-users",
@@ -237,9 +237,9 @@
                   "manage-realm",
                   "view-realm",
                   "view-identity-providers",
-                  "view-users",
                   "manage-clients",
-                  "query-clients"
+                  "query-clients",
+                  "view-users"
                 ]
               }
             },
@@ -301,7 +301,35 @@
             "attributes": {}
           }
         ],
-        "grafana": [],
+        "grafana": [
+          {
+            "id": "ea77b0bf-1e5c-40a4-9cbe-a58d650a3d2c",
+            "name": "admin",
+            "description": "",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "8ac2185c-a721-4884-83aa-f127328a4047",
+            "attributes": {}
+          },
+          {
+            "id": "1e1d93ed-70f9-4ab8-b39b-bd2eb3dea5ef",
+            "name": "editor",
+            "description": "",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "8ac2185c-a721-4884-83aa-f127328a4047",
+            "attributes": {}
+          },
+          {
+            "id": "7582e57d-50c3-46fb-b7bb-d3404596b3b1",
+            "name": "viewer",
+            "description": "",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "8ac2185c-a721-4884-83aa-f127328a4047",
+            "attributes": {}
+          }
+        ],
         "security-admin-console": [],
         "admin-cli": [],
         "account-console": [],
@@ -500,13 +528,13 @@
         "clientId": "account",
         "name": "${client_account}",
         "rootUrl": "${authBaseUrl}",
-        "baseUrl": "/realms/CTF/account/",
+        "baseUrl": "/realms/ctf/account/",
         "surrogateAuthRequired": false,
         "enabled": true,
         "alwaysDisplayInConsole": false,
         "clientAuthenticatorType": "client-secret",
         "redirectUris": [
-          "/realms/CTF/account/*"
+          "/realms/ctf/account/*"
         ],
         "webOrigins": [],
         "notBefore": 0,
@@ -544,13 +572,13 @@
         "clientId": "account-console",
         "name": "${client_account-console}",
         "rootUrl": "${authBaseUrl}",
-        "baseUrl": "/realms/CTF/account/",
+        "baseUrl": "/realms/ctf/account/",
         "surrogateAuthRequired": false,
         "enabled": true,
         "alwaysDisplayInConsole": false,
         "clientAuthenticatorType": "client-secret",
         "redirectUris": [
-          "/realms/CTF/account/*"
+          "/realms/ctf/account/*"
         ],
         "webOrigins": [],
         "notBefore": 0,
@@ -614,7 +642,9 @@
         "publicClient": true,
         "frontchannelLogout": false,
         "protocol": "openid-connect",
-        "attributes": {},
+        "attributes": {
+          "post.logout.redirect.uris": "+"
+        },
         "authenticationFlowBindingOverrides": {},
         "fullScopeAllowed": false,
         "nodeReRegistrationTimeout": 0,
@@ -652,7 +682,9 @@
         "publicClient": false,
         "frontchannelLogout": false,
         "protocol": "openid-connect",
-        "attributes": {},
+        "attributes": {
+          "post.logout.redirect.uris": "+"
+        },
         "authenticationFlowBindingOverrides": {},
         "fullScopeAllowed": false,
         "nodeReRegistrationTimeout": 0,
@@ -682,7 +714,7 @@
         "enabled": true,
         "alwaysDisplayInConsole": true,
         "clientAuthenticatorType": "client-secret",
-        "secret": "**********",
+        "secret": "${GRAFANA_CLIENT_SECRET}",
         "redirectUris": [
           "https://localhost/grafana/*"
         ],
@@ -701,8 +733,9 @@
         "protocol": "openid-connect",
         "attributes": {
           "oidc.ciba.grant.enabled": "false",
-          "client.secret.creation.time": "1723930874",
+          "client.secret.creation.time": "1724104429",
           "backchannel.logout.session.required": "true",
+          "post.logout.redirect.uris": "+",
           "display.on.consent.screen": "false",
           "oauth2.device.authorization.grant.enabled": "false",
           "backchannel.logout.revoke.offline.tokens": "false"
@@ -712,6 +745,24 @@
         "nodeReRegistrationTimeout": -1,
         "protocolMappers": [
           {
+            "id": "a67a2fc7-c22d-4e37-b1c3-157a5137b3a6",
+            "name": "client roles",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-client-role-mapper",
+            "consentRequired": false,
+            "config": {
+              "introspection.token.claim": "true",
+              "multivalued": "true",
+              "userinfo.token.claim": "false",
+              "user.attribute": "foo",
+              "id.token.claim": "true",
+              "lightweight.claim": "false",
+              "access.token.claim": "true",
+              "claim.name": "roles",
+              "jsonType.label": "String"
+            }
+          },
+          {
             "id": "1e0c8941-f348-44f3-a356-2048dbd0a81e",
             "name": "Client IP Address",
             "protocol": "openid-connect",
@@ -720,6 +771,7 @@
             "config": {
               "user.session.note": "clientAddress",
               "introspection.token.claim": "true",
+              "userinfo.token.claim": "true",
               "id.token.claim": "true",
               "access.token.claim": "true",
               "claim.name": "clientAddress",
@@ -735,6 +787,7 @@
             "config": {
               "user.session.note": "clientHost",
               "introspection.token.claim": "true",
+              "userinfo.token.claim": "true",
               "id.token.claim": "true",
               "access.token.claim": "true",
               "claim.name": "clientHost",
@@ -750,6 +803,7 @@
             "config": {
               "user.session.note": "client_id",
               "introspection.token.claim": "true",
+              "userinfo.token.claim": "true",
               "id.token.claim": "true",
               "access.token.claim": "true",
               "claim.name": "client_id",
@@ -791,7 +845,9 @@
         "publicClient": false,
         "frontchannelLogout": false,
         "protocol": "openid-connect",
-        "attributes": {},
+        "attributes": {
+          "post.logout.redirect.uris": "+"
+        },
         "authenticationFlowBindingOverrides": {},
         "fullScopeAllowed": false,
         "nodeReRegistrationTimeout": 0,
@@ -814,13 +870,13 @@
         "clientId": "security-admin-console",
         "name": "${client_security-admin-console}",
         "rootUrl": "${authAdminUrl}",
-        "baseUrl": "/admin/CTF/console/",
+        "baseUrl": "/admin/ctf/console/",
         "surrogateAuthRequired": false,
         "enabled": true,
         "alwaysDisplayInConsole": false,
         "clientAuthenticatorType": "client-secret",
         "redirectUris": [
-          "/admin/CTF/console/*"
+          "/admin/ctf/console/*"
         ],
         "webOrigins": [
           "+"
@@ -1153,7 +1209,8 @@
             "config": {
               "id.token.claim": "true",
               "introspection.token.claim": "true",
-              "access.token.claim": "true"
+              "access.token.claim": "true",
+              "userinfo.token.claim": "true"
             }
           }
         ]
@@ -1339,6 +1396,7 @@
             "config": {
               "introspection.token.claim": "true",
               "multivalued": "true",
+              "userinfo.token.claim": "true",
               "user.attribute": "foo",
               "id.token.claim": "true",
               "access.token.claim": "true",
@@ -1469,14 +1527,14 @@
           "subComponents": {},
           "config": {
             "allowed-protocol-mapper-types": [
+              "oidc-full-name-mapper",
+              "saml-user-property-mapper",
+              "saml-role-list-mapper",
               "oidc-address-mapper",
               "oidc-sha256-pairwise-sub-mapper",
+              "oidc-usermodel-attribute-mapper",
               "saml-user-attribute-mapper",
-              "oidc-usermodel-property-mapper",
-              "oidc-full-name-mapper",
-              "saml-role-list-mapper",
-              "saml-user-property-mapper",
-              "oidc-usermodel-attribute-mapper"
+              "oidc-usermodel-property-mapper"
             ]
           }
         },
@@ -1489,13 +1547,13 @@
           "config": {
             "allowed-protocol-mapper-types": [
               "oidc-sha256-pairwise-sub-mapper",
-              "saml-user-property-mapper",
               "saml-user-attribute-mapper",
-              "oidc-usermodel-property-mapper",
+              "saml-role-list-mapper",
+              "oidc-full-name-mapper",
               "oidc-usermodel-attribute-mapper",
               "oidc-address-mapper",
-              "oidc-full-name-mapper",
-              "saml-role-list-mapper"
+              "saml-user-property-mapper",
+              "oidc-usermodel-property-mapper"
             ]
           }
         },
@@ -2258,8 +2316,8 @@
     "attributes": {
       "cibaBackchannelTokenDeliveryMode": "poll",
       "cibaAuthRequestedUserHint": "login_hint",
-      "oauth2DevicePollingInterval": "5",
       "clientOfflineSessionMaxLifespan": "0",
+      "oauth2DevicePollingInterval": "5",
       "clientSessionIdleTimeout": "0",
       "clientOfflineSessionIdleTimeout": "0",
       "cibaInterval": "5",

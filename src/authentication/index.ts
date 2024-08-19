@@ -1,9 +1,11 @@
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
+import * as crypto from "crypto";
+import * as fs from 'fs';
 import { singleContainerDeploymentTemplate, VolumeType } from "../utilities/deployment";
 import { ingressTemplate } from "../utilities/ingress";
+import { envSubst } from "../utilities/misc";
 import { serviceTemplate } from "../utilities/service";
-import * as fs from 'fs';
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -25,6 +27,7 @@ const config = new pulumi.Config();
 const NS = stack;
 const KEYCLOAK_IMAGE = config.require("KEYCLOAK_IMAGE");
 const POSTGRES_IMAGE = config.require("POSTGRES_IMAGE");
+const REALM_CONFIGURATION_FILE = config.require("REALM_CONFIGURATION_FILE");
 const KEYCLOAK_PORT = 8080;
 const POSTGRES_PORT = 5432;
 const DB = "keycloak";
@@ -38,6 +41,8 @@ const KEYCLOAK_USER = config.requireSecret("KEYCLOAK_USER");
 const KEYCLOAK_PWD = config.requireSecret("KEYCLOAK_PWD");
 
 /* -------------------------------- postgres -------------------------------- */
+
+// TODO Add PV to deployment
 
 singleContainerDeploymentTemplate(
     "postgres-keycloak",
@@ -64,7 +69,10 @@ const postgresService = serviceTemplate(
 
 /* -------------------------------- keycloak -------------------------------- */
 
-const realmConfiguration = fs.readFileSync("realm.json", "utf-8");
+let realmConfiguration = fs.readFileSync(REALM_CONFIGURATION_FILE, "utf-8");
+
+const realmSecret = crypto.randomBytes(32).toString("hex");
+realmConfiguration = envSubst(realmConfiguration, "GRAFANA_CLIENT_SECRET", realmSecret);
 
 const configMapKeycloak = new k8s.core.v1.ConfigMap("realm-configmap", {
     metadata: {
@@ -129,3 +137,7 @@ ingressTemplate(
         port: KEYCLOAK_PORT
     }]
 );
+
+/* --------------------------------- export --------------------------------- */
+
+export const grafanaRealmSecret = pulumi.secret(realmSecret);

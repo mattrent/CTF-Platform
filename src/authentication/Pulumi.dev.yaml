@@ -1,13 +1,14 @@
 encryptionsalt: v1:YMYAEkyvB5o=:v1:XCJkE4ADyAs1PoPk:zetPZSUI6YrenfBfwr8DKFwxwzAyyw==
 config:
+  authentication:HOST: localhost
+  authentication:KEYCLOAK_IMAGE: keycloak/keycloak:24.0.5
   authentication:KEYCLOAK_PWD:
     secure: v1:e/I8Vg7qe/ZJHf3y:NgeFoz7T45ChzTZmfTQsWdUS8P8T
   authentication:KEYCLOAK_USER:
     secure: v1:qWRJgkR7q8fslfrK:AislbO0WaN6KQTq3wN6RIXPZ6vfx
+  authentication:POSTGRES_IMAGE: postgres:14.13
   authentication:POSTGRES_PWD:
     secure: v1:fighScfO+lhUH+2M:7CcMNuFY/mdt5b6MY6d9lymJWoJzK3nt
   authentication:POSTGRES_USER:
     secure: v1:7o+Pfdyo81FCXjxm:x3zphG2dWlPSTv8dSVCjjD70g6FlTAon
-  authentication:HOST: localhost
-  authentication:KEYCLOAK_IMAGE: keycloak/keycloak:24.0.5
-  authentication:POSTGRES_IMAGE: postgres:14.13
+  authentication:REALM_CONFIGURATION_FILE: realm.json
