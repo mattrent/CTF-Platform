@@ -7,5 +7,29 @@
             "type": "shell",
             "command": "minikube addons enable ingress"
         },
+        {
+            "label": "Deploy infrastructure",
+            "group": "build",
+            "type": "shell",
+            "command": "cd src/infrastructure && pulumi up --stack dev -y"
+        },
+        {
+            "label": "Deploy authentication",
+            "group": "build",
+            "type": "shell",
+            "command": "cd src/authentication && pulumi up --stack dev -y"
+        },
+        {
+            "label": "Deploy monitoring",
+            "group": "build",
+            "type": "shell",
+            "command": "cd src/monitoring && pulumi up --stack dev -y"
+        },
+        {
+            "label": "Deploy everything",
+            "group": "build",
+            "dependsOrder": "sequence",
+            "dependsOn": ["Enable Ingress", "Deploy infrastructure", "Deploy authentication", "Deploy monitoring"]
+        },
     ]
 }

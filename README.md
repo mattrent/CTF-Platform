@@ -25,6 +25,23 @@ To run the platform locally, you will need to have the following tools installed
 * [Pulumi](https://www.pulumi.com/docs/install/)
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
 
+
+## Getting started
+Currently the only stack available is the dev. A stack within a project can be deployed using the command 
+
+
+```
+pulumi up --stack dev
+```
+
+In order to get a fully running system, then you need to enable the ingress add-on and deploy the following projects:
+
+* infrastructure
+* authentication
+* monitoring
+
+You can also just execute the VSCode task `deploy everyting`.
+
 ## TODO
 - [ ] Optimize deployment using [Nx](https://nx.dev/getting-started/intro)
 - [ ] Configure Keycloak to use external AD
