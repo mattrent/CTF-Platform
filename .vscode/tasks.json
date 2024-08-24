@@ -11,25 +11,50 @@
             "label": "Deploy infrastructure",
             "group": "build",
             "type": "shell",
-            "command": "cd src/infrastructure && pulumi up --stack dev -y"
+            "command": "cd src/infrastructure && pulumi up --stack dev -y",
         },
         {
             "label": "Deploy authentication",
             "group": "build",
             "type": "shell",
-            "command": "cd src/authentication && pulumi up --stack dev -y"
+            "command": "cd src/authentication && pulumi up --stack dev -y",
+            "dependsOn": ["Deploy infrastructure"]
         },
         {
             "label": "Deploy monitoring",
             "group": "build",
             "type": "shell",
-            "command": "cd src/monitoring && pulumi up --stack dev -y"
+            "command": "cd src/monitoring && pulumi up --stack dev -y",
+            "dependsOn": ["Deploy infrastructure"]
+        },
+        {
+            "label": "Destroy infrastructure",
+            "group": "build",
+            "type": "shell",
+            "command": "cd src/infrastructure && pulumi destroy --stack dev -y",
+        },
+        {
+            "label": "Destroy authentication",
+            "group": "build",
+            "type": "shell",
+            "command": "cd src/authentication && pulumi destroy --stack dev -y",
+        },
+        {
+            "label": "Destroy monitoring",
+            "group": "build",
+            "type": "shell",
+            "command": "cd src/monitoring && pulumi destroy --stack dev -y",
+            "dependsOn": ["Deploy authentication"]
         },
         {
             "label": "Deploy everything",
             "group": "build",
-            "dependsOrder": "sequence",
-            "dependsOn": ["Enable Ingress", "Deploy infrastructure", "Deploy authentication", "Deploy monitoring"]
+            "dependsOn": ["Deploy infrastructure", "Deploy authentication", "Deploy monitoring"]
+        },
+        {
+            "label": "Destroy everything",
+            "group": "build",
+            "dependsOn": ["Destroy infrastructure", "Destroy authentication", "Destroy monitoring"]
         },
     ]
 }
