@@ -1,4 +1,3 @@
 encryptionsalt: v1:dD3UZ13UAKo=:v1:WVk6qrwPj6dzlqpW:dk7gvr8AVTcoit94RPtYUssn+yoEVg==
 config:
-  monitoring:GRAFANA_IMAGE: grafana/grafana:11.1.4
   monitoring:HOST: localhost

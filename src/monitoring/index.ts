@@ -1,15 +1,7 @@
+import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
-import { singleContainerDeploymentTemplate } from "../utilities/deployment";
-import { ingressTemplate } from "../utilities/ingress";
-import { serviceTemplate } from "../utilities/service";
 
 /* ------------------------------ prerequisite ------------------------------ */
-
-const appLabels = {
-    grafana: {
-        app: "grafana"
-    }
-}
 
 const stack = pulumi.getStack();
 const org = pulumi.getOrganization();
@@ -20,64 +12,116 @@ const config = new pulumi.Config();
 /* --------------------------------- config --------------------------------- */
 
 const NS = stack
-const GRAFANA_CLIENT_SECRET = stackReference.requireOutput("grafanaRealmSecret") as pulumi.Output<string>;
-const GRAFANA_IMAGE = config.require("GRAFANA_IMAGE");
-const GRAFANA_PORT = 3000;
+const GRAFANA_CLIENT_SECRET =
+    stackReference.requireOutput("grafanaRealmSecret") as pulumi.Output<string>;
 const HOST = config.require("HOST");
 
-/* ------------------------------- deployments ------------------------------ */
+/* --------------------------------- Grafana -------------------------------- */
 
-singleContainerDeploymentTemplate(
-    "grafana",
-    {
-        ns: NS,
-        matchLabels: appLabels.grafana
+new k8s.helm.v3.Chart("grafana", {
+    namespace: NS,
+    chart: "grafana",
+    fetchOpts: {
+        repo: "https://grafana.github.io/helm-charts",
     },
-    {
-        image: GRAFANA_IMAGE,
-        env: {
-            GF_SERVER_ROOT_URL: `https://${HOST}/grafana/`,
-            GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: GRAFANA_CLIENT_SECRET,
-            GF_AUTH_DISABLE_LOGIN_FORM: "true",
-            GF_AUTH_GENERIC_OAUTH_CLIENT_ID: "grafana",
-            GF_AUTH_GENERIC_OAUTH_EMAIL_ATTRIBUTE_PATH: "email",
-            GF_AUTH_GENERIC_OAUTH_ENABLED: "true",
-            GF_AUTH_GENERIC_OAUTH_LOGIN_ATTRIBUTE_PATH: "username",
-            GF_AUTH_GENERIC_OAUTH_NAME: "Keycloak-OAuth",
-            GF_AUTH_GENERIC_OAUTH_NAME_ATTRIBUTE_PATH: "full_name",
-            GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "contains(roles[*], 'admin') && 'Admin' || contains(roles[*], 'editor') && 'Editor' || contains(roles[*], 'viewer') && 'Viewer'", // JMESPath
-            GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT: "true",
-            GF_AUTH_GENERIC_OAUTH_SCOPES: "openid",
-            GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE: "true", // TODO this should be fixed
-            GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "http://keycloak:8080/realms/ctf/protocol/openid-connect/token",
-            GF_AUTH_GENERIC_OAUTH_API_URL: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/userinfo`,
-            GF_AUTH_GENERIC_OAUTH_AUTH_URL: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/auth`
+    values: {
+        assertNoLeakedSecrets: false,
+        "grafana.ini": {
+            auth: {
+                disable_login_form: true
+            },
+            "auth.generic_oauth": {
+                enabled: true,
+                name: "Keycloak-OAuth",
+                allow_sign_up: false,
+                client_id: "grafana",
+                client_secret: GRAFANA_CLIENT_SECRET,
+                scopes: "openid email profile offline_access roles",
+                email_attribute_path: "email",
+                login_attribute_path: "username",
+                name_attribute_path: "full_name",
+                auth_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/auth`,
+                token_url: `http://keycloak:8080/realms/ctf/protocol/openid-connect/token`,
+                api_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/userinfo`,
+                role_attribute_path: "contains(roles[*], 'admin') && 'Admin' || contains(roles[*], 'editor') && 'Editor' || 'Viewer'"
+            },
+            server: {
+                root_url: `https://${HOST}/grafana/`
+            }
+        },
+        ingress: {
+            enabled: true,
+            ingressClassName: "nginx",
+            path: "/grafana(/|$)(.*)",
+            pathType: "ImplementationSpecific",
+            hosts: [HOST],
+            annotations: {
+                "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+            }
         }
     }
-);
+});
 
-/* -------------------------------- services -------------------------------- */
+/* ------------------------------- Prometheus ------------------------------- */
 
-const grafanaService = serviceTemplate(
-    "grafana",
-    NS,
-    [{ port: GRAFANA_PORT }],
-    appLabels.grafana
-)
-
-/* --------------------------------- ingress -------------------------------- */
-
-ingressTemplate(
-    "grafana",
-    {
-        ns: NS,
-        rt: "/$2",
-        bp: "HTTP"
+new k8s.helm.v3.Chart("prometheus", {
+    namespace: NS,
+    chart: "prometheus",
+    fetchOpts: {
+        repo: "https://prometheus-community.github.io/helm-charts",
     },
-    [{
-        pathType: "ImplementationSpecific",
-        path: "/grafana(/|$)(.*)",
-        name: grafanaService.metadata.name,
-        port: GRAFANA_PORT
-    }]
-);
+    values: {
+        "alertmanager": {
+            enabled: false,
+        },
+        "kube-state-metrics": {
+            enabled: false
+        },
+        "prometheus-node-exporter": {
+            enabled: false
+        },
+        "prometheus-pushgateway": {
+            enabled: false
+        }
+    }
+});
+
+/* ---------------------------------- Loki ---------------------------------- */
+
+// new k8s.helm.v3.Chart("loki", {
+//     namespace: NS,
+//     chart: "loki",
+//     fetchOpts: {
+//         repo: "https://grafana.github.io/helm-charts",
+//     }
+// });
+
+/* -------------------------------- Promtail -------------------------------- */
+
+new k8s.helm.v3.Chart("promtail", {
+    namespace: NS,
+    chart: "promtail",
+    fetchOpts: {
+        repo: "https://grafana.github.io/helm-charts",
+    }
+});
+
+/* ------------------------------ Node-exporter ----------------------------- */
+
+new k8s.helm.v3.Chart("node-exporter", {
+    namespace: NS,
+    chart: "prometheus-node-exporter",
+    fetchOpts: {
+        repo: "https://prometheus-community.github.io/helm-charts",
+    }
+});
+
+/* --------------------------- Kube-state-metrics --------------------------- */
+
+new k8s.helm.v3.Chart("kube-metrics", {
+    namespace: NS,
+    chart: "kube-state-metrics",
+    fetchOpts: {
+        repo: "https://prometheus-community.github.io/helm-charts",
+    }
+});

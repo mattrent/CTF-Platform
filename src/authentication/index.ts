@@ -128,7 +128,8 @@ ingressTemplate(
     {
         ns: NS,
         rt: "/$2",
-        bp: "HTTP"
+        bp: "HTTP",
+        host: HOST
     },
     [{
         pathType: "ImplementationSpecific",

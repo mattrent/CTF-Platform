@@ -2,12 +2,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Enable Ingress",
-            "group": "build",
-            "type": "shell",
-            "command": "minikube addons enable ingress"
-        },
-        {
             "label": "Deploy infrastructure",
             "group": "build",
             "type": "shell",
@@ -25,7 +19,8 @@
             "group": "build",
             "type": "shell",
             "command": "cd src/monitoring && pulumi up --stack dev -y",
-            "dependsOn": ["Deploy infrastructure"]
+            "dependsOn": ["Deploy infrastructure", "Deploy authentication"],
+            "dependsOrder": "sequence"
         },
         {
             "label": "Destroy infrastructure",
@@ -44,17 +39,18 @@
             "group": "build",
             "type": "shell",
             "command": "cd src/monitoring && pulumi destroy --stack dev -y",
-            "dependsOn": ["Deploy authentication"]
         },
         {
             "label": "Deploy everything",
             "group": "build",
-            "dependsOn": ["Deploy infrastructure", "Deploy authentication", "Deploy monitoring"]
+            "dependsOn": ["Deploy infrastructure", "Deploy authentication", "Deploy monitoring"],
+            "dependsOrder": "sequence"
         },
         {
             "label": "Destroy everything",
             "group": "build",
-            "dependsOn": ["Destroy infrastructure", "Destroy authentication", "Destroy monitoring"]
+            "dependsOn": ["Destroy infrastructure", "Destroy authentication", "Destroy monitoring"],
+            "dependsOrder": "parallel"
         },
     ]
 }

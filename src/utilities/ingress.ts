@@ -13,6 +13,7 @@ interface Config {
     ns: Output<string> | string;
     rt: string;
     bp: string;
+    host: string;
 }
 
 export function ingressTemplate(
@@ -38,6 +39,7 @@ export function ingressTemplate(
             ingressClassName: "nginx",
             rules: [
                 {
+                    host: config.host,
                     http: {
                         paths: paths.map(path => {
                             return {
