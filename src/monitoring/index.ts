@@ -25,6 +25,7 @@ new k8s.helm.v3.Chart("grafana", {
         repo: "https://grafana.github.io/helm-charts",
     },
     values: {
+        // https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/configure-authentication/keycloak/
         assertNoLeakedSecrets: false,
         "grafana.ini": {
             auth: {
@@ -33,7 +34,7 @@ new k8s.helm.v3.Chart("grafana", {
             "auth.generic_oauth": {
                 enabled: true,
                 name: "Keycloak-OAuth",
-                allow_sign_up: false,
+                allow_sign_up: true,
                 client_id: "grafana",
                 client_secret: GRAFANA_CLIENT_SECRET,
                 scopes: "openid email profile offline_access roles",
@@ -43,10 +44,30 @@ new k8s.helm.v3.Chart("grafana", {
                 auth_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/auth`,
                 token_url: `http://keycloak:8080/realms/ctf/protocol/openid-connect/token`,
                 api_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/userinfo`,
+                //signout_redirect_url: "https://<PROVIDER_DOMAIN>/auth/realms/<REALM_NAME>/protocol/openid-connect/logout?post_logout_redirect_uri=https%3A%2F%2F<GRAFANA_DOMAIN>%2Flogin",
                 role_attribute_path: "contains(roles[*], 'admin') && 'Admin' || contains(roles[*], 'editor') && 'Editor' || 'Viewer'"
             },
             server: {
                 root_url: `https://${HOST}/grafana/`
+            }
+        },
+        datasources: {
+            "datasources.yaml": {
+                apiVersion: 1,
+                datasources: [
+                    {
+                        name: "Prometheus",
+                        type: "prometheus",
+                        url: "http://prometheus-server",
+                        access: "proxy"
+                    },
+                    {
+                        name: "Loki",
+                        type: "loki",
+                        url: "http://loki-gateway",
+                        access: "proxy"
+                    }
+                ]
             }
         },
         ingress: {
@@ -88,13 +109,53 @@ new k8s.helm.v3.Chart("prometheus", {
 
 /* ---------------------------------- Loki ---------------------------------- */
 
-// new k8s.helm.v3.Chart("loki", {
-//     namespace: NS,
-//     chart: "loki",
-//     fetchOpts: {
-//         repo: "https://grafana.github.io/helm-charts",
-//     }
-// });
+new k8s.helm.v3.Chart("loki", {
+    namespace: NS,
+    chart: "loki",
+    fetchOpts: {
+        repo: "https://grafana.github.io/helm-charts",
+    },
+    values: {
+        // https://grafana.com/docs/loki/latest/setup/install/helm/install-monolithic/
+        deploymentMode: "SingleBinary",
+        loki: {
+            auth_enabled: false,
+            commonConfig: {
+                replication_factor: 1
+            },
+            storage: {
+                type: "filesystem"
+            },
+            schemaConfig: {
+                configs: [
+                    {
+                        from: "2024-01-01",
+                        store: "tsdb",
+                        index: {
+                            prefix: "loki_index_",
+                            period: "24h"
+                        },
+                        object_store: "filesystem",
+                        schema: "v13"
+                    }
+                ]
+            }
+        },
+        // TODO What is this?
+        singleBinary: {
+            replicas: 1
+        },
+        read: {
+            replicas: 0
+        },
+        backend: {
+            replicas: 0
+        },
+        write: {
+            replicas: 0
+        }
+    },
+});
 
 /* -------------------------------- Promtail -------------------------------- */
 
