@@ -70,6 +70,14 @@ new k8s.helm.v3.Chart("grafana", {
                 ]
             }
         },
+        sidecar: {
+          dashboards: {
+            enabled: true,
+            provider: {
+                folder: "Kube Prometheus Stack"
+            }
+          }  
+        },
         dashboardProviders: {
             "dashboardproviders.yaml": {
                 apiVersion: 1,
@@ -181,7 +189,9 @@ new k8s.helm.v3.Chart("kube-prometheus-stack", {
             enabled: false
         },
         grafana: {
-            enabled: false
+            enabled: false,
+            // Tailored dashboards
+            forceDeployDashboards: true
         },
         // https://github.com/dotdc/grafana-dashboards-kubernetes?tab=readme-ov-file#known-issues
         "prometheus-node-exporter": {
