@@ -58,7 +58,7 @@ new k8s.helm.v3.Chart("grafana", {
                     {
                         name: "Prometheus",
                         type: "prometheus",
-                        url: "http://prometheus-server",
+                        url: "http://kube-prometheus-stack-prometheus:9090",
                         access: "proxy"
                     },
                     {
@@ -70,7 +70,6 @@ new k8s.helm.v3.Chart("grafana", {
                 ]
             }
         },
-        // https://github.com/dotdc/grafana-dashboards-kubernetes
         dashboardProviders: {
             "dashboardproviders.yaml": {
                 apiVersion: 1,
@@ -101,40 +100,54 @@ new k8s.helm.v3.Chart("grafana", {
             }
         },
         dashboards: {
+            // https://github.com/dotdc/grafana-dashboards-kubernetes
             "grafana-dashboards-kubernetes": {
+                "k8s-addons-prometheus": {
+                    gnetId: 19105,
+                    revision: 3,
+                    datasource: "Prometheus"
+                },
+                "k8s-addons-trivy-operator": {
+                    gnetId: 16337,
+                    revision: 12,
+                    datasource: "Prometheus"
+                },
                 "k8s-system-api-server": {
-                    url: "https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-api-server.json",
-                    token: ''
+                    gnetId: 15761,
+                    revision: 17,
+                    datasource: "Prometheus"
                 },
                 "k8s-system-coredns": {
-                    url: "https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-system-coredns.json",
-                    token: ''
+                    gnetId: 15762,
+                    revision: 18,
+                    datasource: "Prometheus"
                 },
                 "k8s-views-global": {
-                    url: "https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-global.json",
-                    token: ''
+                    gnetId: 15757,
+                    revision: 37,
+                    datasource: "Prometheus"
                 },
                 "k8s-views-namespaces": {
-                    url: "https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-namespaces.json",
-                    token: ''
+                    gnetId: 15758,
+                    revision: 35,
+                    datasource: "Prometheus"
                 },
                 "k8s-views-nodes": {
-                    url: "https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-nodes.json",
-                    token: ''
+                    gnetId: 15759,
+                    revision: 29,
+                    datasource: "Prometheus"
                 },
                 "k8s-views-pods": {
-                    url: "https://raw.githubusercontent.com/dotdc/grafana-dashboards-kubernetes/master/dashboards/k8s-views-pods.json",
-                    token: ''
-                },
-                // "container-advisor": {
-                //     url: "https://grafana.com/api/dashboards/14282/revisions/1",
-                //     token: ''
-                // }
+                    gnetId: 15760,
+                    revision: 29,
+                    datasource: "Prometheus"
+                }
             },
             "grafana-dashboards-node": {
-                "node-exporter": {
-                    url: "https://raw.githubusercontent.com/rfmoz/grafana-dashboards/master/prometheus/node-exporter-full.json",
-                    token: ''
+                "node-exporter-full": {
+                    gnetId: 1860,
+                    revision: 37,
+                    datasource: "Prometheus"
                 }
             }
         },
@@ -151,28 +164,55 @@ new k8s.helm.v3.Chart("grafana", {
     }
 });
 
-/* ------------------------------- Prometheus ------------------------------- */
+/* -------------------------- kube-prometheus-stack ------------------------- */
 
-new k8s.helm.v3.Chart("prometheus", {
+new k8s.helm.v3.Chart("kube-prometheus-stack", {
     namespace: NS,
-    chart: "prometheus",
+    chart: "kube-prometheus-stack",
     fetchOpts: {
         repo: "https://prometheus-community.github.io/helm-charts",
     },
+    // Includes scraping for cAdvisor
+    // Dependencies listed for easy disabling
     values: {
-        "alertmanager": {
-            enabled: false,
+        crds: {
+            enabled: true
         },
-        "kube-state-metrics": {
+        prometheus: {
+            enabled: true
+        },
+        alertmanager: {
             enabled: false
         },
+        grafana: {
+            enabled: false
+        },
+        kubeStateMetrics: {
+            enabled: true
+        },
+        nodeExporter: {
+            enabled: true
+        },
+        windowsMonitoring: {
+            enabled: true
+        },
+        // https://github.com/dotdc/grafana-dashboards-kubernetes?tab=readme-ov-file#known-issues
         "prometheus-node-exporter": {
-            enabled: false
-        },
-        "prometheus-pushgateway": {
-            enabled: false
+            prometheus: {
+                monitor: {
+                    relabelings: [
+                        {
+                            action: "replace",
+                            sourceLabels: [
+                                "__meta_kubernetes_pod_node_name"
+                            ],
+                            targetLabel: "nodename"
+                        }
+                    ]
+                }
+            }
         }
-    }
+    },
 });
 
 /* ---------------------------------- Loki ---------------------------------- */
@@ -232,25 +272,5 @@ new k8s.helm.v3.Chart("promtail", {
     chart: "promtail",
     fetchOpts: {
         repo: "https://grafana.github.io/helm-charts",
-    }
-});
-
-/* ------------------------------ Node-exporter ----------------------------- */
-
-new k8s.helm.v3.Chart("node-exporter", {
-    namespace: NS,
-    chart: "prometheus-node-exporter",
-    fetchOpts: {
-        repo: "https://prometheus-community.github.io/helm-charts",
-    }
-});
-
-/* --------------------------- Kube-state-metrics --------------------------- */
-
-new k8s.helm.v3.Chart("kube-metrics", {
-    namespace: NS,
-    chart: "kube-state-metrics",
-    fetchOpts: {
-        repo: "https://prometheus-community.github.io/helm-charts",
     }
 });
