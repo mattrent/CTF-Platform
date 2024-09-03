@@ -173,28 +173,15 @@ new k8s.helm.v3.Chart("kube-prometheus-stack", {
         repo: "https://prometheus-community.github.io/helm-charts",
     },
     // Includes scraping for cAdvisor
-    // Dependencies listed for easy disabling
     values: {
         crds: {
-            enabled: true
-        },
-        prometheus: {
-            enabled: true
+            enabled: false
         },
         alertmanager: {
             enabled: false
         },
         grafana: {
             enabled: false
-        },
-        kubeStateMetrics: {
-            enabled: true
-        },
-        nodeExporter: {
-            enabled: true
-        },
-        windowsMonitoring: {
-            enabled: true
         },
         // https://github.com/dotdc/grafana-dashboards-kubernetes?tab=readme-ov-file#known-issues
         "prometheus-node-exporter": {

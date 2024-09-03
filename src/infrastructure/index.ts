@@ -60,3 +60,47 @@ if (stack !== Stack.DEV) {
 //         repo: "https://kubevirt.io/charts", // The repository URL where the chart can be found
 //     },
 // });
+
+
+/* ---------------------------------- CRDs ---------------------------------- */
+
+new k8s.helm.v3.Chart("crds", {
+    namespace: stack,
+    chart: "kube-prometheus-stack",
+    fetchOpts: {
+        repo: "https://prometheus-community.github.io/helm-charts",
+    },
+    values: {
+        // Only need crds (explicit)
+        crds: {
+            enabled: true
+        },
+        prometheus: {
+            enabled: false
+        },
+        alertmanager: {
+            enabled: false
+        },
+        grafana: {
+            enabled: false
+        },
+        kubeStateMetrics: {
+            enabled: false
+        },
+        nodeExporter: {
+            enabled: false
+        },
+        windowsMonitoring: {
+            enabled: false
+        },
+        kubernetesServiceMonitors: {
+            enabled: false
+        },
+        defaultRules: {
+            create: false
+        },
+        prometheusOperator: {
+            enabled: false
+        }
+    },
+});
