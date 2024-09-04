@@ -71,12 +71,12 @@ new k8s.helm.v3.Chart("grafana", {
             }
         },
         sidecar: {
-          dashboards: {
-            enabled: true,
-            provider: {
-                folder: "Kube Prometheus Stack"
+            dashboards: {
+                enabled: true,
+                provider: {
+                    folder: "Kube Prometheus Stack"
+                }
             }
-          }  
         },
         dashboardProviders: {
             "dashboardproviders.yaml": {
@@ -174,7 +174,9 @@ new k8s.helm.v3.Chart("grafana", {
 
 /* -------------------------- kube-prometheus-stack ------------------------- */
 
-new k8s.helm.v3.Chart("kube-prometheus-stack", {
+const kubePrometheusStackRelaseName = "kube-prometheus-stack"
+
+new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
     namespace: NS,
     chart: "kube-prometheus-stack",
     fetchOpts: {
@@ -258,6 +260,24 @@ new k8s.helm.v3.Chart("loki", {
         },
         write: {
             replicas: 0
+        },
+        monitoring: {
+            dashboards: {
+                enabled: true
+            },
+            serviceMonitor: {
+                enabled: true,
+                labels: {
+                    release: kubePrometheusStackRelaseName
+                }
+            }
+        },
+        gateway: {
+            service: {
+                labels: {
+                    "prometheus.io/service-monitor": "false"
+                }
+            }
         }
     },
 });
@@ -269,5 +289,13 @@ new k8s.helm.v3.Chart("promtail", {
     chart: "promtail",
     fetchOpts: {
         repo: "https://grafana.github.io/helm-charts",
+    },
+    values: {
+        serviceMonitor: {
+            enabled: true,
+            labels: {
+                release: kubePrometheusStackRelaseName
+            }
+        }
     }
 });
