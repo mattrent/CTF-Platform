@@ -1,13 +1,14 @@
 import * as command from "@pulumi/command";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
+import axios from 'axios';
 import { Stack } from "../utilities/misc";
 
 /* -------------------------------- namespace ------------------------------- */
 
 const stack = pulumi.getStack();
 
-const namespace = new k8s.core.v1.Namespace("namespace", {
+new k8s.core.v1.Namespace("namespace", {
     metadata: { name: stack },
 });
 
@@ -52,15 +53,39 @@ if (stack !== Stack.DEV) {
 
 // /* ---------------------------- install KubeVirt ---------------------------- */
 
-// const kubevirtManagerChart = new k8s.helm.v3.Chart("kubevirt-manager", {
-//     namespace: "kube-system",               // Change to the desired namespace if necessary
-//     chart: "kubevirt",                      // The name of the chart. Adjust if necessary
-//     version: "latest",                      // Specify the version of kubevirt-manager chart
-//     fetchOpts: {
-//         repo: "https://kubevirt.io/charts", // The repository URL where the chart can be found
-//     },
-// });
+(async () => {
+    // Function to fetch the latest KubeVirt release
+    const RELEASE = await axios.get('https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt')
+    .then(res => res.data.trim())
+    .catch(error => `Error fetching release: ${error.message}`);
 
+    // Apply the KubeVirt operator manifest
+    new k8s.yaml.ConfigFile("kubevirt-operator", {
+        file: `https://github.com/kubevirt/kubevirt/releases/download/${RELEASE}/kubevirt-operator.yaml`,
+    });
+
+    // Apply the KubeVirt CR manifest
+    new k8s.yaml.ConfigFile("kubevirt-cr", {
+        file: `https://github.com/kubevirt/kubevirt/releases/download/${RELEASE}/kubevirt-cr.yaml`
+    });
+})();
+
+
+const softwareEmulationFallback = async () => await command.local.run({
+    command: `kubectl patch kubevirt kubevirt -n kubevirt --type merge -p '{
+        "spec": {
+            "configuration": {
+                "developerConfiguration": {
+                    "useEmulation": true
+                }
+            }
+        }
+    }'`
+});
+
+if (false) {
+    softwareEmulationFallback();
+}
 
 /* ---------------------------------- CRDs ---------------------------------- */
 

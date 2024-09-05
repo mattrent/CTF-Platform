@@ -6,8 +6,9 @@
         "typescript": "^5.0.0"
     },
     "dependencies": {
+        "@pulumi/command": "^1.0.1",
         "@pulumi/kubernetes": "^4.0.0",
         "@pulumi/pulumi": "^3.113.0",
-        "@pulumi/command": "^1.0.1"
+        "axios": "^1.7.7"
     }
 }
