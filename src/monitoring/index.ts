@@ -15,6 +15,7 @@ const NS = stack
 const GRAFANA_CLIENT_SECRET =
     stackReference.requireOutput("grafanaRealmSecret") as pulumi.Output<string>;
 const HOST = config.require("HOST");
+const kubePrometheusStackRelaseName = "kube-prometheus-stack"
 
 /* --------------------------------- Grafana -------------------------------- */
 
@@ -159,6 +160,12 @@ new k8s.helm.v3.Chart("grafana", {
                 }
             }
         },
+        serviceMonitor: {
+            enabled: true,
+            labels: {
+                release: kubePrometheusStackRelaseName
+            }
+        },
         ingress: {
             enabled: true,
             ingressClassName: "nginx",
@@ -173,8 +180,6 @@ new k8s.helm.v3.Chart("grafana", {
 });
 
 /* -------------------------- kube-prometheus-stack ------------------------- */
-
-const kubePrometheusStackRelaseName = "kube-prometheus-stack"
 
 new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
     namespace: NS,
