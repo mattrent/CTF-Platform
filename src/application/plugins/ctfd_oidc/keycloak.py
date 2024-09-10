@@ -9,6 +9,7 @@ from flask import json, redirect, session, url_for
 
 def load(app):
     # --------------------------- plugin configuration --------------------------- #
+
     PLUGIN_PATH = os.path.dirname(__file__)
     with open(f"{PLUGIN_PATH}/config.json") as config_file:
         CONFIG = json.load(config_file)
@@ -18,6 +19,7 @@ def load(app):
     oidc_provider = CONFIG['OAUTHLOGIN_PROVIDER']
 
 # ---------------------------- login functionality --------------------------- #
+
     def retrieve_user_from_database(username):
         user = Users.query.filter_by(email=username).first()
         if user is not None:
@@ -36,6 +38,7 @@ def load(app):
         if user is not None:
             return user
         return create_user(username, displayName)
+    
 # -------------------------- Endpoint configuration -------------------------- #
 
     @app.route('/keycloak', methods=['GET'])
@@ -48,6 +51,7 @@ def load(app):
         return redirect('/')
 
 # ------------------------ Application Reconfiguration ----------------------- #
+
     set_config('registration_visibility', False)
     app.view_functions['auth.login'] = lambda: redirect(url_for('keycloak'))
     app.view_functions['auth.register'] = lambda: ('', 204)

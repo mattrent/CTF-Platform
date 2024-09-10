@@ -1,8 +1,7 @@
 {
     "name": "Keycloak OIDC",
     "route": "/keycloak",
-    "OOIDC_CLIENT_ID": "${OOIDC_CLIENT_ID}",
+    "OOIDC_CLIENT_ID": "ctfd",
     "OIDC_CLIENT_SECRET": "${OIDC_CLIENT_SECRET}",
     "OAUTHLOGIN_PROVIDER": "http://keycloak:8080/realms/ctf"
-
 }
