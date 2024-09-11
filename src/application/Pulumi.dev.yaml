@@ -1,6 +1,4 @@
 encryptionsalt: v1:cmBhEiLHsIc=:v1:dJnXvH6dgqk0iNJF:9EltKb6YQw6aIy8dIGxPwUhJ6aWjkQ==
 config:
-  application:CTFD_IMAGE: ctfd/ctfd.3.7.3
-  application:CTFHOST: localhost
-  application:OIDC_CLIENT_SECRET:
-    secure: v1:mTZi9SUR/WKC93Y0:aPAOZ6WFpTFED/YfSiZgjQ==
+  application:CTFD_IMAGE: ctfd/ctfd:3.7.3
+  application:HOST: localhost

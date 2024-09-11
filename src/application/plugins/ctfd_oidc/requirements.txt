@@ -1,0 +1,2 @@
+python-keycloak
+urllib3==1.26.5

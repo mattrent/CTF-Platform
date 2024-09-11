@@ -1,56 +1,93 @@
 import os
 
-from CTFd import utils
 from CTFd.models import Users, db
 from CTFd.utils import set_config
 from CTFd.utils.security.auth import login_user
-from flask import json, redirect, session, url_for
+from flask import json, redirect, request, session, url_for
+from keycloak import KeycloakOpenID
 
 
 def load(app):
     # --------------------------- plugin configuration --------------------------- #
 
     PLUGIN_PATH = os.path.dirname(__file__)
-    with open(f"{PLUGIN_PATH}/config.json") as config_file:
-        CONFIG = json.load(config_file)
+    with open(f"{PLUGIN_PATH}/config.json", encoding="utf-8") as config_file:
+        config = json.load(config_file)
 
-    oidc_client_id = CONFIG['OOIDC_CLIENT_ID']
-    oidc_client_secret = CONFIG['OIDC_CLIENT_SECRET']
-    oidc_provider = CONFIG['OAUTHLOGIN_PROVIDER']
+    oidc_client_id = config['OIDC_CLIENT_ID']
+    oidc_client_secret = config['OIDC_CLIENT_SECRET']
+    oidc_server = config['OIDC_SERVER']
+    oidc_realm = config['OIDC_REALM']
 
-# ---------------------------- login functionality --------------------------- #
+    # ---------------------------- login functionality --------------------------- #
 
-    def retrieve_user_from_database(username):
-        user = Users.query.filter_by(email=username).first()
+    def retrieve_user_from_database(email):
+        user = Users.query.filter_by(email=email).first()
         if user is not None:
             return user
 
-    def create_user(username, displayName):
+    def create_user(email, name):
         with app.app_context():
-            user = Users(email=username, name=displayName.strip())
+            user = Users(email=email, name=name)
             db.session.add(user)
             db.session.commit()
             db.session.flush()
             return user
 
-    def create_or_get_user(username, displayName):
-        user = retrieve_user_from_database(username)
+    def create_or_get_user(email, name):
+        user = retrieve_user_from_database(email)
         if user is not None:
             return user
-        return create_user(username, displayName)
-    
-# -------------------------- Endpoint configuration -------------------------- #
+        return create_user(email, name)
+
+    # -------------------------- Endpoint configuration -------------------------- #
+
+    keycloak_openid = KeycloakOpenID(
+        server_url=oidc_server,
+        client_id=oidc_client_id,
+        realm_name=oidc_realm,
+        client_secret_key=oidc_client_secret
+    )
 
     @app.route('/keycloak', methods=['GET'])
     def keycloak():
-        provider_user = None  # create user with keycloak
-        session.regenerate()
+        # Redirect to Keycloak for authentication
+        auth_url = keycloak_openid.auth_url(
+            redirect_uri=url_for('keycloak_callback', _external=True),
+            scope='openid email profile roles'
+        )
+        return redirect(auth_url)
+
+    @app.route('/keycloak/callback', methods=['GET'])
+    def keycloak_callback():
+        # Handle the callback from Keycloak
+        code = request.args.get('code')
+        try:
+            token = keycloak_openid.token(
+                grant_type='authorization_code',
+                code=code,
+                redirect_uri=url_for('keycloak_callback', _external=True)
+            )
+            userinfo = keycloak_openid.userinfo(token['access_token'])
+        except ValueError as e:
+            # Handle token exchange or userinfo retrieval errors
+            return str(e), 400
+
+        #username = userinfo['preferred_username']
+        email = userinfo['email']
+        name = userinfo['full_name']
+
+        session.clear()
+        session['user'] = userinfo
+        session['token'] = token
+
+        provider_user = create_or_get_user(email, name)
 
         if provider_user is not None:
             login_user(provider_user)
         return redirect('/')
 
-# ------------------------ Application Reconfiguration ----------------------- #
+    # ------------------------ Application Reconfiguration ----------------------- #
 
     set_config('registration_visibility', False)
     app.view_functions['auth.login'] = lambda: redirect(url_for('keycloak'))

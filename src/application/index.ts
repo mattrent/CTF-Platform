@@ -9,7 +9,6 @@ import { serviceTemplate } from "../utilities/service";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
-const stack = pulumi.getStack();
 const config = new pulumi.Config();
 
 const appLabels = {
@@ -17,13 +16,18 @@ const appLabels = {
     ctfd_db: { app: "ctfd-db" }
 }
 
+const stack = pulumi.getStack();
+const org = pulumi.getOrganization();
+const stackReference = new pulumi.StackReference(`${org}/authentication/${stack}`);
+
 /* --------------------------------- config --------------------------------- */
 
 const NS = stack;
 const CTFD_PORT = 8000
 const CTFD_IMAGE = config.require("CTFD_IMAGE");
 const HOST = config.require("HOST");
-const OIDC_CLIENT_SECRET = config.requireSecret("OIDC_CLIENT_SECRET");
+const CTFD_CLIENT_SECRET =
+    stackReference.requireOutput("ctfdRealmSecret") as pulumi.Output<string>;
 
 /* ----------------------------- loading plugin ----------------------------- */
 
@@ -37,38 +41,48 @@ pluginFiles.forEach((file) => {
 })
 
 const configFile = "config.json"
-configMap[configFile] = envSubst(configMap[configFile], "OIDC_CLIENT_SECRET", "")
 
-const oidcPlugin = new k8s.core.v1.ConfigMap("oidc-plugin", {
-    metadata: {
-        namespace: NS
-    },
-    data: configMap,
-});
+CTFD_CLIENT_SECRET.apply(secret => {
+    configMap[configFile] = envSubst(configMap[configFile], "OIDC_CLIENT_SECRET", secret)
+
+    const oidcPlugin = new k8s.core.v1.ConfigMap("oidc-plugin", {
+        metadata: {
+            namespace: NS
+        },
+        data: configMap,
+    });
 
 /* ------------------------------- deployment ------------------------------- */
 
-singleContainerDeploymentTemplate(
-    "ctfd",
-    {
-        ns: NS,
-        matchLabels: appLabels.ctfd
-    },
-    {
-        image: CTFD_IMAGE,
-        env: {
-            APPLICATION_ROOT: "/ctfd",
-            REVERSE_PROXY: "true"
-        }
-    },
-    [
+    singleContainerDeploymentTemplate(
+        "ctfd",
         {
-            mountPath: "/opt/CTFd/CTFd/plugins/ctfd_oidc",
-            type: VolumeType.configMap,
-            name: oidcPlugin.metadata.name
+            ns: NS,
+            matchLabels: appLabels.ctfd
+        },
+        {
+            image: CTFD_IMAGE,
+            env: {
+                APPLICATION_ROOT: "/ctfd",
+                REVERSE_PROXY: "true"
+            }
+        },
+        [
+            {
+                mountPath: "/opt/CTFd/CTFd/plugins/ctfd_oidc",
+                type: VolumeType.configMap,
+                name: oidcPlugin.metadata.name
+            }
+        ],
+        {
+            // Just because CTFd is stupid
+            command: ["/bin/sh", "-c"],
+            args: [
+                "pip install --no-cache-dir -r CTFd/plugins/ctfd_oidc/requirements.txt && /opt/CTFd/docker-entrypoint.sh"
+            ]
         }
-    ]
-);
+    );
+})
 
 /* --------------------------------- service -------------------------------- */
 

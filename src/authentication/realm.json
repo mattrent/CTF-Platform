@@ -89,6 +89,26 @@
         }
       ],
       "client": {
+        "ctfd": [
+          {
+            "id": "ce6c0410-bc12-40f8-a4f6-3d744711aefc",
+            "name": "user",
+            "description": "",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "b806b5d0-7cd1-4a45-b58a-01c6e6b5a185",
+            "attributes": {}
+          },
+          {
+            "id": "4ddec7d5-a074-4c43-bf21-b5bf6861aa9b",
+            "name": "admin",
+            "description": "",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "b806b5d0-7cd1-4a45-b58a-01c6e6b5a185",
+            "attributes": {}
+          }
+        ],
         "realm-management": [
           {
             "id": "ce2e404b-a25a-4485-bea4-b2d5ae748d41",
@@ -487,6 +507,22 @@
     "webAuthnPolicyPasswordlessExtraOrigins": [],
     "users": [
       {
+        "id": "f02c63f9-475b-4ec7-9d29-945dcdba7e77",
+        "username": "service-account-ctfd",
+        "emailVerified": false,
+        "createdTimestamp": 1725999162160,
+        "enabled": true,
+        "totp": false,
+        "serviceAccountClientId": "ctfd",
+        "disableableCredentialTypes": [],
+        "requiredActions": [],
+        "realmRoles": [
+          "default-roles-ctf"
+        ],
+        "notBefore": 0,
+        "groups": []
+      },
+      {
         "id": "19519986-3491-4bd7-9c82-456617f59b99",
         "username": "service-account-grafana",
         "emailVerified": false,
@@ -703,6 +739,107 @@
         ]
       },
       {
+        "id": "b806b5d0-7cd1-4a45-b58a-01c6e6b5a185",
+        "clientId": "ctfd",
+        "name": "CTFd",
+        "description": "",
+        "rootUrl": "",
+        "adminUrl": "",
+        "baseUrl": "",
+        "surrogateAuthRequired": false,
+        "enabled": true,
+        "alwaysDisplayInConsole": false,
+        "clientAuthenticatorType": "client-secret",
+        "secret": "${CTFD_CLIENT_SECRET}",
+        "redirectUris": [
+          "https://${HOST}/ctfd/*"
+        ],
+        "webOrigins": [
+          "https://${HOST}"
+        ],
+        "notBefore": 0,
+        "bearerOnly": false,
+        "consentRequired": false,
+        "standardFlowEnabled": true,
+        "implicitFlowEnabled": false,
+        "directAccessGrantsEnabled": true,
+        "serviceAccountsEnabled": true,
+        "publicClient": false,
+        "frontchannelLogout": true,
+        "protocol": "openid-connect",
+        "attributes": {
+          "oidc.ciba.grant.enabled": "false",
+          "client.secret.creation.time": "1725999162",
+          "backchannel.logout.session.required": "true",
+          "display.on.consent.screen": "false",
+          "oauth2.device.authorization.grant.enabled": "false",
+          "backchannel.logout.revoke.offline.tokens": "false"
+        },
+        "authenticationFlowBindingOverrides": {},
+        "fullScopeAllowed": true,
+        "nodeReRegistrationTimeout": -1,
+        "protocolMappers": [
+          {
+            "id": "c8cd3fcc-680b-4fe7-9895-9418fa607436",
+            "name": "Client IP Address",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usersessionmodel-note-mapper",
+            "consentRequired": false,
+            "config": {
+              "user.session.note": "clientAddress",
+              "introspection.token.claim": "true",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "clientAddress",
+              "jsonType.label": "String"
+            }
+          },
+          {
+            "id": "88ce2a5b-efb5-466b-ab35-8f08589d855d",
+            "name": "Client Host",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usersessionmodel-note-mapper",
+            "consentRequired": false,
+            "config": {
+              "user.session.note": "clientHost",
+              "introspection.token.claim": "true",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "clientHost",
+              "jsonType.label": "String"
+            }
+          },
+          {
+            "id": "73d17689-f5f8-4072-a86b-6c30bdca1cda",
+            "name": "Client ID",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usersessionmodel-note-mapper",
+            "consentRequired": false,
+            "config": {
+              "user.session.note": "client_id",
+              "introspection.token.claim": "true",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "client_id",
+              "jsonType.label": "String"
+            }
+          }
+        ],
+        "defaultClientScopes": [
+          "web-origins",
+          "acr",
+          "profile",
+          "roles",
+          "email"
+        ],
+        "optionalClientScopes": [
+          "address",
+          "phone",
+          "offline_access",
+          "microprofile-jwt"
+        ]
+      },
+      {
         "id": "8ac2185c-a721-4884-83aa-f127328a4047",
         "clientId": "grafana",
         "name": "Grafana",
@@ -716,10 +853,10 @@
         "clientAuthenticatorType": "client-secret",
         "secret": "${GRAFANA_CLIENT_SECRET}",
         "redirectUris": [
-          "https://localhost/grafana/*"
+          "https://${HOST}/grafana/*"
         ],
         "webOrigins": [
-          "https://localhost"
+          "https://${HOST}"
         ],
         "notBefore": 0,
         "bearerOnly": false,
@@ -1527,14 +1664,14 @@
           "subComponents": {},
           "config": {
             "allowed-protocol-mapper-types": [
-              "oidc-full-name-mapper",
-              "saml-user-property-mapper",
-              "saml-role-list-mapper",
               "oidc-address-mapper",
+              "saml-role-list-mapper",
               "oidc-sha256-pairwise-sub-mapper",
-              "oidc-usermodel-attribute-mapper",
               "saml-user-attribute-mapper",
-              "oidc-usermodel-property-mapper"
+              "oidc-usermodel-attribute-mapper",
+              "oidc-usermodel-property-mapper",
+              "saml-user-property-mapper",
+              "oidc-full-name-mapper"
             ]
           }
         },
@@ -1546,14 +1683,14 @@
           "subComponents": {},
           "config": {
             "allowed-protocol-mapper-types": [
-              "oidc-sha256-pairwise-sub-mapper",
-              "saml-user-attribute-mapper",
-              "saml-role-list-mapper",
+              "oidc-usermodel-property-mapper",
               "oidc-full-name-mapper",
+              "oidc-sha256-pairwise-sub-mapper",
               "oidc-usermodel-attribute-mapper",
               "oidc-address-mapper",
               "saml-user-property-mapper",
-              "oidc-usermodel-property-mapper"
+              "saml-user-attribute-mapper",
+              "saml-role-list-mapper"
             ]
           }
         },

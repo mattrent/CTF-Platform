@@ -1,5 +1,6 @@
 export function envSubst(content: string, envVariable: string, replaceValue: string): string {
-    return content.replace(`${'${' + envVariable + '}'}`, replaceValue);
+    const regex = new RegExp(`\\$\\{${envVariable}\\}`, 'g');
+    return content.replace(regex, replaceValue);
 }
 
 export enum Stack {

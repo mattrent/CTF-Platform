@@ -71,8 +71,12 @@ const postgresService = serviceTemplate(
 
 let realmConfiguration = fs.readFileSync(REALM_CONFIGURATION_FILE, "utf-8");
 
-const realmSecret = crypto.randomBytes(32).toString("hex");
-realmConfiguration = envSubst(realmConfiguration, "GRAFANA_CLIENT_SECRET", realmSecret);
+const grafanaRealmSecret_ = crypto.randomBytes(32).toString("hex");
+const ctfdRealmSecret_ = crypto.randomBytes(32).toString("hex");
+
+realmConfiguration = envSubst(realmConfiguration, "GRAFANA_CLIENT_SECRET", grafanaRealmSecret_);
+realmConfiguration = envSubst(realmConfiguration, "CTFD_CLIENT_SECRET", ctfdRealmSecret_);
+realmConfiguration = envSubst(realmConfiguration, "HOST", HOST);
 
 const configMapKeycloak = new k8s.core.v1.ConfigMap("realm-configmap", {
     metadata: {
@@ -141,4 +145,5 @@ ingressTemplate(
 
 /* --------------------------------- export --------------------------------- */
 
-export const grafanaRealmSecret = pulumi.secret(realmSecret);
+export const grafanaRealmSecret = pulumi.secret(grafanaRealmSecret_);
+export const ctfdRealmSecret = pulumi.secret(ctfdRealmSecret_);
