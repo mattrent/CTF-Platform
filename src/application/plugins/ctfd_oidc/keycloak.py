@@ -3,7 +3,7 @@ import os
 from CTFd.models import Users, db
 from CTFd.utils import set_config
 from CTFd.utils.security.auth import login_user
-from flask import json, redirect, request, session, url_for
+from flask import current_app, json, redirect, request, session, url_for
 from keycloak import KeycloakOpenID
 
 
@@ -54,7 +54,7 @@ def load(app):
         # Redirect to Keycloak for authentication
         auth_url = keycloak_openid.auth_url(
             redirect_uri=url_for('keycloak_callback', _external=True),
-            scope='openid email profile roles'
+            scope='openid'
         )
         return redirect(auth_url)
 
@@ -73,19 +73,19 @@ def load(app):
             # Handle token exchange or userinfo retrieval errors
             return str(e), 400
 
-        #username = userinfo['preferred_username']
         email = userinfo['email']
-        name = userinfo['full_name']
+        name = userinfo['name']
+        provider_user = create_or_get_user(email, name)
 
-        session.clear()
         session['user'] = userinfo
         session['token'] = token
 
-        provider_user = create_or_get_user(email, name)
-
-        if provider_user is not None:
+        with app.app_context():
+            # ? Find better solution? Reattach the user instance
+            provider_user = db.session.merge(provider_user)
             login_user(provider_user)
-        return redirect('/')
+            
+        return redirect(current_app.config.get("APPLICATION_ROOT"))
 
     # ------------------------ Application Reconfiguration ----------------------- #
 

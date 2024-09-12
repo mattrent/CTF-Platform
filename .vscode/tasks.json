@@ -8,6 +8,13 @@
             "command": "cd src/infrastructure && pulumi up --stack dev -y",
         },
         {
+            "label": "Deploy application",
+            "group": "build",
+            "type": "shell",
+            "command": "cd src/application && pulumi up --stack dev -y",
+            "dependsOn": ["Deploy authentication"]
+        },
+        {
             "label": "Deploy authentication",
             "group": "build",
             "type": "shell",
@@ -29,6 +36,12 @@
             "command": "cd src/infrastructure && pulumi destroy --stack dev -y",
         },
         {
+            "label": "Destroy application",
+            "group": "build",
+            "type": "shell",
+            "command": "cd src/application && pulumi destroy --stack dev -y",
+        },
+        {
             "label": "Destroy authentication",
             "group": "build",
             "type": "shell",
@@ -43,13 +56,13 @@
         {
             "label": "Deploy everything",
             "group": "build",
-            "dependsOn": ["Deploy infrastructure", "Deploy authentication", "Deploy monitoring"],
+            "dependsOn": ["Deploy infrastructure", "Deploy authentication", "Deploy application", "Deploy monitoring"],
             "dependsOrder": "sequence"
         },
         {
             "label": "Destroy everything",
             "group": "build",
-            "dependsOn": ["Destroy infrastructure", "Destroy authentication", "Destroy monitoring"],
+            "dependsOn": ["Destroy infrastructure", "Destroy authentication", "Destroy monitoring", "Destroy application"],
             "dependsOrder": "parallel"
         },
     ]
