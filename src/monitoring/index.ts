@@ -34,19 +34,23 @@ new k8s.helm.v3.Chart("grafana", {
             },
             "auth.generic_oauth": {
                 enabled: true,
-                name: "Keycloak-OAuth",
+                use_pkce: true,
                 allow_sign_up: true,
-                client_id: "grafana",
+                use_refresh_token: true,
+                role_attribute_strict: true,
                 client_secret: GRAFANA_CLIENT_SECRET,
-                scopes: "openid email profile offline_access roles",
+                scopes: "openid",
+                client_id: "grafana",
+                name: "Keycloak-OAuth",
+                name_attribute_path: "name",
                 email_attribute_path: "email",
-                login_attribute_path: "username",
-                name_attribute_path: "full_name",
-                auth_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/auth`,
+                id_token_attribute_name: "access_token",
+                login_attribute_path: "preferred_username",
                 token_url: `http://keycloak:8080/realms/ctf/protocol/openid-connect/token`,
+                auth_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/auth`,
                 api_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/userinfo`,
-                //signout_redirect_url: "https://<PROVIDER_DOMAIN>/auth/realms/<REALM_NAME>/protocol/openid-connect/logout?post_logout_redirect_uri=https%3A%2F%2F<GRAFANA_DOMAIN>%2Flogin",
-                role_attribute_path: "contains(roles[*], 'admin') && 'Admin' || contains(roles[*], 'editor') && 'Editor' || 'Viewer'"
+                signout_redirect_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/logout`,
+                role_attribute_path: "contains(resource_access.grafana.roles, 'admin') && 'Admin' || contains(resource_access.grafana.roles, 'editor') && 'Editor' || ''"
             },
             server: {
                 root_url: `https://${HOST}/grafana/`
