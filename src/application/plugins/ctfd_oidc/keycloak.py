@@ -46,7 +46,8 @@ def load(app):
         server_url=oidc_server,
         client_id=oidc_client_id,
         realm_name=oidc_realm,
-        client_secret_key=oidc_client_secret
+        client_secret_key=oidc_client_secret,
+        verify=False
     )
 
     @app.route('/keycloak', methods=['GET'])
@@ -72,13 +73,14 @@ def load(app):
         except ValueError as e:
             # Handle token exchange or userinfo retrieval errors
             return str(e), 400
+        
+        session['token'] = token
 
         email = userinfo['email']
         name = userinfo['name']
         provider_user = create_or_get_user(email, name)
 
-        session['user'] = userinfo
-        session['token'] = token
+        print("-----token-----", token)
 
         with app.app_context():
             # ? Find better solution? Reattach the user instance

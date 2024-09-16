@@ -3,6 +3,6 @@
     "route": "/keycloak",
     "OIDC_CLIENT_ID": "ctfd",
     "OIDC_CLIENT_SECRET": "${OIDC_CLIENT_SECRET}",
-    "OIDC_SERVER": "http://keycloak:8080",
+    "OIDC_SERVER": "https://keycloak/keycloak/",
     "OIDC_REALM": "ctf"
 }

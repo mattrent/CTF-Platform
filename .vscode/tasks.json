@@ -63,7 +63,7 @@
             "label": "Destroy everything",
             "group": "build",
             "dependsOn": ["Destroy infrastructure", "Destroy authentication", "Destroy monitoring", "Destroy application"],
-            "dependsOrder": "parallel"
+            "dependsOrder": "sequence"
         },
     ]
 }

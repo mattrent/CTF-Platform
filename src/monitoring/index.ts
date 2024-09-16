@@ -38,6 +38,7 @@ new k8s.helm.v3.Chart("grafana", {
                 allow_sign_up: true,
                 use_refresh_token: true,
                 role_attribute_strict: true,
+                tls_skip_verify_insecure: true, // TODO not a valid solution
                 client_secret: GRAFANA_CLIENT_SECRET,
                 scopes: "openid",
                 client_id: "grafana",
@@ -46,7 +47,7 @@ new k8s.helm.v3.Chart("grafana", {
                 email_attribute_path: "email",
                 id_token_attribute_name: "access_token",
                 login_attribute_path: "preferred_username",
-                token_url: `http://keycloak:8080/realms/ctf/protocol/openid-connect/token`,
+                token_url: `https://keycloak/keycloak/realms/ctf/protocol/openid-connect/token`,
                 auth_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/auth`,
                 api_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/userinfo`,
                 signout_redirect_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/logout`,
