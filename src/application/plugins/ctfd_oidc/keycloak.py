@@ -1,10 +1,14 @@
 import os
 
-from CTFd.models import Users, db
+import jwt
+from CTFd.models import Admins, Users, db
 from CTFd.utils import set_config
-from CTFd.utils.security.auth import login_user
+from CTFd.utils import user as current_user
+from CTFd.utils.security.auth import login_user, logout_user
 from flask import current_app, json, redirect, request, session, url_for
 from keycloak import KeycloakOpenID
+
+from .utils import Role
 
 
 def load(app):
@@ -20,6 +24,8 @@ def load(app):
     oidc_realm = config['OIDC_REALM']
 
     # ---------------------------- login functionality --------------------------- #
+
+    # USER
 
     def retrieve_user_from_database(email):
         user = Users.query.filter_by(email=email).first()
@@ -39,6 +45,27 @@ def load(app):
         if user is not None:
             return user
         return create_user(email, name)
+
+    # ADMIN
+
+    def retrieve_admin_from_database(email):
+        admin = Admins.query.filter_by(email=email).first()
+        if admin is not None:
+            return admin
+
+    def create_admin(email, name):
+        with app.app_context():
+            admin = Admins(email=email, name=name)
+            db.session.add(admin)
+            db.session.commit()
+            db.session.flush()
+            return admin
+
+    def create_or_get_admin(email, name):
+        admin = retrieve_admin_from_database(email)
+        if admin is not None:
+            return admin
+        return create_admin(email, name)
 
     # -------------------------- Endpoint configuration -------------------------- #
 
@@ -69,30 +96,66 @@ def load(app):
                 code=code,
                 redirect_uri=url_for('keycloak_callback', _external=True)
             )
-            userinfo = keycloak_openid.userinfo(token['access_token'])
         except ValueError as e:
             # Handle token exchange or userinfo retrieval errors
             return str(e), 400
-        
+
         session['token'] = token
+        access_token = token['access_token']
 
-        email = userinfo['email']
-        name = userinfo['name']
-        provider_user = create_or_get_user(email, name)
+        # https://pyjwt.readthedocs.io/en/latest/usage.html#reading-the-claimset-without-validation
+        # ! Token not verified
+        # TODO http://localhost/keycloak/realms/ctf/protocol/openid-connect/certs
+        access_token_decoded = jwt.decode(access_token, ['RS256'], options={
+                                          "verify_signature": False})
 
-        print("-----token-----", token)
+        try:
+            resource_access = access_token_decoded['resource_access']
+            ctfd = resource_access['ctfd']
+            roles = ctfd['roles']
+        except KeyError:
+            keycloak_openid.logout(token['refresh_token'])
+            return "missing required role", 400
+
+        email = access_token_decoded['email']
+        name = access_token_decoded['name']
+
+        if Role.ADMIN in roles:
+            provider_user = create_or_get_admin(email, name)
+        elif Role.USER in roles:
+            provider_user = create_or_get_user(email, name)
 
         with app.app_context():
-            # ? Find better solution? Reattach the user instance
+            # TODO Find better solution? Reattach the user instance
             provider_user = db.session.merge(provider_user)
             login_user(provider_user)
-            
+
+        return redirect(current_app.config.get("APPLICATION_ROOT"))
+
+    @app.route('/keycloak-logout', methods=['GET'])
+    def keycloak_logout():
+
+        if current_user.authed():
+            try:
+                token = session['token']
+                # SSO logout
+                keycloak_openid.logout(token['refresh_token'])
+            except KeyError:
+                # User not logged in via Keycloak
+                #   do not care
+                pass
+
+            # Logout from CTFd
+            logout_user()
+
         return redirect(current_app.config.get("APPLICATION_ROOT"))
 
     # ------------------------ Application Reconfiguration ----------------------- #
 
-    set_config('registration_visibility', False)
+    set_config("registration_visibility", "private")  # ? overwritten by setup
     app.view_functions['auth.login'] = lambda: redirect(url_for('keycloak'))
+    app.view_functions['auth.logout'] = lambda: redirect(
+        url_for('keycloak_logout'))
     app.view_functions['auth.register'] = lambda: ('', 204)
     app.view_functions['auth.reset_password'] = lambda: ('', 204)
     app.view_functions['auth.confirm'] = lambda: ('', 204)

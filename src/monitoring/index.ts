@@ -38,6 +38,7 @@ new k8s.helm.v3.Chart("grafana", {
                 allow_sign_up: true,
                 use_refresh_token: true,
                 role_attribute_strict: true,
+                // ! TLS not verified
                 tls_skip_verify_insecure: true, // TODO not a valid solution
                 client_secret: GRAFANA_CLIENT_SECRET,
                 scopes: "openid",

@@ -1,2 +1,3 @@
 python-keycloak
 urllib3==1.26.5
+PyJWT==2.3.0
