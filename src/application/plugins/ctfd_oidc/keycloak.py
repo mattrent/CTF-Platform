@@ -1,14 +1,14 @@
 import os
 
 import jwt
+from CTFd.cache import clear_challenges, clear_standings, clear_user_session
 from CTFd.models import Admins, Users, db
+from CTFd.schemas.users import UserSchema
 from CTFd.utils import set_config
 from CTFd.utils import user as current_user
 from CTFd.utils.security.auth import login_user, logout_user
-from CTFd.cache import clear_challenges, clear_standings, clear_user_session
 from flask import current_app, json, redirect, request, session, url_for
 from keycloak import KeycloakOpenID
-from CTFd.schemas.users import UserSchema
 
 from .utils import Role
 
