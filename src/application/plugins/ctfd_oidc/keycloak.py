@@ -27,8 +27,6 @@ def load(app):
 
     # ---------------------------- login functionality --------------------------- #
 
-    # USER
-
     def retrieve_user_from_database(email):
         user = Users.query.filter_by(email=email).first()
         if user is not None:
