@@ -5,8 +5,10 @@ from CTFd.models import Admins, Users, db
 from CTFd.utils import set_config
 from CTFd.utils import user as current_user
 from CTFd.utils.security.auth import login_user, logout_user
+from CTFd.cache import clear_challenges, clear_standings, clear_user_session
 from flask import current_app, json, redirect, request, session, url_for
 from keycloak import KeycloakOpenID
+from CTFd.schemas.users import UserSchema
 
 from .utils import Role
 
@@ -33,12 +35,11 @@ def load(app):
             return user
 
     def create_user(email, name):
-        with app.app_context():
-            user = Users(email=email, name=name)
-            db.session.add(user)
-            db.session.commit()
-            db.session.flush()
-            return user
+        user = Users(email=email, name=name)
+        db.session.add(user)
+        db.session.commit()
+        db.session.flush()
+        return user
 
     def create_or_get_user(email, name):
         user = retrieve_user_from_database(email)
@@ -46,26 +47,26 @@ def load(app):
             return user
         return create_user(email, name)
 
-    # ADMIN
+    def patch_user(user_id, data):
+        user = Users.query.filter_by(id=user_id).first_or_404()
+        data["id"] = user_id
 
-    def retrieve_admin_from_database(email):
-        admin = Admins.query.filter_by(email=email).first()
-        if admin is not None:
-            return admin
+        schema = UserSchema(view="admin", instance=user, partial=True)
+        response = schema.load(data)
+        if response.errors:
+            return {"success": False, "errors": response.errors}, 400
 
-    def create_admin(email, name):
-        with app.app_context():
-            admin = Admins(email=email, name=name)
-            db.session.add(admin)
-            db.session.commit()
-            db.session.flush()
-            return admin
+        # This generates the response first before actually changing the type
+        # This avoids an error during User type changes where we change
+        # the polymorphic identity resulting in an ObjectDeletedError
+        # https://github.com/CTFd/CTFd/issues/1794
+        response = schema.dump(response.data)
+        db.session.commit()
+        db.session.close()
 
-    def create_or_get_admin(email, name):
-        admin = retrieve_admin_from_database(email)
-        if admin is not None:
-            return admin
-        return create_admin(email, name)
+        clear_user_session(user_id=user_id)
+        clear_standings()
+        clear_challenges()
 
     # -------------------------- Endpoint configuration -------------------------- #
 
@@ -119,16 +120,21 @@ def load(app):
 
         email = access_token_decoded['email']
         name = access_token_decoded['name']
-
-        if Role.ADMIN in roles:
-            provider_user = create_or_get_admin(email, name)
-        elif Role.USER in roles:
-            provider_user = create_or_get_user(email, name)
+        verified = access_token_decoded['email_verified']
 
         with app.app_context():
-            # TODO Find better solution? Reattach the user instance
-            provider_user = db.session.merge(provider_user)
+            provider_user = create_or_get_user(email, name)
             login_user(provider_user)
+
+            if verified != provider_user.verified:
+                provider_user.verified = verified
+                db.session.commit()
+                db.session.flush()
+
+            if Role.ADMIN in roles and Role.ADMIN != provider_user.type:
+                patch_user(provider_user.id, {'type': Role.ADMIN.value})
+            elif Role.USER in roles and Role.ADMIN not in roles and Role.USER != provider_user.type:
+                patch_user(provider_user.id, {'type': Role.USER.value})
 
         return redirect(current_app.config.get("APPLICATION_ROOT"))
 
@@ -137,9 +143,8 @@ def load(app):
 
         if current_user.authed():
             try:
-                token = session['token']
                 # SSO logout
-                keycloak_openid.logout(token['refresh_token'])
+                keycloak_openid.logout(session['token']['refresh_token'])
             except KeyError:
                 # User not logged in via Keycloak
                 #   do not care
