@@ -68,6 +68,45 @@
 
 \chapter{Introduction}
 
+\chapter{Infrastructure as Code}
+
+
+\chapter{Identity \& Access Management}
+In today's digital landscape, software platforms must support a diverse array of users, each with distinct organizational roles and access rights. This is particularly crucial when developing a CTF platform, where managing user authentication and authorization becomes essential. Authentication verifies a user's identity, while authorization determines their access rights.
+
+A key decision in Identity and Access Management (IAM) is whether to adopt a centralized or decentralized approach. Centralized IAM simplifies management by consolidating user data and access controls in one place, making it easier for administrators to configure and maintain. This approach also facilitates Single Sign-On (SSO), allowing users to authenticate once and gain access to multiple services.
+
+On the other hand, decentralized IAM, though more complex to develop, offers significant benefits. It distributes authentication and authorization responsibilities across various services, enhancing security and resilience. Fortunately, open-source solutions implementing standardized protocols can handle these complexities, providing robust IAM capabilities without the need for extensive in-house development.
+
+By leveraging these solutions, organizations can ensure secure, efficient, and scalable management of user identities and access rights, ultimately enhancing the overall user experience and system security.
+
+For this project, we decided to use the multi-tenant open-source service named Keycloak \Parencite{keycloak}. The choice was not based on academic reasons but rather on prior experience configuring this service. Several alternatives could have been considered, such as Zitadel, Apereo CAS, LemonLDAP::NG, and Gluu Server. These services support the same protocols, with some exceptions: Gluu Server also supports SCIM, while Zitadel does not support SAML. 
+
+It is important to mention that for configuring external authentication on Grafana, we rely on Generic OAuth. This protocol is only surpassed by LDAP in terms of preference \parencite{grafana_authentication}. Further investigation led us to an article by Grafana, which directly recommends Keycloak as an OAuth2 provider, highlighting it as the only open-source service on the list \parencite{grafana_oauth}. This confirms that Keycloak is a sufficient and reliable solution for our needs.
+
+\section{Protocols}
+\todo{Study this}
+
+\section{Realms \& Clients}
+When deploying Keycloak, we rely on a Helm chart maintained by Bitnami \cite{bitnami_keycloak}. Keycloak's documentation can be challenging to navigate, making it difficult to compare the Helm chart with the official documentation to determine how to fill in the Helm \texttt{values.yaml} file. However, after some effort, we managed to configure it. This configuration is part of the monitoring Pulumi project. More interesting is how to configure Keycloak itself to ensure reliable integrations with other services.
+
+The fundamental pillars consist of configuring the realm and corresponding clients. First, what is a realm? A realm is a fundamental concept used to manage a set of users, credentials, roles, and groups. Realms offer isolation, as each realm is independent of others, meaning users, roles, and configurations in one realm do not affect those in another. This isolation enables multi-tenancy, allowing different organizations or projects to use the same Keycloak instance without interfering with each other. Each realm can be configured to use its own identity providers, user federations, authentication flows, and more. Our CTF platform only has a single tenant, so one realm is sufficient. Let's call this realm \texttt{CTF} for clarity.
+
+Next, what is a client? The answer is simple when thinking about typical server-client communication. The server (Keycloak) receives requests from clients (services). It is good practice to create a client for each service using Keycloak. This approach allows for configuring allowed hosts, allowed redirects, and each client having its own client secret (if enabled). This ensures that no clients can conflict, as only the client that should be able to make requests would have the secret to do so. The default settings should be sufficient, as we intend to rely on the access token and foresee the ID token -- more on this in section \ref{sec:token_claims}.
+
+When the realm and clients have been configured, we will need to export the configuration so that it can be stored statically and loaded dynamically when needed. The realm and client settings should not be lost just because the Kubernetes cluster is reset!
+
+\section{Token Claims}\label{sec:token_claims}
+the basic token claim (realm migrations)
+
+\section{Usage}
+\subsection{CTFd}
+\todo{polymorphic identity}
+\subsection{Grafana}
+\subsection{APIs}
+
+\chapter{Hardened Operating Systems}
+
 \cleardoublepage
 \phantomsection
 \addcontentsline{toc}{chapter}{References}
