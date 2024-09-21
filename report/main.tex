@@ -88,7 +88,7 @@ It is important to mention that for configuring external authentication on Grafa
 \todo{Study this}
 
 \section{Realms \& Clients}
-When deploying Keycloak, we rely on a Helm chart maintained by Bitnami \cite{bitnami_keycloak}. Keycloak's documentation can be challenging to navigate, making it difficult to compare the Helm chart with the official documentation to determine how to fill in the Helm \texttt{values.yaml} file. However, after some effort, we managed to configure it. This configuration is part of the monitoring Pulumi project. More interesting is how to configure Keycloak itself to ensure reliable integrations with other services.
+When deploying Keycloak, we rely on a Helm chart maintained by Bitnami \parencite{bitnami_keycloak}. Keycloak's documentation can be challenging to navigate, making it difficult to compare the Helm chart with the official documentation to determine how to fill in the Helm \texttt{values.yaml} file. However, after some effort, we managed to configure it. This configuration is part of the monitoring Pulumi project. More interesting is how to configure Keycloak itself to ensure reliable integrations with other services.
 
 The fundamental pillars consist of configuring the realm and corresponding clients. First, what is a realm? A realm is a fundamental concept used to manage a set of users, credentials, roles, and groups. Realms offer isolation, as each realm is independent of others, meaning users, roles, and configurations in one realm do not affect those in another. This isolation enables multi-tenancy, allowing different organizations or projects to use the same Keycloak instance without interfering with each other. Each realm can be configured to use its own identity providers, user federations, authentication flows, and more. Our CTF platform only has a single tenant, so one realm is sufficient. Let's call this realm \texttt{CTF} for clarity.
 
@@ -96,14 +96,145 @@ Next, what is a client? The answer is simple when thinking about typical server-
 
 When the realm and clients have been configured, we will need to export the configuration so that it can be stored statically and loaded dynamically when needed. The realm and client settings should not be lost just because the Kubernetes cluster is reset!
 
-\section{Token Claims}\label{sec:token_claims}
-the basic token claim (realm migrations)
+\section{Token Claims \& Scopes}\label{sec:token_claims}
+Authenticating using Keycloak will return a JWT in response. This JWT contains both an ID token and an access token. The access token can be used to query the userinfo endpoint if needed. The content or claims within the JWT must be configured in Keycloak. This project uses the default settings, which already provide the necessary information in the access token. However, if roles are needed in either the userinfo or the ID token, a predefined mapper must be configured to include these claims.
 
-\section{Usage}
+The JWT includes some default metadata claims that provide information about who issued the token, when it was issued, and other essential details. The mandatory claims are listed below:
+
+\begin{itemize} 
+    \item \textbf{iss (Issuer)}: Identifies the principal that issued the JWT.
+    \item \textbf{aud (Audience)}: Identifies the recipients that the JWT is intended for. 
+    \item \textbf{exp (Expiration Time)}: Identifies the expiration time on or after which the JWT must not be accepted for processing. 
+    \item \textbf{iat (Issued At)}: Identifies the time at which the JWT was issued. \item 
+    \textbf{jti (JWT ID)}: Provides a unique identifier for the JWT, which can be used to prevent the JWT from being replayed. 
+\end{itemize}
+
+Keycloak includes certain scopes by default without needing to request them explicitly. Each scope can encompass multiple claims, and the descriptions below provide an idea of what those claims might include:
+
+\begin{itemize} 
+    \item \textbf{acr}: The Authentication Context Class Reference, indicating the level or method of authentication. 
+    \item \textbf{basic}: Typically includes basic user information such as user ID (the \texttt{sub} claim) and authentication time. 
+    \item \textbf{email}: Contains the user's email address and a flag indicating whether the email has been verified. 
+    \item 
+    \textbf{profile}: Includes profile information such as name, family name, given name, nickname, and profile picture. 
+    \item \textbf{roles}: Lists the roles assigned to the user, which can be used for authorization purposes. 
+\end{itemize}
+
+There are also scopes that must be explicitly requested. This includes information like address and phone number, which are not included by default to protect user privacy:
+
+\begin{itemize} 
+    \item \textbf{address}: Contains the user's address information. 
+    \item \textbf{microprofile-jwt}: A claim used in MicroProfile JWT for additional JWT token information. 
+    \item \textbf{offline\_access}: Indicates that the token can be used to obtain a refresh token for offline access. 
+    \item \textbf{phone}: Includes the user's phone number and a flag indicating whether the phone number has been verified. 
+\end{itemize}
+
+Being aware of the JWT's content is definitely useful, as will become evident when discussing some of the difficulties that arose when configuring Grafana to use Keycloak for authentication, as detailed in section \ref{sec:grafana_auth}.
+
+\section{Integrations}
+The significance of Keycloak lies in its practical application. In the following sections, we will explore how Keycloak plays a crucial role in managing authentication for our services. Some open-source software, such as Grafana, allows for seamless integration with Keycloak, making the process straightforward. In contrast, other software solutions, like CTFd, require more effort to integrate. The specifics of these integrations will be detailed in the associated sections.
+
 \subsection{CTFd}
-\todo{polymorphic identity}
-\subsection{Grafana}
+CTFd is arguably our most important exposed service from a practical user perspective. As a web-based platform designed to host CTF competitions, it requires an efficient way to manage users. Ideally, we would leverage external identity providers to avoid the hassle of user creation, relying instead on higher-level institutions or organizations to provide these identities.
+
+However, there is a significant challenge: CTFd does not support any form of SSO unless it is either an enterprise or hosted version \Parencite{ctfd_sso}. This limitation forces us to make a choice. Given that CTFd is open-source, we can either 1) modify the source code to implement SSO our way, or 2) create a custom plugin to handle authentication. Modifying the source code would necessitate freezing the version, as future updates could disrupt our changes. Therefore, creating a plugin is the more rational approach.
+
+Fortunately, creating plugins for CTFd is relatively straightforward and well-documented \Parencite{ctfd_plugins}. However, there is a notable issue with how the Docker image is developed. Plugin requirements are installed at build time rather than at the entrypoint, which complicates the process. This means we cannot simply mount the plugin to the specified folder without building the Docker file from scratch, as the necessary pip packages are not installed. The solution was to update the entrypoint -- a simple but inconvenient fix.
+
+The most important detail about the Keycloak plugin developed for CTFd is that it can be configured using the \texttt{config.json} file, and that endpoints can be overwritten as follows:
+
+\begin{minted}{py3}
+app.view_functions['auth.login'] = lambda: redirect(url_for('keycloak'))
+app.view_functions['auth.logout'] = lambda: redirect(url_for('keycloak_logout'))
+app.view_functions['auth.register'] = lambda: ('', 204)
+app.view_functions['auth.reset_password'] = lambda: ('', 204)
+app.view_functions['auth.confirm'] = lambda: ('', 204)
+\end{minted}
+
+When the user clicks the login button, they are redirected to our custom login page instead of the usual login page. The same applies to the logout button. Additionally, endpoints can be disabled in this manner, resulting in a 204 status code (indicating that the request has been successfully processed, but no content is returned). The code block above demonstrates that if the register button is made public during setup, it will not function as it redirects to nowhere. The same logic applies to the reset password and confirm (login callback) endpoints.
+
+The implementation has been done using \texttt{python-keycloak} \Parencite{python_keycloak}, a tool specialized for handling authentication with Keycloak. While a more general approach could have involved using a generic OIDC plugin, \texttt{python-keycloak} was chosen for its ease of use and effectiveness in solving our specific problem.
+
+The login flow is as follows:
+
+\begin{enumerate}
+    \item A user logs into CTFd using their SSO credentials.
+    \item If the user does not exist in CTFd's database, they are created; otherwise, the existing user is fetched.
+    \item Roles and other profile settings are synchronized to match the configurations of the SSO user.
+    \item The user is then logged into CTFd with their SSO credentials.
+\end{enumerate}
+
+If necessary, administrators can disable or ban users from CTFd. It is important to note that even if a user is deleted from CTFd's database, they will be recreated upon logging in again. Conversely, if a user is deleted in Keycloak, they will still exist in CTFd's database but will be unable to log in, as authentication is handled by Keycloak. Therefore, to properly delete a user, they must be removed from both databases, or at least from CTFd's database with their roles revoked to prevent authorization upon authentication.
+
+Yay, write about difficulties.
+
+\begin{minted}{py3}
+class Users(db.Model):
+    __tablename__ = "users"
+    __mapper_args__ = {"polymorphic_identity": "user", "polymorphic_on": type}
+    ...
+
+class Admins(Users):
+    __tablename__ = "admins"
+    __mapper_args__ = {"polymorphic_identity": "admin"}
+\end{minted}
+
+\begin{minted}{py3}
+class Submissions(db.Model):
+    __tablename__ = "submissions"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"))
+\end{minted}
+
+\begin{minted}{py3}
+def patch_user(user_id, data):
+    user = Users.query.filter_by(id=user_id).first_or_404()
+    data["id"] = user_id
+
+    schema = UserSchema(view="admin", instance=user, partial=True)
+    response = schema.load(data)
+    if response.errors:
+        return {"success": False, "errors": response.errors}, 400
+
+    # This generates the response first before actually changing the type
+    # This avoids an error during User type changes where we change
+    # the polymorphic identity resulting in an ObjectDeletedError
+    # https://github.com/CTFd/CTFd/issues/1794
+    response = schema.dump(response.data)
+    ...
+\end{minted}
+
+\subsection{Grafana}\label{sec:grafana_auth}
+\begin{minted}{javascript}
+{
+    "auth.generic_oauth": {
+        enabled: true,
+        use_pkce: true,
+        allow_sign_up: true,
+        use_refresh_token: true,
+        role_attribute_strict: true,
+        client_secret: GRAFANA_CLIENT_SECRET,
+        scopes: "openid",
+        client_id: "grafana",
+        name: "Keycloak-OAuth",
+        name_attribute_path: "name",
+        email_attribute_path: "email",
+        id_token_attribute_name: "access_token",
+        login_attribute_path: "preferred_username",
+        token_url: `${keycloakIntern}/realms/ctf/protocol/openid-connect/token`,
+        auth_url: `${keycloakExtern}/realms/ctf/protocol/openid-connect/auth`,
+        api_url: `${keycloakExtern}/realms/ctf/protocol/openid-connect/userinfo`,
+        signout_redirect_url: `${keycloakExtern}/realms/ctf/protocol/openid-connect/logout`,
+        role_attribute_path: "contains(resource_access.grafana.roles, 'admin') && 'Admin' || contains(resource_access.grafana.roles, 'editor') && 'Editor' || ''"
+    }
+}
+\end{minted}
+
 \subsection{APIs}
+
+\chapter{Monitoring}
+
+\chapter{Continuous Integration \& Deployment}
 
 \chapter{Hardened Operating Systems}
 
