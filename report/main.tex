@@ -70,6 +70,47 @@
 
 \chapter{Infrastructure as Code}
 
+\section{Pulumi}
+
+\section{Developing a Provider}
+
+\chapter{Monitoring}
+Monitoring is an essential aspect of managing a Kubernetes cluster. It provides a comprehensive overview of the health and performance of our services, enabling us to detect and address anomalies before they escalate into critical issues. Effective monitoring allows us to be proactive, ensuring the stability and reliability of our production environment. Rather than reacting to problems like firefighters, we aim to prevent issues from occurring in the first place.
+
+In this chapter, we will explore the various technologies and tools used to achieve effective monitoring. Whether it involves sampling health metrics or gathering logs, the information should be accessible from a single entry point. Dashboards play a crucial role in this process, enhancing and contextualizing the data to make it meaningful and actionable. By leveraging these tools, we can maintain a robust and resilient Kubernetes cluster.
+
+\section{A Single Entry Point}
+Monitoring should be straightforward; otherwise, people will not use it! While the initial setup requires some effort, once it is running, all data should be readily available. Therefore, we want all our monitoring to be accessible from a single entry point, so that responsible personnel will not have to aggregate multiple sources to make a rational conclusion about the Kubernetes cluster’s health.
+
+To achieve this single entry point, we will use the AIOps tool Grafana. Originally created as a fork of Kibana in 2014, Grafana has since specialized in integrating compatibility with multiple data sources, whereas Kibana is primarily compatible with Elasticsearch. Grafana's ability to support multiple data sources makes it a flexible and future-proof solution.
+
+As a starting point, we will configure Prometheus, Loki, and possibly some databases as data sources. Prometheus is a time series database that collects various metrics. Loki is a system that collects and organizes log data for easy searching and viewing. The purpose of registering databases will primarily be for querying purposes, similar to tools like Adminer.
+
+However, data sources alone will not suffice. As the name suggests, they are simply sources. The data needs to come from somewhere. Prometheus depends on Service Monitors to gather metrics, and Loki similarly relies on a log gatherer to collect and organize log data. Without these components, the data sources would remain empty and ineffective. Let us further explore the remaining tool stack in section \ref{sec:monitoring_stack}.
+
+\section{The Technology Stack}\label{sec:monitoring_stack}
+
+Promtail
+Loki
+Prometheus
+Grafana
+Component scraping the kubelet and kubelet-hosted cAdvisor
+Component scraping the kube controller manager
+Component scraping coreDns. Use either this or kubeDns
+Component scraping etcd
+Component scraping kube scheduler
+Component scraping kube proxy
+Component scraping kube state metrics
+Deploy node exporter as a daemonset to all nodes
+prometheusOperator
+
+
+\section{Sidecar Containers}
+
+\section{Custom Resource Definitions}
+
+\section{Service Monitors}
+
 
 \chapter{Identity \& Access Management}
 In today's digital landscape, software platforms must support a diverse array of users, each with distinct organizational roles and access rights. This is particularly crucial when developing a CTF platform, where managing user authentication and authorization becomes essential. Authentication verifies a user's identity, while authorization determines their access rights.
@@ -80,7 +121,7 @@ On the other hand, decentralized IAM, though more complex to develop, offers sig
 
 By leveraging these solutions, organizations can ensure secure, efficient, and scalable management of user identities and access rights, ultimately enhancing the overall user experience and system security.
 
-For this project, we decided to use the multi-tenant open-source service named Keycloak \Parencite{keycloak}. The choice was not based on academic reasons but rather on prior experience configuring this service. Several alternatives could have been considered, such as Zitadel, Apereo CAS, LemonLDAP::NG, and Gluu Server. These services support the same protocols, with some exceptions: Gluu Server also supports SCIM, while Zitadel does not support SAML. 
+For this project, we decided to use the multi-tenant open-source service named Keycloak \parencite{keycloak}. The choice was not based on academic reasons but rather on prior experience configuring this service. Several alternatives could have been considered, such as Zitadel, Apereo CAS, LemonLDAP::NG, and Gluu Server. These services support the same protocols, with some exceptions: Gluu Server also supports SCIM, while Zitadel does not support SAML. 
 
 It is important to mention that for configuring external authentication on Grafana, we rely on Generic OAuth. This protocol is only surpassed by LDAP in terms of preference \parencite{grafana_authentication}. Further investigation led us to an article by Grafana, which directly recommends Keycloak as an OAuth2 provider, highlighting it as the only open-source service on the list \parencite{grafana_oauth}. This confirms that Keycloak is a sufficient and reliable solution for our needs.
 
@@ -97,7 +138,7 @@ Next, what is a client? The answer is simple when thinking about typical server-
 When the realm and clients have been configured, we will need to export the configuration so that it can be stored statically and loaded dynamically when needed. The realm and client settings should not be lost just because the Kubernetes cluster is reset!
 
 \section{Token Claims \& Scopes}\label{sec:token_claims}
-Authenticating using Keycloak will return a JWT in response. This JWT contains both an ID token and an access token. The access token can be used to query the userinfo endpoint if needed. The content or claims within the JWT must be configured in Keycloak. This project uses the default settings, which already provide the necessary information in the access token. However, if roles are needed in either the userinfo or the ID token, a predefined mapper must be configured to include these claims.
+Authenticating using Keycloak will return a JWT in response. This JWT contains both an ID token and an access token. The access token can be used to query the userinfo endpoint if needed. The content or claims within the JWT must be configured in Keycloak. This project uses the default settings, which already provide the necessary information in the access token. However, if roles are needed in either the userinfo or the ID token, a predefined mapper must be configured to include these claims. The access- and ID token is by default encoded using the RS256 algorithm -- RSA Digital Signature Algorithm with the SHA-256 hash function.
 
 The JWT includes some default metadata claims that provide information about who issued the token, when it was issued, and other essential details. The mandatory claims are listed below:
 
@@ -137,9 +178,9 @@ The significance of Keycloak lies in its practical application. In the following
 \subsection{CTFd}
 CTFd is arguably our most important exposed service from a practical user perspective. As a web-based platform designed to host CTF competitions, it requires an efficient way to manage users. Ideally, we would leverage external identity providers to avoid the hassle of user creation, relying instead on higher-level institutions or organizations to provide these identities.
 
-However, there is a significant challenge: CTFd does not support any form of SSO unless it is either an enterprise or hosted version \Parencite{ctfd_sso}. This limitation forces us to make a choice. Given that CTFd is open-source, we can either 1) modify the source code to implement SSO our way, or 2) create a custom plugin to handle authentication. Modifying the source code would necessitate freezing the version, as future updates could disrupt our changes. Therefore, creating a plugin is the more rational approach.
+However, there is a significant challenge: CTFd does not support any form of SSO unless it is either an enterprise or hosted version \parencite{ctfd_sso}. This limitation forces us to make a choice. Given that CTFd is open-source, we can either 1) modify the source code to implement SSO our way, or 2) create a custom plugin to handle authentication. Modifying the source code would necessitate freezing the version, as future updates could disrupt our changes. Therefore, creating a plugin is the more rational approach.
 
-Fortunately, creating plugins for CTFd is relatively straightforward and well-documented \Parencite{ctfd_plugins}. However, there is a notable issue with how the Docker image is developed. Plugin requirements are installed at build time rather than at the entrypoint, which complicates the process. This means we cannot simply mount the plugin to the specified folder without building the Docker file from scratch, as the necessary pip packages are not installed. The solution was to update the entrypoint -- a simple but inconvenient fix.
+Fortunately, creating plugins for CTFd is relatively straightforward and well-documented \parencite{ctfd_plugins}. However, there is a notable issue with how the Docker image is developed. Plugin requirements are installed at build time rather than at the entrypoint, which complicates the process. This means we cannot simply mount the plugin to the specified folder without building the Docker file from scratch, as the necessary pip packages are not installed. The solution was to update the entrypoint -- a simple but inconvenient fix.
 
 The most important detail about the Keycloak plugin developed for CTFd is that it can be configured using the \texttt{config.json} file, and that endpoints can be overwritten as follows:
 
@@ -153,7 +194,7 @@ app.view_functions['auth.confirm'] = lambda: ('', 204)
 
 When the user clicks the login button, they are redirected to our custom login page instead of the usual login page. The same applies to the logout button. Additionally, endpoints can be disabled in this manner, resulting in a 204 status code (indicating that the request has been successfully processed, but no content is returned). The code block above demonstrates that if the register button is made public during setup, it will not function as it redirects to nowhere. The same logic applies to the reset password and confirm (login callback) endpoints.
 
-The implementation has been done using \texttt{python-keycloak} \Parencite{python_keycloak}, a tool specialized for handling authentication with Keycloak. While a more general approach could have involved using a generic OIDC plugin, \texttt{python-keycloak} was chosen for its ease of use and effectiveness in solving our specific problem.
+The implementation has been done using \texttt{python-keycloak} \parencite{python_keycloak}, a tool specialized for handling authentication with Keycloak. While a more general approach could have involved using a generic OIDC plugin, \texttt{python-keycloak} was chosen for its ease of use and effectiveness in solving our specific problem.
 
 The login flow is as follows:
 
@@ -166,7 +207,7 @@ The login flow is as follows:
 
 If necessary, administrators can disable or ban users from CTFd. It is important to note that even if a user is deleted from CTFd's database, they will be recreated upon logging in again. Conversely, if a user is deleted in Keycloak, they will still exist in CTFd's database but will be unable to log in, as authentication is handled by Keycloak. Therefore, to properly delete a user, they must be removed from both databases, or at least from CTFd's database with their roles revoked to prevent authorization upon authentication.
 
-Yay, write about difficulties.
+In SQLAlchemy, \texttt{polymorphic\_on} and \texttt{polymorphic\_identity} are used to handle inheritance in database models. The \texttt{polymorphic\_on} attribute specifies the column used to determine the type of the object, while \texttt{polymorphic\_identity} sets the identity for each subclass. This allows SQLAlchemy to distinguish between different types of objects stored in the same table.
 
 \begin{minted}{py3}
 class Users(db.Model):
@@ -179,12 +220,18 @@ class Admins(Users):
     __mapper_args__ = {"polymorphic_identity": "admin"}
 \end{minted}
 
+The \texttt{Submissions} class has a foreign key \texttt{user\_id} that references the \texttt{users} table. The \texttt{ondelete="CASCADE"} ensures that when a user is deleted, all related submissions are also deleted.
+
 \begin{minted}{py3}
 class Submissions(db.Model):
     __tablename__ = "submissions"
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"))
 \end{minted}
+
+Handling polymorphic types can be challenging, especially when changing the type of an existing object. For example, if you add an admin and later change its type to user, you might encounter an \texttt{ObjectDeletedError}. This error occurs because changing the polymorphic identity can lead to the deletion of the original object, causing issues with related objects like submissions and comments that are linked via foreign keys with cascade delete.
+
+To handle the issue of changing polymorphic types without losing related objects, you can generate the response first before actually changing the type. This avoids the \texttt{ObjectDeletedError}. This solution was found by reading through the source code for CTFd's public API \cite{CTFdUsersAPI}.
 
 \begin{minted}{py3}
 def patch_user(user_id, data):
@@ -204,7 +251,11 @@ def patch_user(user_id, data):
     ...
 \end{minted}
 
+By understanding and properly handling polymorphic types in SQLAlchemy, you can avoid issues like \texttt{ObjectDeletedError} and ensure that related objects are preserved when changing the type of a user. This involves generating responses before changing types and using methods to manage related objects effectively. This approach ensures that properties and linked objects like submissions and comments are not lost during the type change.
+
 \subsection{Grafana}\label{sec:grafana_auth}
+Integrating Grafana with Keycloak addresses the critical challenges of secure and efficient user authentication and authorization by leveraging standardized protocols. This section details the configuration process, focusing on protocol integration, PKCE, refresh tokens, role mapping, and the underlying protocols \parencite{GrafanaKeycloak}.
+
 \begin{minted}{javascript}
 {
     "auth.generic_oauth": {
@@ -230,13 +281,39 @@ def patch_user(user_id, data):
 }
 \end{minted}
 
-\subsection{APIs}
+Grafana integrates with Keycloak using OAuth2 and OIDC. Key endpoints include the authorization endpoint, token endpoint, user info endpoint, and logout endpoint. By setting \texttt{id\_token\_attribute\_name} to \texttt{access\_token}, Grafana uses the access token for authorization, avoiding the need for additional client mappers required by the ID token used by default; otherwise, Grafana will not be able to find the client roles. This approach simplifies the configuration by utilizing the readily available information already in the access token.
 
-\chapter{Monitoring}
+Grafana uses the \texttt{sub} claim as the unique identifier for the user. This can be changed to the email by setting \texttt{oauth\_allow\_insecure\_email\_lookup} to \texttt{true}. This option is typically used when authenticating with different identity providers. However, it is noteworthy that user synchronization issues may arise if the basic claim scope is missing \parencite{grafana_authentication}.
+
+PKCE enhances the security of the OAuth2 authorization code flow, particularly for public clients. It mitigates authorization code interception attacks by introducing a code verifier and code challenge. The client generates a code verifier and sends a hashed code challenge to the authorization server. Upon exchanging the authorization code for an access token, the client presents the original code verifier. This ensures that intercepted authorization codes cannot be used without the code verifier, significantly enhancing security.
+
+Refresh tokens maintain user sessions without frequent re-authentication. Upon initial login, both an access token and a refresh token are issued. The access token has a short lifespan, while the refresh token is long-lived. When the access token expires, the client uses the refresh token to obtain a new access token, ensuring continuous access and improving user experience while maintaining security.
+
+Role mapping in Grafana is achieved using JMESPath, a query language for JSON. The \texttt{role\_attribute\_path} configuration extracts and maps roles from the Keycloak token to Grafana roles. This path dynamically maps Keycloak roles to Grafana roles, ensuring accurate user permissions.
+
+Integrating Grafana with Keycloak for authentication provides a secure and efficient solution for managing user access in modern web applications. By leveraging OAuth2 and OIDC protocols, utilizing PKCE, implementing refresh tokens, and employing dynamic role mapping, this integration enhances security and user experience, ensuring that only authorized users can access sensitive data visualized in Grafana.
+
+\subsection{APIs}
 
 \chapter{Continuous Integration \& Deployment}
 
+\section{Jenkins Configuration as Code}
+
+\section{Jenkins Job DSL}
+
+\section{Dynamically Provisioned Agents}
+
+\section{Service Hooks versus Polling}
+
 \chapter{Hardened Operating Systems}
+
+\section{Building Images with Nix}
+
+\section{Image Size Comparison}
+
+\chapter{Evaluation}
+
+\chapter{Conclusion}
 
 \cleardoublepage
 \phantomsection
