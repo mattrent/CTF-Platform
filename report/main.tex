@@ -141,12 +141,34 @@ The sidecar container works by continuously scanning the Kubernetes API for \tex
 Similar features have been prepared for automatically adding scraping targets to Prometheus. These are known as Service Monitors, which will be described in the following two sections.
 
 \section{Custom Resource Definitions}
+In Kubernetes, when the default resources do not meet specific requirements, it is possible to define custom resources to extend the functionality of the cluster. This capability is leveraged by the Prometheus community to introduce a set of Custom Resource Definitions (CRDs) that facilitate advanced monitoring configurations. These CRDs enable the seamless integration and management of Prometheus and related components within a Kubernetes environment. Although not all CRDs are utilized in every deployment, they are included due to their lightweight nature and the complexity involved in selectively disabling them. The Helm chart containing these CRDs is part of the kube-prometheus-stack.
 
-gg
+The primary CRDs introduced by the Prometheus community include:
+
+\begin{enumerate}
+    \item \textbf{Prometheus}: Defines a Prometheus instance, allowing configuration of replicas, persistent storage, and alerting mechanisms.
+    \item \textbf{Alertmanager}: Manages \texttt{Alertmanager} instances, which handle alerts sent by Prometheus and support high availability configurations.
+    \item \textbf{ThanosRuler}: Sets up Thanos Ruler instances for processing recording and alerting rules across multiple Prometheus instances.
+    \item \textbf{ServiceMonitor}: Specifies how a set of services should be monitored, including endpoints and scraping intervals.
+    \item \textbf{PodMonitor}: Similar to \texttt{ServiceMonitor}, but specifically targets pods for monitoring.
+    \item \textbf{Probe}: Defines blackbox probing configurations to monitor endpoints from an external perspective.
+    \item \textbf{PrometheusRule}: Manages Prometheus recording and alerting rules.
+    \item \textbf{AlertmanagerConfig}: Configures \texttt{Alertmanager} settings, such as routing and notification templates.
+    \item \textbf{PrometheusAgent}: Sets up a lightweight Prometheus Agent instance for scraping and forwarding metrics.
+    \item \textbf{ScrapeConfig}: Provides additional scraping configurations for Prometheus instances.
+\end{enumerate}
+
+The Prometheus Operator periodically scans for \texttt{ServiceMonitors}, which define how services should be monitored. Upon discovery, the operator updates Prometheus with the new scraping targets. This allows services exposing metrics in a text-based exposition format to be dynamically added to Prometheus without modifying its configuration or triggering a rolling update. This approach enhances flexibility and reduces operational overhead in maintaining the monitoring setup.
+
+These CRDs facilitate the Kubernetes-native deployment and management of Prometheus and its ecosystem, streamlining the setup and maintenance of an effective monitoring stack.
+
+Deploying the kube-prometheus-stack with Pulumi can sometimes result in failures when resources using a CRD type are detected before the CRD is created. Pulumi may mark these resources as failed after several attempts, an issue that does not occur with Helm. To mitigate this, we take advantage of the Helm chart's design, which allows individual components to be toggled. The CRDs are deactivated as part of the monitoring project but created as part of the fundamental configuration of the Kubernetes cluster.
 
 \section{Service Monitors}
 
-gg
+\begin{minted}{yaml}
+    
+\end{minted}
 
 \chapter{Identity \& Access Management}
 In today's digital landscape, software platforms must support a diverse array of users, each with distinct organizational roles and access rights. This is particularly crucial when developing a CTF platform, where managing user authentication and authorization becomes essential. Authentication verifies a user's identity, while authorization determines their access rights.
