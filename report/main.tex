@@ -74,6 +74,8 @@
 
 \section{Developing a Provider}
 
+\chapter{UCloud}
+
 \chapter{Monitoring}
 Monitoring is an essential aspect of managing a Kubernetes cluster. It provides a comprehensive overview of the health and performance of our services, enabling us to detect and address anomalies before they escalate into critical issues. Effective monitoring allows us to be proactive, ensuring the stability and reliability of our production environment. Rather than reacting to problems like firefighters, we aim to prevent issues from occurring in the first place.
 
@@ -89,28 +91,62 @@ As a starting point, we will configure Prometheus, Loki, and possibly some datab
 However, data sources alone will not suffice. As the name suggests, they are simply sources. The data needs to come from somewhere. Prometheus depends on Service Monitors to gather metrics, and Loki similarly relies on a log gatherer to collect and organize log data. Without these components, the data sources would remain empty and ineffective. Let us further explore the remaining tool stack in section \ref{sec:monitoring_stack}.
 
 \section{The Technology Stack}\label{sec:monitoring_stack}
+In this section, we will explore the use of tools developed by the Grafana and Prometheus community to monitor our Kubernetes cluster. To ensure comprehensive metric sampling, we will utilize various components to collect logs and scrape endpoints provided by the Kubernetes cluster. Below is an overview of the tools we will be using:
 
-Promtail
-Loki
-Prometheus
-Grafana
-Component scraping the kubelet and kubelet-hosted cAdvisor
-Component scraping the kube controller manager
-Component scraping coreDns. Use either this or kubeDns
-Component scraping etcd
-Component scraping kube scheduler
-Component scraping kube proxy
-Component scraping kube state metrics
-Deploy node exporter as a daemonset to all nodes
-prometheusOperator
+\begin{enumerate}
+    \item \textbf{Promtail}: Promtail is an agent that ships the contents of local logs to a Loki instance. It is responsible for discovering targets, attaching labels, and pushing logs to the Loki instance.
+    
+    \item \textbf{Loki}: Loki is a horizontally-scalable, highly-available log aggregation system inspired by Prometheus. It is designed to be cost-effective and easy to operate, focusing on indexing metadata rather than the full text of the logs.
+    
+    \item \textbf{Prometheus}: Prometheus is an open-source systems monitoring and alerting toolkit. It collects and stores metrics as time series data, recording information with a timestamp.
+    
+    \item \textbf{Grafana}: Grafana is an open-source platform for monitoring and observability. It provides tools to query, visualize, alert on, and understand your metrics no matter where they are stored.
+    
+    \item \textbf{Component scraping the kubelet and kubelet-hosted cAdvisor}: This component scrapes metrics from the kubelet and cAdvisor, which provide information about the resource usage and performance of containers.
+    
+    \item \textbf{Component scraping the kube controller manager}: This component collects metrics from the Kubernetes controller manager, which manages the state of the cluster.
+    
+    \item \textbf{Component scraping CoreDNS or kubeDNS}: This component gathers metrics from CoreDNS or kubeDNS, which are responsible for DNS-based service discovery in the cluster.
+    
+    \item \textbf{Component scraping etcd}: This component scrapes metrics from etcd, the key-value store used as Kubernetes' backing store for all cluster data.
+    
+    \item \textbf{Component scraping the kube scheduler}: This component collects metrics from the Kubernetes scheduler, which assigns pods to nodes.
+    
+    \item \textbf{Component scraping the kube proxy}: This component gathers metrics from the kube proxy, which maintains network rules on nodes.
+    
+    \item \textbf{Component scraping kube state metrics}: This component collects metrics about the state of the Kubernetes objects, such as deployments, nodes, and pods.
+    
+    \item \textbf{Deploy node exporter as a daemonset to all nodes}: Node exporter runs on each node to expose hardware and OS metrics.
+    
+    \item \textbf{Prometheus Operator}: The Prometheus Operator simplifies the deployment and management of Prometheus and related monitoring components.
+\end{enumerate}
 
+The scraping components consist of a service, an associated service monitor, and in some cases, an Endpoints resource. These components are crucial for gathering metrics from various parts of the Kubernetes cluster.
+
+As mentioned in the introduction, we have decided to rely primarily on Helm charts when possible. Grafana and Prometheus provide and maintain excellent Helm charts that include features such as horizontal scaling, network policies, and cluster roles. These resources would be complex to create ourselves, so it is beneficial to leverage these pre-built charts.
+
+However, Helm charts are designed to bundle resources, which raises the question of what should be bundled together. For instance, if Grafana is included in multiple Helm charts, which chart should be responsible for deploying it? In this project, we have decided that Helm charts should be as minimal as possible. If it is straightforward to create the integrations ourselves, that is our preferred approach. Helm charts created for specific services, rather than large bundles, are usually easier to configure and comprehend. Moreover, Helm charts targeting deeper integrations align better with our goal of low coupling and high cohesion. Being less dependent on complex charts makes it easier to add or remove services later, allowing us to stay agile and less committed to existing developments.
+
+We utilized several Helm charts to streamline the deployment and management of our monitoring tools. From the Grafana Helm chart repository (\url{https://grafana.github.io/helm-charts}), we used the charts for Grafana, Loki, and Promtail. Additionally, from the Prometheus Community Helm chart repository (\url{https://prometheus-community.github.io/helm-charts}), we employed the kube-prometheus-stack chart.
+
+While considering log shipping solutions, we evaluated both Promtail and Fluent Bit. Promtail is known for its seamless integration with Loki, making it an ideal choice for Kubernetes environments. On the other hand, Fluent Bit offers high performance and flexibility, capable of forwarding logs to multiple destinations. Ultimately, we chose Promtail for its simplicity and compatibility within the Loki ecosystem, which aligns with our goal of maintaining a cohesive and efficient monitoring setup.
 
 \section{Sidecar Containers}
+In Kubernetes, sidecar containers are a design pattern where an additional container runs alongside the main application container within the same pod. This pattern extends the functionality of the main application without modifying its code. A common use case for sidecar containers is dynamically loading dashboards into Grafana. This approach is particularly advantageous because it avoids unnecessary rolling updates of Grafana, making it super easy to configure new dashboard resources. For example, if using an external Helm chart with their own custom dashboards for Grafana, made for their service, then the dashboards are easily deployed, as there is no need to change the configuration of the currently running Grafana instance. To achieve this, \texttt{ConfigMaps} containing the dashboards must be labeled appropriately, such as with the label \texttt{grafana\_dashboard}. These \texttt{ConfigMaps} should include key-value pairs where the key is the filename and the value is the JSON content of the dashboard.
+
+The sidecar container used for this purpose is typically based on a general-purpose image like \texttt{kiwigrid/k8s-sidecar}. This container continuously scans for \texttt{ConfigMaps} with the specified label and loads them into Grafana using Grafana's public API. The sidecar container is configured with environment variables that specify how to interact with Grafana, including the Grafana URL and an API key for authentication. The API key is usually stored in a Kubernetes Secret and mounted into the sidecar container.
+
+The sidecar container works by continuously scanning the Kubernetes API for \texttt{ConfigMaps} labeled with \texttt{grafana\_dashboard}. When it detects a \texttt{ConfigMap} with this label, it reads the JSON content and stores it in a specified folder within the pod. The sidecar then uses Grafana's public API to import the dashboards, ensuring that any new or updated dashboards are automatically loaded into Grafana without manual intervention. This approach allows for dynamic management of Grafana dashboards, making it easier to update and maintain them as part of a Kubernetes deployment.
+
+Similar features have been prepared for automatically adding scraping targets to Prometheus. These are known as Service Monitors, which will be described in the following two sections.
 
 \section{Custom Resource Definitions}
 
+gg
+
 \section{Service Monitors}
 
+gg
 
 \chapter{Identity \& Access Management}
 In today's digital landscape, software platforms must support a diverse array of users, each with distinct organizational roles and access rights. This is particularly crucial when developing a CTF platform, where managing user authentication and authorization becomes essential. Authentication verifies a user's identity, while authorization determines their access rights.
@@ -136,6 +172,8 @@ The fundamental pillars consist of configuring the realm and corresponding clien
 Next, what is a client? The answer is simple when thinking about typical server-client communication. The server (Keycloak) receives requests from clients (services). It is good practice to create a client for each service using Keycloak. This approach allows for configuring allowed hosts, allowed redirects, and each client having its own client secret (if enabled). This ensures that no clients can conflict, as only the client that should be able to make requests would have the secret to do so. The default settings should be sufficient, as we intend to rely on the access token and foresee the ID token -- more on this in section \ref{sec:token_claims}.
 
 When the realm and clients have been configured, we will need to export the configuration so that it can be stored statically and loaded dynamically when needed. The realm and client settings should not be lost just because the Kubernetes cluster is reset!
+
+\todo{Generating the client secret?}
 
 \section{Token Claims \& Scopes}\label{sec:token_claims}
 Authenticating using Keycloak will return a JWT in response. This JWT contains both an ID token and an access token. The access token can be used to query the userinfo endpoint if needed. The content or claims within the JWT must be configured in Keycloak. This project uses the default settings, which already provide the necessary information in the access token. However, if roles are needed in either the userinfo or the ID token, a predefined mapper must be configured to include these claims. The access- and ID token is by default encoded using the RS256 algorithm -- RSA Digital Signature Algorithm with the SHA-256 hash function.
