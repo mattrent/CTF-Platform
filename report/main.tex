@@ -88,7 +88,7 @@ To achieve this single entry point, we will use the AIOps tool Grafana. Original
 
 As a starting point, we will configure Prometheus, Loki, and possibly some databases as data sources. Prometheus is a time series database that collects various metrics. Loki is a system that collects and organizes log data for easy searching and viewing. The purpose of registering databases will primarily be for querying purposes, similar to tools like Adminer.
 
-However, data sources alone will not suffice. As the name suggests, they are simply sources. The data needs to come from somewhere. Prometheus depends on Service Monitors to gather metrics, and Loki similarly relies on a log gatherer to collect and organize log data. Without these components, the data sources would remain empty and ineffective. Let us further explore the remaining tool stack in section \ref{sec:monitoring_stack}.
+However, data sources alone will not suffice. As the name suggests, they are simply sources. The data needs to come from somewhere. Prometheus depends on Service Monitors or Pod Monitors to gather metrics, and Loki similarly relies on a log gatherer to collect and organize log data. Without these components, the data sources would remain empty and ineffective. Let us further explore the remaining tool stack in section \ref{sec:monitoring_stack}.
 
 \section{The Technology Stack}\label{sec:monitoring_stack}
 In this section, we will explore the use of tools developed by the Grafana and Prometheus community to monitor our Kubernetes cluster. To ensure comprehensive metric sampling, we will utilize various components to collect logs and scrape endpoints provided by the Kubernetes cluster. Below is an overview of the tools we will be using:
@@ -138,7 +138,7 @@ The sidecar container used for this purpose is typically based on a general-purp
 
 The sidecar container works by continuously scanning the Kubernetes API for \texttt{ConfigMaps} labeled with \texttt{grafana\_dashboard}. When it detects a \texttt{ConfigMap} with this label, it reads the JSON content and stores it in a specified folder within the pod. The sidecar then uses Grafana's public API to import the dashboards, ensuring that any new or updated dashboards are automatically loaded into Grafana without manual intervention. This approach allows for dynamic management of Grafana dashboards, making it easier to update and maintain them as part of a Kubernetes deployment.
 
-Similar features have been prepared for automatically adding scraping targets to Prometheus. These are known as Service Monitors, which will be described in the following two sections.
+Similar features have been prepared for automatically adding scraping targets to Prometheus. These are known as Service Monitors or Pod Monitors, which will be described in the following two sections.
 
 \section{Custom Resource Definitions}
 In Kubernetes, when the default resources do not meet specific requirements, it is possible to define custom resources to extend the functionality of the cluster. This capability is leveraged by the Prometheus community to introduce a set of Custom Resource Definitions (CRDs) that facilitate advanced monitoring configurations. These CRDs enable the seamless integration and management of Prometheus and related components within a Kubernetes environment. Although not all CRDs are utilized in every deployment, they are included due to their lightweight nature and the complexity involved in selectively disabling them. The Helm chart containing these CRDs is part of the kube-prometheus-stack.
@@ -165,10 +165,46 @@ These CRDs facilitate the Kubernetes-native deployment and management of Prometh
 Deploying the kube-prometheus-stack with Pulumi can sometimes result in failures when resources using a CRD type are detected before the CRD is created. Pulumi may mark these resources as failed after several attempts, an issue that does not occur with Helm. To mitigate this, we take advantage of the Helm chart's design, which allows individual components to be toggled. The CRDs are deactivated as part of the monitoring project but created as part of the fundamental configuration of the Kubernetes cluster.
 
 \section{Service Monitors}
+This section will delve into the definition and use of \texttt{ServiceMonitor}, while also comparing it with \texttt{PodMonitor}.
 
-\begin{minted}{yaml}
-    
+A \texttt{ServiceMonitor} is a CRD that specifies how groups of services should be monitored. It allows Prometheus to scrape metrics from services by defining endpoints and selectors. Here is an example of how to define a \texttt{ServiceMonitor} using TypeScript:
+
+\begin{minted}{typescript}
+new k8s.apiextensions.CustomResource("<resource>", {
+    apiVersion: "monitoring.coreos.com/v1",
+    kind: "ServiceMonitor",
+    metadata: {
+        namespace: "<namespace>",
+        labels: {
+            release: "<releaseName>"
+        }
+    },
+    spec: {
+        endpoints: [{
+            interval: "30s",
+            port: "<DNSLabel>"
+        }],
+        selector: {
+            matchLabels: appLabels
+        }
+    }
+})
 \end{minted}
+
+In this example, the \texttt{ServiceMonitor} is configured to scrape metrics every 30 seconds from a specified port. The \texttt{selector} field uses labels to identify the services to monitor.
+
+When defining Service Monitors, it is crucial to consider the release label. The Prometheus Operator will only discover Service Monitors or Pod Monitors that are within its release. Additionally, by default, the Prometheus Operator is configured to discover monitors across all namespaces. However, the Prometheus instance itself will, by default, only add scraping targets for monitors that reside within its own namespace.
+
+When defining endpoints in a \texttt{ServiceMonitor}, you can specify either \texttt{port} or \texttt{targetPort}. The \texttt{port} must be a DNS label string referring to a named port defined in a service, while \texttt{targetPort} can be an integer or string representing the target port of the \texttt{Pod} object\footnote{The port must be specified with the container's port property.} behind the service.
+
+While \texttt{ServiceMonitor} is used to monitor services, \texttt{PodMonitor} is designed to monitor pods. Here are the key differences:
+
+\begin{itemize}
+    \item \textbf{ServiceMonitor}: Ideal for monitoring a group of pods behind a service. It simplifies the configuration by using service labels and is useful when you want to get a collective measure of the pods running behind a service.
+    \item \textbf{PodMonitor}: Suitable for monitoring individual pods directly. It is useful when you need to scrape metrics from specific pods without defining a service. For example, monitoring SQL exporters where you want to consistently scrape each pod's \texttt{/metrics} endpoint without being challenged by load balancing.
+\end{itemize}
+
+In summary, use \texttt{ServiceMonitor} when you have services managing multiple pods and need aggregated metrics. Use \texttt{PodMonitor} when you need detailed metrics from individual pods, especially when services are not defined or needed. Everything mentioned in this section has been tested through an experiment.
 
 \chapter{Identity \& Access Management}
 In today's digital landscape, software platforms must support a diverse array of users, each with distinct organizational roles and access rights. This is particularly crucial when developing a CTF platform, where managing user authentication and authorization becomes essential. Authentication verifies a user's identity, while authorization determines their access rights.
