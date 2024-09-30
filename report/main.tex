@@ -76,6 +76,10 @@
 
 \chapter{UCloud}
 
+\section{Limited Network Access}
+
+\section{Starting a Virtual Machine}
+
 \chapter{Monitoring}
 Monitoring is an essential aspect of managing a Kubernetes cluster. It provides a comprehensive overview of the health and performance of our services, enabling us to detect and address anomalies before they escalate into critical issues. Effective monitoring allows us to be proactive, ensuring the stability and reliability of our production environment. Rather than reacting to problems like firefighters, we aim to prevent issues from occurring in the first place.
 
@@ -122,6 +126,8 @@ In this section, we will explore the use of tools developed by the Grafana and P
 \end{enumerate}
 
 The scraping components consist of a service, an associated service monitor, and in some cases, an Endpoints resource. These components are crucial for gathering metrics from various parts of the Kubernetes cluster.
+
+To ensure comprehensive monitoring, we employ both active (intrusive) and passive (non-intrusive) monitoring techniques. Active monitoring involves modifying code to record specific metrics and send information to a logging system, which provides detailed, application-specific insights but adds some overhead. Passive monitoring, on the other hand, collects metrics from the system running the container or VM without modifying the application, offering a broader but more generic view. An example of intrusive monitoring is the metrics endpoint on Loki or Prometheus, while passive monitoring is exemplified by the CAdvisor integrated into the Kubelet, which monitors container resource usage without the containers being aware. By combining both methods, we achieve a balanced and effective monitoring strategy.
 
 As mentioned in the introduction, we have decided to rely primarily on Helm charts when possible. Grafana and Prometheus provide and maintain excellent Helm charts that include features such as horizontal scaling, network policies, and cluster roles. These resources would be complex to create ourselves, so it is beneficial to leverage these pre-built charts.
 
@@ -268,6 +274,81 @@ There are also scopes that must be explicitly requested. This includes informati
 
 Being aware of the JWT's content is definitely useful, as will become evident when discussing some of the difficulties that arose when configuring Grafana to use Keycloak for authentication, as detailed in section \ref{sec:grafana_auth}.
 
+\section{Supported Grant Types}
+Keycloak supports various OAuth 2.0 grant types to cater to different authentication scenarios. These grant types define the methods through which clients can obtain access tokens, each suited for specific use-cases and accompanied by unique security considerations.
+
+The information presented in this section is based on the official Keycloak documentation, which provides comprehensive details on the supported grant types and their respective use-cases and security considerations \Parencite{keycloak2024}.
+
+\subsection*{Authorization Code}\label{sec:auth_code}
+The Authorization Code Grant is primarily used by web and mobile applications. It involves a two-step process where the client first obtains an authorization code, which is then exchanged for an access token. This method ensures that the client never directly handles the user's credentials, enhancing security by reducing the risk of credential exposure. The use of a client secret and the exchange of the authorization code over a secure channel (HTTPS) are critical to prevent interception and misuse.
+
+A diagram showing the flow is given below:
+
+\begin{tcolorbox}
+\begin{scriptsize}
+\begin{verbatim}
+            +----------+
+            | Resource |
+            |   Owner  |
+            +----------+
+                 ^
+                 |
+                (B)
+            +----|-----+          Client Identifier      +---------------+
+            |         -+----(A)-- & Redirection URI ---->|               |
+            |  User-   |                                 | Authorization |
+            |  Agent  -+----(B)-- User authenticates --->|     Server    |
+            |          |                                 |               |
+            |         -+----(C)-- Authorization Code ---<|               |
+            +-|----|---+                                 +---------------+
+              |    |                                         ^      v
+             (A)  (C)                                        |      |
+              |    |                                         |      |
+              ^    v                                         |      |
+            +---------+                                      |      |
+            |         |>---(D)-- Authorization Code ---------'      |
+            |  Client |          & Redirection URI                  |
+            |         |                                             |
+            |         |<---(E)----- Access Token -------------------'
+            +---------+       (w/ Optional Refresh Token)
+
+        Note: The lines illustrating steps (A), (B), and (C) are broken into
+        two parts as they pass through the user-agent.
+
+                            Authorization Code Flow
+
+        https://datatracker.ietf.org/doc/html/rfc6749#section-4.1
+\end{verbatim}
+\end{scriptsize}
+\end{tcolorbox}
+
+This two-step process is essential for avoiding issues with Cross-Origin Resource Sharing (CORS). CORS is a security feature implemented by web browsers to prevent web pages from making requests to a different domain than the one that served the web page, known as the same-origin policy. By using the Authorization Code Grant, the exchange of the authorization code for an access token happens server-to-server, reducing the risk of exposing sensitive information through client-side scripts, which could be subject to CORS restrictions.
+
+\subsection*{Implicit}
+The Implicit Grant is designed for browser-based applications like single-page applications (SPAs). In this flow, the access token is issued directly without an intermediate authorization code. A key security risk is that the token is provided in the URL, which can be logged in browser history, server logs, or shared inadvertently, exposing the token to malicious actors. On the positive side, the client does not handle user credentials directly.
+
+Including the access token in the URL is necessary to address CORS restrictions. CORS policies can block requests from the browser to a different domain if the access token is included in the response body, as this can trigger a preflight request.
+
+To mitigate these risks, the token is short-lived, minimizing the window for misuse. This flow is used for quick authentication, where the token is used briefly and then discarded. Additionally, the Implicit Grant does not provide a refresh token, as these are long-lived and pose a significant security risk if exposed. By not issuing a refresh token, the access token's lifespan is limited, reducing the impact of potential interception.
+
+According to the current OAuth 2.0 Security Best Current Practice, the Implicit Grant flow is discouraged due to its security vulnerabilities. Consequently, this flow has been removed from the upcoming OAuth 2.1 specification.
+
+\subsection*{Resource Owner Password Credentials}
+gg
+
+\subsection*{Client Credentials}
+gg
+
+\newpage
+
+\subsection*{Device Authorization Grant}
+gg
+
+\subsection*{Client Initiated Backchannel Authentication Grant}
+gg
+
+\newpage
+
 \section{Integrations}
 The significance of Keycloak lies in its practical application. In the following sections, we will explore how Keycloak plays a crucial role in managing authentication for our services. Some open-source software, such as Grafana, allows for seamless integration with Keycloak, making the process straightforward. In contrast, other software solutions, like CTFd, require more effort to integrate. The specifics of these integrations will be detailed in the associated sections.
 
@@ -290,7 +371,7 @@ app.view_functions['auth.confirm'] = lambda: ('', 204)
 
 When the user clicks the login button, they are redirected to our custom login page instead of the usual login page. The same applies to the logout button. Additionally, endpoints can be disabled in this manner, resulting in a 204 status code (indicating that the request has been successfully processed, but no content is returned). The code block above demonstrates that if the register button is made public during setup, it will not function as it redirects to nowhere. The same logic applies to the reset password and confirm (login callback) endpoints.
 
-The implementation has been done using \texttt{python-keycloak} \parencite{python_keycloak}, a tool specialized for handling authentication with Keycloak. While a more general approach could have involved using a generic OIDC plugin, \texttt{python-keycloak} was chosen for its ease of use and effectiveness in solving our specific problem.
+The implementation has been done using \texttt{python-keycloak} \parencite{python_keycloak}, a tool specialized for handling authentication with Keycloak, utilizing the \textit{authorization code} grant type. While a more general approach could have involved using a generic OIDC plugin, \texttt{python-keycloak} was chosen for its ease of use and effectiveness in solving our specific problem.
 
 The login flow is as follows:
 
@@ -389,6 +470,8 @@ Role mapping in Grafana is achieved using JMESPath, a query language for JSON. T
 
 Integrating Grafana with Keycloak for authentication provides a secure and efficient solution for managing user access in modern web applications. By leveraging OAuth2 and OIDC protocols, utilizing PKCE, implementing refresh tokens, and employing dynamic role mapping, this integration enhances security and user experience, ensuring that only authorized users can access sensitive data visualized in Grafana.
 
+\subsection{Secure Shell Daemon Application}
+
 \subsection{APIs}
 
 \chapter{Continuous Integration \& Deployment}
@@ -406,6 +489,10 @@ Integrating Grafana with Keycloak for authentication provides a secure and effic
 \section{Building Images with Nix}
 
 \section{Image Size Comparison}
+
+\section{SSH Bastions}
+
+\chapter{Intelligent Caching}
 
 \chapter{Evaluation}
 
