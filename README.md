@@ -45,3 +45,4 @@ You can also just execute the VSCode task `deploy everyting`.
 ## TODO
 - [ ] Optimize deployment using [Nx](https://nx.dev/getting-started/intro)
 - [ ] Configure Keycloak to use external AD
+- [ ] https://localhost/keycloak/realms/ctf/account/#/register
