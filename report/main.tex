@@ -268,7 +268,7 @@ Keycloak supports various OAuth 2.0 grant types to cater to different authentica
 The information presented in this section is based on the official Keycloak documentation, which provides comprehensive details on the supported grant types and their respective use-cases and security considerations \Parencite{keycloak2024}.
 
 \subsection*{Authorization Code}\label{sec:auth_code}
-The Authorization Code Grant is primarily used by web and mobile applications. It involves a two-step process where the client first obtains an authorization code, which is then exchanged for an access token. This method ensures that the client never directly handles the user's credentials, enhancing security by reducing the risk of credential exposure. The use of a client secret and the exchange of the authorization code over a secure channel (HTTPS) are critical to prevent interception and misuse.
+The Authorization Code Grant is primarily used by web and mobile applications. It involves a two-step process where the client first obtains an authorization code, which is then exchanged for an access token. This method ensures that the client never directly handles the user's credentials, enhancing security by reducing the risk of credential exposure.
 
 A diagram showing the flow is given below:
 
@@ -322,18 +322,32 @@ To mitigate these risks, the token is short-lived, minimizing the window for mis
 According to the current OAuth 2.0 Security Best Current Practice, the Implicit Grant flow is discouraged due to its security vulnerabilities. Consequently, this flow has been removed from the upcoming OAuth 2.1 specification.
 
 \subsection*{Resource Owner Password Credentials}
-gg
+The Resource Owner Password Credentials (ROPC) Grant is intended for scenarios where the user has a high level of trust in the client application, such as first-party clients. In this flow, the client application directly collects the user's credentials (username and password) and exchanges them for an access token from the authorization server. This method is straightforward but comes with significant security risks, as the client handles the user's credentials directly.
+
+A major drawback of the ROPC Grant is the potential exposure of user credentials. If the client application is compromised, the user's credentials can be intercepted and misused. Additionally, this flow does not support multi-factor authentication (MFA), which further reduces its security robustness.
+
+Despite these risks, the ROPC Grant can be useful in specific cases, such as when migrating legacy applications that already collect user credentials. It allows these applications to transition to OAuth 2.0 without requiring significant changes to their authentication mechanisms.
+
+The OAuth 2.0 Security Best Current Practice advises against using the ROPC Grant due to its inherent vulnerabilities. As a result, this flow is being deprecated in favor of more secure alternatives like the Authorization Code Grant.
 
 \subsection*{Client Credentials}
-gg
+The Client Credentials Grant is used when clients (applications and services) need to obtain access on behalf of themselves rather than on behalf of a user. This flow is particularly useful for background services that apply changes to the system in general rather than for a specific user. In this flow, the client application authenticates with the authorization server using its client credentials (client ID and client secret) and directly obtains an access token.
 
-\newpage
+Keycloak supports client authentication using either a secret or public/private keys. This flexibility allows for secure authentication methods tailored to the specific needs of the client application.
+
+One of the main advantages of the Client Credentials Grant is its simplicity and efficiency in scenarios where user context is not required. However, it also means that the access token obtained is limited to the permissions granted to the client application itself, rather than any specific user.
 
 \subsection*{Device Authorization Grant}
-gg
+The Device Authorization Grant is used by clients running on internet-connected devices that have limited input capabilities or lack a suitable browser, such as smart TVs, gaming consoles, or IoT devices. In this flow, the application requests that Keycloak provide a device code and a user code. Keycloak creates these codes and returns them to the application.
+
+The application then provides the user with the user code and a verification URI. The user accesses this verification URI on another device with a suitable browser to authenticate. Meanwhile, the application repeatedly polls Keycloak until the user completes the authorization process.
+
+Once user authentication is complete, the application obtains the device code. The application then uses this device code along with its credentials to obtain an Access Token, Refresh Token, and ID Token from Keycloak.
+
+This grant type is particularly useful for scenarios where user interaction with the device is limited or cumbersome. It allows the user to authenticate on a more convenient device, such as a smartphone or computer, while the original device remains in a waiting state.
 
 \subsection*{Client Initiated Backchannel Authentication Grant}
-gg
+The Client Initiated Backchannel Authentication (CIBA) Grant is used by clients to initiate the authentication flow without redirecting through the user's browser. This is particularly useful for devices with limited input capabilities, such as smart TVs or IoT devices. The app requests an \texttt{auth\_req\_id} from Keycloak, and the user completes authentication on a separate device. This flow allows for secure login without direct user interaction with the app.
 
 \newpage
 
@@ -361,7 +375,7 @@ When the user clicks the login button, they are redirected to our custom login p
 
 The implementation has been done using \texttt{python-keycloak} \parencite{python_keycloak}, a tool specialized for handling authentication with Keycloak, utilizing the \textit{authorization code} grant type. While a more general approach could have involved using a generic OIDC plugin, \texttt{python-keycloak} was chosen for its ease of use and effectiveness in solving our specific problem.
 
-The login flow is as follows:
+The login flow utilizes the Authorization Code Grant (see Section \ref{sec:auth_code}) and operates as follows:
 
 \begin{enumerate}
     \item A user logs into CTFd using their SSO credentials.
