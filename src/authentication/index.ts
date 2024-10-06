@@ -104,9 +104,9 @@ new k8s.helm.v3.Chart("step-certificates", {
             ssh: {
                 enabled: true
             },
-            bootstrap: {
-                postInitHook: `step ca provisioner add keycloak --type OIDC --client-id step-ca --client-secret ${stepCaSecret_} --configuration-endpoint http://keycloak/keycloak/realms/ctf/.well-known/openid-configuration --listen-address :10000`
-            }
+            // bootstrap: {
+            //     postInitHook: `step ca provisioner add keycloak --type OIDC --client-id step-ca --client-secret ${stepCaSecret_} --configuration-endpoint http://keycloak/keycloak/realms/ctf/.well-known/openid-configuration --listen-address :10000`
+            // }
         },
         ingress: {
             enabled: true,
