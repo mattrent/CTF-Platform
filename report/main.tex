@@ -52,13 +52,17 @@
     \thispagestyle{empty}
 \end{titlepage}
 
-\pagenumbering{roman}
-
 \begin{abstract}
 \paragraph{English}
 
 \paragraph{Danish}
 \end{abstract}
+
+\chapter*{Acknowledgements}
+\thispagestyle{empty}
+\clearpage
+
+\pagenumbering{roman}
 
 { \hypersetup{hidelinks} \tableofcontents \addtocontents{toc}{\vskip-40pt}}
 
@@ -68,17 +72,46 @@
 
 \chapter{Introduction}
 
+\section{Motivation}
+
+\section{Platform}
+
+\section{Goal}
+
+\chapter{Kubernetes}
+
+\section{Helm Chart}
+
+\section{Horizontal Scaling}
+
+\section{Vertical Scaling}
+
+\section{Health Check}
+
+\section{Probes}
+
+\subsection{Liveness}
+
+\subsection{Readiness}
+
+\subsection{Statup}
+
 \chapter{Infrastructure as Code}
 
 \section{Pulumi}
 
+\section{Alternatives}
+
 \section{Developing a Provider}
+
 
 \chapter{UCloud}
 
 \section{Limited Network Access}
 
 \section{Starting a Virtual Machine}
+
+\section{Domain Name}
 
 \chapter{Monitoring}
 Monitoring is an essential aspect of managing a Kubernetes cluster. It provides a comprehensive overview of the health and performance of our services, enabling us to detect and address anomalies before they escalate into critical issues. Effective monitoring allows us to be proactive, ensuring the stability and reliability of our production environment. Rather than reacting to problems like firefighters, we aim to prevent issues from occurring in the first place.
@@ -125,7 +158,7 @@ We utilized several Helm charts to streamline the deployment and management of o
 
 While considering log shipping solutions, we evaluated both Promtail and Fluent Bit. Promtail is known for its seamless integration with Loki, making it an ideal choice for Kubernetes environments. On the other hand, Fluent Bit offers high performance and flexibility, capable of forwarding logs to multiple destinations. Ultimately, we chose Promtail for its simplicity and compatibility within the Loki ecosystem, which aligns with our goal of maintaining a cohesive and efficient monitoring setup.
 
-\section{Sidecar Containers}
+\section{Sidecar Container}
 In Kubernetes, sidecar containers are a design pattern where an additional container runs alongside the main application container within the same pod. This pattern extends the functionality of the main application without modifying its code. A common use case for sidecar containers is dynamically loading dashboards into Grafana. This approach is particularly advantageous because it avoids unnecessary rolling updates of Grafana, making it super easy to configure new dashboard resources. For example, if using an external Helm chart with their own custom dashboards for Grafana, made for their service, then the dashboards are easily deployed, as there is no need to change the configuration of the currently running Grafana instance. To achieve this, \texttt{ConfigMaps} containing the dashboards must be labeled appropriately, such as with the label \texttt{grafana\_dashboard}. These \texttt{ConfigMaps} should include key-value pairs where the key is the filename and the value is the JSON content of the dashboard.
 
 The sidecar container used for this purpose is typically based on a general-purpose image like \texttt{kiwigrid/k8s-sidecar}. This container continuously scans for \texttt{ConfigMaps} with the specified label and loads them into Grafana using Grafana's public API. The sidecar container is configured with environment variables that specify how to interact with Grafana, including the Grafana URL and an API key for authentication. The API key is usually stored in a Kubernetes Secret and mounted into the sidecar container.
@@ -134,7 +167,7 @@ The sidecar container works by continuously scanning the Kubernetes API for \tex
 
 Similar features have been prepared for automatically adding scraping targets to Prometheus. These are known as Service Monitors or Pod Monitors, which will be described in the following two sections.
 
-\section{Custom Resource Definitions}
+\section{Custom Resource Definition}
 In Kubernetes, when the default resources do not meet specific requirements, it is possible to define custom resources to extend the functionality of the cluster. This capability is leveraged by the Prometheus community to introduce a set of Custom Resource Definitions (CRDs) that facilitate advanced monitoring configurations. These CRDs enable the seamless integration and management of Prometheus and related components within a Kubernetes environment. Although not all CRDs are utilized in every deployment, they are included due to their lightweight nature and the complexity involved in selectively disabling them. The Helm chart containing these CRDs is part of the kube-prometheus-stack.
 
 The primary CRDs introduced by the Prometheus community include:
@@ -158,7 +191,7 @@ These CRDs facilitate the Kubernetes-native deployment and management of Prometh
 
 Deploying the kube-prometheus-stack with Pulumi can sometimes result in failures when resources using a CRD type are detected before the CRD is created. Pulumi may mark these resources as failed after several attempts, an issue that does not occur with Helm. To mitigate this, we take advantage of the Helm chart's design, which allows individual components to be toggled. The CRDs are deactivated as part of the monitoring project but created as part of the fundamental configuration of the Kubernetes cluster.
 
-\section{Service Monitors}
+\section{Service Monitor}
 This section will delve into the definition and use of \texttt{ServiceMonitor}, while also comparing it with \texttt{PodMonitor}.
 
 A \texttt{ServiceMonitor} is a CRD that specifies how groups of services should be monitored. It allows Prometheus to scrape metrics from services by defining endpoints and selectors. Here is an example of how to define a \texttt{ServiceMonitor} using TypeScript:
@@ -216,7 +249,7 @@ It is important to mention that for configuring external authentication on Grafa
 \section{Protocols}
 \todo{Study this}
 
-\section{Realms \& Clients}
+\section{Realm \& Client}
 When deploying Keycloak, we rely on a Helm chart maintained by Bitnami \parencite{bitnami_keycloak}. Keycloak's documentation can be challenging to navigate, making it difficult to compare the Helm chart with the official documentation to determine how to fill in the Helm \texttt{values.yaml} file. However, after some effort, we managed to configure it. This configuration is part of the monitoring Pulumi project. More interesting is how to configure Keycloak itself to ensure reliable integrations with other services.
 
 The fundamental pillars consist of configuring the realm and corresponding clients. First, what is a realm? A realm is a fundamental concept used to manage a set of users, credentials, roles, and groups. Realms offer isolation, as each realm is independent of others, meaning users, roles, and configurations in one realm do not affect those in another. This isolation enables multi-tenancy, allowing different organizations or projects to use the same Keycloak instance without interfering with each other. Each realm can be configured to use its own identity providers, user federations, authentication flows, and more. Our CTF platform only has a single tenant, so one realm is sufficient. Let's call this realm \texttt{CTF} for clarity.
@@ -472,9 +505,24 @@ Role mapping in Grafana is achieved using JMESPath, a query language for JSON. T
 
 Integrating Grafana with Keycloak for authentication provides a secure and efficient solution for managing user access in modern web applications. By leveraging OAuth2 and OIDC protocols, utilizing PKCE, implementing refresh tokens, and employing dynamic role mapping, this integration enhances security and user experience, ensuring that only authorized users can access sensitive data visualized in Grafana.
 
-\subsection{Secure Shell Daemon Application}
+\subsection{Step Certificates}
 
 \subsection{APIs}
+
+\chapter{Certificate Management}
+
+\section{Environments}
+
+\section{Risks of HTTP in Clusters}
+
+\section{Certificate Authority}
+
+\section{ACME for TLS}
+
+\section{SSH Certificates}
+
+\section{Step CA Bootstrap}
+
 
 \chapter{Continuous Integration \& Deployment}
 
@@ -492,9 +540,11 @@ Integrating Grafana with Keycloak for authentication provides a secure and effic
 
 \section{Image Size Comparison}
 
-\section{SSH Bastions}
+\section{SSH Bastion}
 
 \chapter{Intelligent Caching}
+
+\section{Image Registry}
 
 \chapter{Evaluation}
 

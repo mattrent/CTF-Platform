@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import axios from 'axios';
 import { Stack } from "../utilities/misc";
+import * as fs from "fs";
 
 /* -------------------------------- namespace ------------------------------- */
 
@@ -15,9 +16,41 @@ new k8s.core.v1.Namespace("namespace", {
 /* ------------------------ NGINX ingress controller ------------------------ */
 
 if (stack === Stack.DEV) {
+    // TODO https://minikube.sigs.k8s.io/docs/tutorials/custom_cert_ingress/
+    // openssl genpkey -algorithm RSA -out tls.key -pkeyopt rsa_keygen_bits:2048
+    // openssl req -new -key tls.key -out tls.csr -subj "/CN=yourdomain.com"
+    // openssl x509 -req -in tls.csr -signkey tls.key -out tls.crt -days 365
+    // minikube addons configure ingress
+
+    // Read the certificate and key files
+    const cert = fs.readFileSync("./tls/tls.crt");
+    const key = fs.readFileSync("./tls/tls.key");
+    
+    // Create the TLS secret
+    new k8s.core.v1.Secret("mkcert", {
+        metadata: {
+            namespace: "kube-system",
+            name: "mkcert",
+        },
+        type: "kubernetes.io/tls",
+        data: {
+            "tls.crt": Buffer.from(cert).toString("base64"),
+            "tls.key": Buffer.from(key).toString("base64"),
+        },
+    });
+
+    const configureIngress = async () => await command.local.run({
+        command: "echo kube-system/mkcert | minikube addons configure ingress"
+    });
+
     const enableIngress = async () => await command.local.run({
         command: "minikube addons enable ingress"
     });
+
+    // minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value":"--enable-ssl-passthrough"}]'
+    // kubectl patch deployment -n ingress-nginx ingress-nginx-controller --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value":"--enable-ssl-passthrough"}]'
+
+    configureIngress();
     enableIngress();
 } else {
     new k8s.helm.v3.Chart("nginx-ingress", {
