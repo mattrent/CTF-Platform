@@ -33,6 +33,8 @@ const grafanaRealmSecret_ = crypto.randomBytes(32).toString("hex");
 const ctfdRealmSecret_ = crypto.randomBytes(32).toString("hex");
 const stepCaSecret_ = crypto.randomBytes(32).toString("hex");
 
+console.log("secret step ca", stepCaSecret_)
+
 realmConfiguration = envSubst(realmConfiguration, "GRAFANA_CLIENT_SECRET", grafanaRealmSecret_);
 realmConfiguration = envSubst(realmConfiguration, "CTFD_CLIENT_SECRET", ctfdRealmSecret_);
 realmConfiguration = envSubst(realmConfiguration, "STEP_CLIENT_SECRET", stepCaSecret_);
@@ -136,11 +138,24 @@ new k8s.helm.v3.Chart("step", {
                     password: "secret-not-so-secret"
                 },
                 bootstrap: {
-                    postInitHook: `step ca provisioner add keycloak \
-                    --type OIDC \
-                    --client-id step-ca \
-                    --client-secret ${stepCaSecret_} \
-                    --configuration-endpoint http://${HOST}/keycloak/realms/ctf/.well-known/openid-configuration`
+                    postInitHook: `wget https://github.com/stedolan/jq/releases/download/jq-1.7/jq-linux64 && \
+                        chmod +x jq-linux64 && \
+                        ./jq-linux64 '.authority.provisioners += [{
+                            "type": "OIDC",
+                            "name": "keycloak",
+                            "clientID": "step-ca",
+                            "clientSecret": "${stepCaSecret_}",
+                            "configurationEndpoint": "http://giberish/keycloak/realms/ctf/.well-known/openid-configuration",
+                            "claims": {
+                                "enableSSHCA": true,
+                                "disableRenewal": false,
+                                "allowRenewalAfterExpiry": false
+                            },
+                            "options": {
+                                "x509": {},
+                                "ssh": {}
+                            }
+                        }]' $(step path)/config/ca.json > tmp.json && cat tmp.json > $(step path)/config/ca.json`
                 },
                 dns: `myhost,step-step-certificates.${NS}.svc.cluster.local,localhost,127.0.0.1`,
             },

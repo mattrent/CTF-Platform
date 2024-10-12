@@ -516,6 +516,12 @@ Integrating Grafana with Keycloak for authentication provides a secure and effic
 
 \chapter{Certificate Management}
 
+It’s both. The CRD (Custom Resource Definition) StepIssuer defines how cert-manager interacts with the step issuer, and using cert-manager.io/v1 as the API version ensures that cert-manager processes the certificate request.
+
+The StepIssuer CRD is what allows cert-manager to understand and utilize Step Issuer-specific configurations. The apiVersion specifies that this CRD is part of cert-manager’s ecosystem, linking the certificate management workflow to the Step Issuer capabilities.
+
+So, it’s the combination of the StepIssuer CRD defining the step-issuer's specifics and the API version that ties it into cert-manager’s functionality.
+
 \section{Risks of HTTP in Clusters}
 
 \section{ACME for TLS}
