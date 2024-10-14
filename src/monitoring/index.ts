@@ -6,7 +6,7 @@ import * as pulumi from "@pulumi/pulumi";
 const stack = pulumi.getStack();
 const org = pulumi.getOrganization();
 
-const stackReference = new pulumi.StackReference(`${org}/authentication/${stack}`);
+const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}`);
 const config = new pulumi.Config();
 
 /* --------------------------------- config --------------------------------- */

@@ -30,6 +30,14 @@
             "dependsOrder": "sequence"
         },
         {
+            "label": "Deploy certificates",
+            "group": "build",
+            "type": "shell",
+            "command": "cd src/certificates && pulumi up --stack dev -y",
+            "dependsOn": ["Deploy infrastructure"],
+            "dependsOrder": "sequence"
+        },
+        {
             "label": "Destroy infrastructure",
             "group": "build",
             "type": "shell",
@@ -54,15 +62,21 @@
             "command": "cd src/monitoring && pulumi destroy --stack dev -y",
         },
         {
+            "label": "Destroy certificates",
+            "group": "build",
+            "type": "shell",
+            "command": "cd src/certificates && pulumi destroy --stack dev -y",
+        },
+        {
             "label": "Deploy everything",
             "group": "build",
-            "dependsOn": ["Deploy infrastructure", "Deploy authentication", "Deploy application", "Deploy monitoring"],
+            "dependsOn": ["Deploy infrastructure", "Deploy authentication", "Deploy application", "Deploy monitoring", "Deploy certificates"],
             "dependsOrder": "sequence"
         },
         {
             "label": "Destroy everything",
             "group": "build",
-            "dependsOn": ["Destroy infrastructure", "Destroy authentication", "Destroy monitoring", "Destroy application"],
+            "dependsOn": ["Destroy infrastructure", "Destroy authentication", "Destroy monitoring", "Destroy application", "Destroy certificates"],
             "dependsOrder": "sequence"
         },
     ]

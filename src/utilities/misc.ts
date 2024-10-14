@@ -6,3 +6,7 @@ export function envSubst(content: string, envVariable: string, replaceValue: str
 export enum Stack {
     DEV = "dev"
 }
+
+export function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}

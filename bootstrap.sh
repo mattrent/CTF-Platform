@@ -12,11 +12,14 @@ fingerprint=$(
 
 echo $fingerprint
 
-# https://github.com/smallstep/cli/blob/3d38cfeadb8f90e8b916a7b7e9c1d4fe9e80a43f/command/oauth/cmd.go#L331
-# ! only works with port-forwarding at the momemnt :))
-step ca bootstrap --ca-url https://myhost --fingerprint $fingerprint -f
+step ca bootstrap --ca-url https://myhost/roots.pem \
+    --fingerprint $fingerprint \
+    --force \
+    --install
 
 eval $(ssh-agent)
+
+# https://github.com/smallstep/cli/blob/3d38cfeadb8f90e8b916a7b7e9c1d4fe9e80a43f/command/oauth/cmd.go#L331
 
 # step will expect to be able to perform a TLS handshake with the proxy, and use the CA's root certificate to complete the trust chain. So, for inbound TLS connections, the proxy should use a server certificate issued by step-ca. See below for an example.
 

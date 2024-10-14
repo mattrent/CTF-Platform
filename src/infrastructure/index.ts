@@ -3,7 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import axios from 'axios';
 import { Stack } from "../utilities/misc";
-import * as fs from "fs";
+import * as crypto from "crypto";
 
 /* -------------------------------- namespace ------------------------------- */
 
@@ -13,44 +13,19 @@ new k8s.core.v1.Namespace("namespace", {
     metadata: { name: stack },
 });
 
+/* ------------------- generate client secrets for export ------------------- */
+
+export const grafanaRealmSecret = pulumi.secret(crypto.randomBytes(32).toString("hex"));
+export const ctfdRealmSecret = pulumi.secret(crypto.randomBytes(32).toString("hex"));
+export const stepCaSecret = pulumi.secret(crypto.randomBytes(32).toString("hex"));
+
 /* ------------------------ NGINX ingress controller ------------------------ */
 
 if (stack === Stack.DEV) {
-    // TODO https://minikube.sigs.k8s.io/docs/tutorials/custom_cert_ingress/
-    // openssl genpkey -algorithm RSA -out tls.key -pkeyopt rsa_keygen_bits:2048
-    // openssl req -new -key tls.key -out tls.csr -subj "/CN=yourdomain.com"
-    // openssl x509 -req -in tls.csr -signkey tls.key -out tls.crt -days 365
-    // minikube addons configure ingress
-
-    // Read the certificate and key files
-    const cert = fs.readFileSync("./tls/tls.crt");
-    const key = fs.readFileSync("./tls/tls.key");
-    
-    // Create the TLS secret
-    new k8s.core.v1.Secret("mkcert", {
-        metadata: {
-            namespace: "kube-system",
-            name: "mkcert",
-        },
-        type: "kubernetes.io/tls",
-        data: {
-            "tls.crt": Buffer.from(cert).toString("base64"),
-            "tls.key": Buffer.from(key).toString("base64"),
-        },
-    });
-
-    const configureIngress = async () => await command.local.run({
-        command: "echo kube-system/mkcert | minikube addons configure ingress"
-    });
-
     const enableIngress = async () => await command.local.run({
         command: "minikube addons enable ingress"
     });
 
-    // minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value":"--enable-ssl-passthrough"}]'
-    // kubectl patch deployment -n ingress-nginx ingress-nginx-controller --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value":"--enable-ssl-passthrough"}]'
-
-    configureIngress();
     enableIngress();
 } else {
     new k8s.helm.v3.Chart("nginx-ingress", {
@@ -69,28 +44,13 @@ if (stack === Stack.DEV) {
     });
 }
 
-/* ------------------------------ cert-manager ------------------------------ */
-
-if (stack !== Stack.DEV) {
-    new k8s.helm.v3.Chart("cert-manager", {
-        chart: "cert-manager",
-        version: "v1.11.0", // Specify the version you want to deploy
-        fetchOpts: {
-            repo: "https://charts.jetstack.io", // cert-manager Helm chart repository
-        },
-        values: {
-            installCRDs: true, // Install Custom Resource Definitions
-        },
-    });
-}
-
 // /* ---------------------------- install KubeVirt ---------------------------- */
 
 (async () => {
     // Function to fetch the latest KubeVirt release
     const RELEASE = await axios.get('https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt')
-    .then(res => res.data.trim())
-    .catch(error => `Error fetching release: ${error.message}`);
+        .then(res => res.data.trim())
+        .catch(error => `Error fetching release: ${error.message}`);
 
     // Apply the KubeVirt operator manifest
     new k8s.yaml.ConfigFile("kubevirt-operator", {
@@ -102,7 +62,6 @@ if (stack !== Stack.DEV) {
         file: `https://github.com/kubevirt/kubevirt/releases/download/${RELEASE}/kubevirt-cr.yaml`
     });
 })();
-
 
 const softwareEmulationFallback = async () => await command.local.run({
     command: `kubectl patch kubevirt kubevirt -n kubevirt --type merge -p '{

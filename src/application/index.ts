@@ -18,7 +18,7 @@ const appLabels = {
 
 const stack = pulumi.getStack();
 const org = pulumi.getOrganization();
-const stackReference = new pulumi.StackReference(`${org}/authentication/${stack}`);
+const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}`);
 
 /* --------------------------------- config --------------------------------- */
 
@@ -52,7 +52,7 @@ CTFD_CLIENT_SECRET.apply(secret => {
         data: configMap,
     });
 
-/* ------------------------------- deployment ------------------------------- */
+    /* ------------------------------- deployment ------------------------------- */
 
     singleContainerDeploymentTemplate(
         "ctfd",
@@ -82,7 +82,7 @@ CTFD_CLIENT_SECRET.apply(secret => {
             ]
         }
     );
-})
+});
 
 /* --------------------------------- service -------------------------------- */
 
