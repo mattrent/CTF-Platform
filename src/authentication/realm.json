@@ -1066,10 +1066,10 @@
             "clientAuthenticatorType": "client-secret",
             "secret": "${STEP_CLIENT_SECRET}",
             "redirectUris": [
-                "https://${HOST}/step-ca/*"
+                "http://127.0.0.1:10000/*"
             ],
             "webOrigins": [
-                "https://${HOST}"
+                "http://127.0.0.1:10000"
             ],
             "notBefore": 0,
             "bearerOnly": false,

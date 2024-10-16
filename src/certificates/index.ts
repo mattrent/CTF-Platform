@@ -46,7 +46,8 @@ stepCaSecret.apply(stepCaSecret => {
                             "name": "keycloak",
                             "clientID": "step-ca",
                             "clientSecret": "${stepCaSecret}",
-                            "configurationEndpoint": "http://${HOST}/keycloak/realms/ctf/.well-known/openid-configuration",
+                            "configurationEndpoint": "https://${HOST}/keycloak/realms/ctf/.well-known/openid-configuration",
+                            "listenAddress": ":10000",
                             "claims": {
                                 "enableSSHCA": true,
                                 "disableRenewal": false,
@@ -58,7 +59,7 @@ stepCaSecret.apply(stepCaSecret => {
                             }
                         }]' $(step path)/config/ca.json > tmp.json && cat tmp.json > $(step path)/config/ca.json`
                     },
-                    dns: `myhost,${CA_URL},localhost,127.0.0.1`,
+                    dns: `myhost,${CA_URL},localhost,127.0.0.1`, // TODO be more specific
                 },
                 ingress: {
                     enabled: true,
@@ -72,7 +73,7 @@ stepCaSecret.apply(stepCaSecret => {
                     },
                     tls: [{
                         hosts: [HOST],
-                        secretName: "step"
+                        secretName: "step-tls"
                     }],
                     hosts: [{
                         host: HOST,
@@ -93,10 +94,10 @@ new k8s.helm.v3.Chart("cert-manager", {
     namespace: NS,
     chart: "cert-manager",
     fetchOpts: {
-        repo: "https://charts.jetstack.io", // cert-manager Helm chart repository
+        repo: "https://charts.jetstack.io",
     },
     values: {
-        installCRDs: true, // Install Custom Resource Definitions
+        installCRDs: true,
     },
 });
 
