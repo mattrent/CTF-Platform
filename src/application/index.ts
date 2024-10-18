@@ -1,10 +1,11 @@
+import * as docker from "@pulumi/docker";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import * as fs from "fs";
 import * as path from 'path';
 import { singleContainerDeploymentTemplate, VolumeType } from "../utilities/deployment";
 import { ingressTemplate } from "../utilities/ingress";
-import { envSubst } from "../utilities/misc";
+import { envSubst, Stack } from "../utilities/misc";
 import { serviceTemplate } from "../utilities/service";
 
 /* ------------------------------ prerequisite ------------------------------ */
@@ -13,7 +14,8 @@ const config = new pulumi.Config();
 
 const appLabels = {
     ctfd: { app: "ctfd" },
-    ctfd_db: { app: "ctfd-db" }
+    ctfd_db: { app: "ctfd-db" },
+    bastion: { app: "bastion" }
 }
 
 const stack = pulumi.getStack();
@@ -31,7 +33,7 @@ const CTFD_CLIENT_SECRET =
 
 /* ----------------------------- loading plugin ----------------------------- */
 
-const pluginFolder = path.resolve("plugins/ctfd_oidc");
+const pluginFolder = path.resolve("ctfd_oidc");
 const pluginFiles = fs.readdirSync(pluginFolder);
 
 const configMap: { [key: string]: string } = {};
@@ -110,3 +112,62 @@ ingressTemplate(
         port: CTFD_PORT
     }]
 );
+
+// eval $(minikube docker-env)
+const bastionImage = new docker.Image("bastion-image", {
+    build: {
+        context: "./bastion",
+        dockerfile: "./bastion/Dockerfile",
+        platform: "linux/amd64"
+    },
+    imageName: "bastion",
+    skipPush: true,
+});
+
+new k8s.apps.v1.Deployment("bastion-deployment", {
+    metadata: { namespace: NS },
+    spec: {
+        selector: { matchLabels: appLabels.bastion },
+        template: {
+            metadata: { labels: appLabels.bastion },
+            spec: {
+                containers: [
+                    {
+                        name: "ssh-bastion",
+                        image: bastionImage.imageName,
+                        imagePullPolicy: stack == Stack.DEV ? "Never" : undefined,
+                        ports: [{ containerPort: 22 }],
+                        volumeMounts: [{
+                            name: "ca-user-key",
+                            mountPath: "/etc/ssh/ca_user_key.pub",
+                            subPath: "ca_user_key.pub"
+                        }]
+                    }
+                ],
+                volumes: [{
+                    name: "ca-user-key",
+                    configMap: {
+                        name: "step-step-certificates-certs",
+                        items: [{
+                            key: "ssh_user_ca_key.pub",
+                            path: "ca_user_key.pub"
+                        }]
+                    }
+                }]
+            }
+        }
+    }
+}, { dependsOn: bastionImage });
+
+new k8s.core.v1.Service("bastion-service", {
+    metadata: { namespace: NS },
+    spec: {
+        selector: appLabels.bastion,
+        type: "NodePort",
+        ports: [{
+            port: 22,
+            targetPort: 22,
+            nodePort: 30022
+        }]
+    }
+});

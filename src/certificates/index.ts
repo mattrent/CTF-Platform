@@ -103,21 +103,19 @@ new k8s.helm.v3.Chart("cert-manager", {
 
 /* ------------------------------- step issuer ------------------------------ */
 
+let CA_ROOT_B64: pulumi.Output<string>;
+let CA_PROVISIONER_KID: pulumi.Output<any>;
+
 async function deployStepIssuer() {
     if (!pulumi.runtime.isDryRun()) {
         await sleep(90000);
+
+        const caCert = k8s.core.v1.ConfigMap.get("step-certificates-certs", "dev/step-step-certificates-certs");
+        const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", "dev/step-step-certificates-config");
+
+        CA_ROOT_B64 = caCert.data.apply(data => Buffer.from(data['root_ca.crt']).toString('base64'));
+        CA_PROVISIONER_KID = caConfig.data.apply(data => JSON.parse(data['ca.json']).authority.provisioners[0].key.kid);
     }
-
-    // Fetch the required values directly from Kubernetes resources
-    const caCert = pulumi.runtime.isDryRun()
-        ? new k8s.core.v1.ConfigMap("dummy1", {})
-        : k8s.core.v1.ConfigMap.get("step-certificates-certs", "dev/step-step-certificates-certs");
-    const caConfig = pulumi.runtime.isDryRun()
-        ? new k8s.core.v1.ConfigMap("dummy2", {})
-        : k8s.core.v1.ConfigMap.get("step-certificates-config", "dev/step-step-certificates-config");
-
-    const CA_ROOT_B64 = caCert.data.apply(data => Buffer.from(data['root_ca.crt']).toString('base64'));
-    const CA_PROVISIONER_KID = caConfig.data.apply(data => JSON.parse(data['ca.json']).authority.provisioners[0].key.kid);
 
     // Deploy step-issuer using Helm
     new k8s.helm.v3.Chart("step-issuer", {

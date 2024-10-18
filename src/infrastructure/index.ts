@@ -22,17 +22,15 @@ export const stepCaSecret = pulumi.secret(crypto.randomBytes(32).toString("hex")
 /* ------------------------ NGINX ingress controller ------------------------ */
 
 if (stack === Stack.DEV) {
-    const enableIngress = async () => await command.local.run({
-        command: "minikube addons enable ingress"
-    });
-
-    enableIngress();
+    new command.local.Command("enable-ingress", {
+        create: "minikube addons enable ingress",
+        delete: "minikube addons disable ingress"
+    });    
 } else {
     new k8s.helm.v3.Chart("nginx-ingress", {
         chart: "ingress-nginx",
-        version: "4.11.2", // Specify the version you want to deploy
         fetchOpts: {
-            repo: "https://kubernetes.github.io/ingress-nginx", // NGINX Ingress Controller Helm chart repository
+            repo: "https://kubernetes.github.io/ingress-nginx",
         },
         values: {
             controller: {
@@ -53,31 +51,29 @@ if (stack === Stack.DEV) {
         .catch(error => `Error fetching release: ${error.message}`);
 
     // Apply the KubeVirt operator manifest
-    new k8s.yaml.ConfigFile("kubevirt-operator", {
+    const kubeVirtOperator = new k8s.yaml.ConfigFile("kubevirt-operator", {
         file: `https://github.com/kubevirt/kubevirt/releases/download/${RELEASE}/kubevirt-operator.yaml`,
     });
 
     // Apply the KubeVirt CR manifest
-    new k8s.yaml.ConfigFile("kubevirt-cr", {
+    const kubeVirtCr = new k8s.yaml.ConfigFile("kubevirt-cr", {
         file: `https://github.com/kubevirt/kubevirt/releases/download/${RELEASE}/kubevirt-cr.yaml`
     });
+
+
+    // new command.local.Command("software-emulation-fallback", {
+    //     create: `kubectl patch kubevirt kubevirt -n kubevirt --type merge -p '{
+    //         "spec": {
+    //             "configuration": {
+    //                 "developerConfiguration": {
+    //                     "useEmulation": true
+    //                 }
+    //             }
+    //         }
+    //     }'`
+    // }, {dependsOn: [kubeVirtOperator, kubeVirtOperator]});
+    
 })();
-
-const softwareEmulationFallback = async () => await command.local.run({
-    command: `kubectl patch kubevirt kubevirt -n kubevirt --type merge -p '{
-        "spec": {
-            "configuration": {
-                "developerConfiguration": {
-                    "useEmulation": true
-                }
-            }
-        }
-    }'`
-});
-
-if (false) {
-    softwareEmulationFallback();
-}
 
 /* ---------------------------------- CRDs ---------------------------------- */
 
