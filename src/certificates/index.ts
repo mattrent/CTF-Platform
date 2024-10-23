@@ -44,7 +44,7 @@ stepCaSecret.apply(stepCaSecret => {
                         ./jq-linux64 '.authority.provisioners += [{
                             "type": "OIDC",
                             "name": "keycloak",
-                            "clientID": "step-ca",
+                            "clientID": "step",
                             "clientSecret": "${stepCaSecret}",
                             "configurationEndpoint": "https://${HOST}/keycloak/realms/ctf/.well-known/openid-configuration",
                             "listenAddress": ":10000",
@@ -55,9 +55,16 @@ stepCaSecret.apply(stepCaSecret => {
                             },
                             "options": {
                                 "x509": {},
-                                "ssh": {}
+                                "ssh": {"templateFile": "templates/ssh/keycloak.tpl"}
                             }
-                        }]' $(step path)/config/ca.json > tmp.json && cat tmp.json > $(step path)/config/ca.json`
+                        }]' $(step path)/config/ca.json > tmp.json && cat tmp.json > $(step path)/config/ca.json && \
+                        echo '{
+                            "type": {{ toJson .Type }},
+                            "keyId": {{ toJson .KeyID }},
+                            "principals": {{ toJson ((concat .Principals .Token.resource_access.step.roles) | uniq) }},
+                            "criticalOptions": {{ toJson .CriticalOptions }},
+                            "extensions": {{ toJson .Extensions }}
+                          }' > $(step path)/templates/ssh/keycloak.tpl`
                     },
                     dns: `myhost,${CA_URL},localhost,127.0.0.1`, // TODO be more specific
                 },

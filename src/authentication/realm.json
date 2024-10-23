@@ -452,7 +452,17 @@
                     "attributes": {}
                 }
             ],
-            "step-ca": []
+            "step": [
+                {
+                    "id": "cd9c1da6-1292-46a2-a521-0f6022fc3396",
+                    "name": "bastion",
+                    "description": "",
+                    "composite": false,
+                    "clientRole": true,
+                    "containerId": "f4ed6c3c-851c-4ddf-b4e6-af14303f8d33",
+                    "attributes": {}
+                }
+            ]
         }
     },
     "groups": [],
@@ -1054,7 +1064,7 @@
         },
         {
             "id": "f4ed6c3c-851c-4ddf-b4e6-af14303f8d33",
-            "clientId": "step-ca",
+            "clientId": "step",
             "name": "step-certificates",
             "description": "",
             "rootUrl": "",
@@ -1091,6 +1101,26 @@
             "authenticationFlowBindingOverrides": {},
             "fullScopeAllowed": true,
             "nodeReRegistrationTimeout": -1,
+            "protocolMappers": [
+                {
+                    "id": "c027d405-2846-4b1e-8ffd-ac7048222d46",
+                    "name": "client roles",
+                    "protocol": "openid-connect",
+                    "protocolMapper": "oidc-usermodel-client-role-mapper",
+                    "consentRequired": false,
+                    "config": {
+                        "introspection.token.claim": "true",
+                        "multivalued": "true",
+                        "userinfo.token.claim": "false",
+                        "user.attribute": "foo",
+                        "id.token.claim": "true",
+                        "lightweight.claim": "false",
+                        "access.token.claim": "true",
+                        "claim.name": "resource_access.${client_id}.roles",
+                        "jsonType.label": "String"
+                    }
+                }
+            ],
             "defaultClientScopes": [
                 "web-origins",
                 "acr",
@@ -2528,34 +2558,14 @@
     "firstBrokerLoginFlow": "first broker login",
     "attributes": {
         "cibaBackchannelTokenDeliveryMode": "poll",
-        "de.adorsys.keycloak.config.import-checksum-default": "aaf839f135c95b67f24e649ff5e0213558b940dc7caceae89556953a4da513a5",
-        "clientOfflineSessionIdleTimeout": "0",
-        "de.adorsys.keycloak.config.state-default-roles-client-realm-management-0": "[\"query-groups\",\"view-identity-providers\",\"view-clients\",\"manage-identity-providers\",\"realm-admin\",\"impersonation\",\"manage-users\",\"query-users\",\"view-events\",\"query-clients\",\"manage-clients\",\"query-realms\",\"manage-realm\",\"create-client\",\"view-users\",",
-        "de.adorsys.keycloak.config.state-default-roles-client-realm-management-1": "\"view-realm\",\"manage-authorization\",\"manage-events\",\"view-authorization\"]",
-        "cibaExpiresIn": "120",
-        "de.adorsys.keycloak.config.state-default-roles-client-admin-cli-0": "[]",
-        "de.adorsys.keycloak.config.state-default-roles-client-security-admin-console-0": "[]",
         "frontendUrl": "",
         "organizationsEnabled": "false",
-        "de.adorsys.keycloak.config.state-default-components-1": "nerated-hs512\"]",
-        "de.adorsys.keycloak.config.state-default-components-0": "[\"Consent Required\",\"Allowed Protocol Mapper Types\",\"Allowed Client Scopes\",\"Allowed Client Scopes\",\"Max Clients Limit\",\"Full Scope Disabled\",\"Allowed Protocol Mapper Types\",\"Trusted Hosts\",\"rsa-generated\",\"rsa-enc-generated\",\"aes-generated\",\"hmac-ge",
-        "cibaAuthRequestedUserHint": "login_hint",
-        "de.adorsys.keycloak.config.state-default-roles-client-grafana-0": "[\"viewer\",\"admin\",\"editor\"]",
-        "de.adorsys.keycloak.config.state-default-roles-client-broker-0": "[\"read-token\"]",
-        "clientOfflineSessionMaxLifespan": "0",
         "oauth2DevicePollingInterval": "5",
         "clientSessionIdleTimeout": "0",
-        "de.adorsys.keycloak.config.state-default-roles-realm-0": "[\"uma_authorization\",\"offline_access\",\"default-roles-ctf\"]",
-        "cibaInterval": "5",
-        "realmReusableOtpCode": "false",
-        "oauth2DeviceCodeLifespan": "600",
-        "de.adorsys.keycloak.config.state-default-required-actions-0": "[\"CONFIGURE_TOTP\",\"TERMS_AND_CONDITIONS\",\"UPDATE_PASSWORD\",\"UPDATE_PROFILE\",\"VERIFY_EMAIL\",\"delete_account\",\"webauthn-register\",\"webauthn-register-passwordless\",\"VERIFY_PROFILE\",\"delete_credential\",\"update_user_locale\"]",
-        "parRequestUriLifespan": "60",
         "clientSessionMaxLifespan": "0",
-        "acr.loa.map": "{}",
-        "de.adorsys.keycloak.config.state-default-roles-client-ctfd-0": "[\"user\",\"admin\"]",
-        "de.adorsys.keycloak.config.state-default-clients-0": "[\"account\",\"account-console\",\"admin-cli\",\"broker\",\"ctfd\",\"grafana\",\"realm-management\",\"security-admin-console\"]",
-        "de.adorsys.keycloak.config.state-default-roles-client-account-0": "[\"manage-account\",\"view-consent\",\"view-profile\",\"manage-account-links\",\"view-groups\",\"delete-account\",\"view-applications\",\"manage-consent\"]"
+        "oauth2DeviceCodeLifespan": "600",
+        "realmReusableOtpCode": "false",
+        "parRequestUriLifespan": "60"
     },
     "keycloakVersion": "25.0.6",
     "userManagedAccessAllowed": false,
