@@ -542,6 +542,21 @@ So, it’s the combination of the StepIssuer CRD defining the step-issuer's spec
 
 \subsection{Bootstrap}
 
+\begin{minted}{bash}
+fingerprint=$(
+    curl -k https://myhost/roots.pem | 
+    openssl x509 -noout -sha256 -fingerprint | 
+    sed 's/://g' | 
+    tr 'A-F' 'a-f' | 
+    awk -F= '{print $2}'
+)
+
+step ca bootstrap --ca-url https://myhost \
+    --fingerprint $fingerprint \
+    --force \
+    --install
+\end{minted}
+
 \chapter{Continuous Integration \& Deployment}
 
 \section{Jenkins Configuration as Code}
