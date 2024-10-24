@@ -1,11 +1,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vanta/dist/vanta.birds.min.js"></script>
 <script>
-  if (window.THREE) {
-    VANTA.birds({
-      el: "#main_content_wrap"
-    });
-  }
+VANTA.BIRDS({
+  el: "#main_content_wrap",
+  mouseControls: true,
+  touchControls: true,
+  gyroControls: true,
+  minHeight: 200.00,
+  minWidth: 200.00,
+  scale: 1.00,
+  scaleMobile: 1.00,
+  backgroundAlpha: 0
+})
 </script>
 
 <p align="center">
