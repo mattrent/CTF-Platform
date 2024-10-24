@@ -1,16 +1,3 @@
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/vanta/dist/vanta.birds.min.js"></script>
-<script>
-if (window.THREE) {
-    VANTA.birds({
-    el: "#main_content_wrap"
-    });
-}
-</script>
-
-
-
 <p align="center">
 <a href="https://odin.sdu.dk/sitecore/index.php?a=fagbesk&id=83401&lang=en&listid=">
 <img src="https://www.sdu.dk/-/media/files/nyheder/logoer/sdu_black_rgb_png.png" width="400" style="padding-bottom: 1em;">
