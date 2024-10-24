@@ -52,14 +52,9 @@ You can also just execute the VSCode task `deploy everyting`.
 <script>
 VANTA.BIRDS({
   el: "#main_content_wrap",
-  mouseControls: true,
-  touchControls: true,
-  gyroControls: true,
-  minHeight: 200.00,
-  minWidth: 200.00,
   quantity: 1,
-  scale: 1.00,
-  scaleMobile: 1.00,
+  birdSize: 3,
+  speedLimit: 2,
   backgroundAlpha: 0
 })
 </script>
