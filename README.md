@@ -1,6 +1,4 @@
 <head>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vanta/dist/vanta.birds.min.js"></script>
     <title>CTF Platform</title>
     <link rel="icon" type="image/x-icon" href="https://sso.sdu.dk/static/favicon.ico" />
 </head>
@@ -54,6 +52,8 @@ You can also just execute the VSCode task `deploy everyting`.
 - [ ] Configure Keycloak to use external AD
 - [ ] https://localhost/keycloak/realms/ctf/account/#/register
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta/dist/vanta.birds.min.js"></script>
 <script>
 VANTA.BIRDS({
   el: "#main_content_wrap",
