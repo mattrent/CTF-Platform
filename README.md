@@ -4,9 +4,7 @@
 <script>
 if (window.THREE) {
     VANTA.birds({
-    el: ".outer",
-    mouseControls: true,
-    touchControls: true,
+    el: "#main_content_wrap"
     });
 }
 </script>
