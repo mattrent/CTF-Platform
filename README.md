@@ -53,7 +53,7 @@ You can also just execute the VSCode task `deploy everyting`.
 VANTA.BIRDS({
   el: "#main_content_wrap",
   quantity: 1,
-  birdSize: 3,
+  birdSize: 2,
   speedLimit: 2,
   backgroundAlpha: 0
 })
