@@ -1,5 +1,6 @@
 <head>
     <link rel="icon" type="image/x-icon" href="https://sso.sdu.dk/static/favicon.ico" />
+    <title>CTF Platform</title>
 </head>
 
 <p align="center">
