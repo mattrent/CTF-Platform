@@ -1,5 +1,5 @@
 theme: jekyll-theme-slate
 title: CTF Platform
 description: >
-  Capture The Flag (CTF) platform development focussing on accessibility by deploying on cloud infrastructure, leveraging modern DevOps tools for infrastructure, ensuring strong security through containerization and VMs, and optimizing resource utilization to minimize the server footprint.
+  CTF platform development and optimization using technologies like Pulumi, Kubernetes, and KubeVirt. Monitoring with Prometheus and Grafana, implementing zero-trust with Smallstep, and SSO with Keycloak and much more.
 show_downloads: true

@@ -12,30 +12,23 @@
             "group": "build",
             "type": "shell",
             "command": "cd src/application && pulumi up --stack dev -y",
-            "dependsOn": ["Deploy authentication"]
         },
         {
             "label": "Deploy authentication",
             "group": "build",
             "type": "shell",
-            "command": "cd src/authentication && pulumi up --stack dev -y",
-            "dependsOn": ["Deploy infrastructure"]
         },
         {
             "label": "Deploy monitoring",
             "group": "build",
             "type": "shell",
             "command": "cd src/monitoring && pulumi up --stack dev -y",
-            "dependsOn": ["Deploy infrastructure", "Deploy authentication"],
-            "dependsOrder": "sequence"
         },
         {
             "label": "Deploy certificates",
             "group": "build",
             "type": "shell",
             "command": "cd src/certificates && pulumi up --stack dev -y",
-            "dependsOn": ["Deploy infrastructure"],
-            "dependsOrder": "sequence"
         },
         {
             "label": "Destroy infrastructure",
@@ -70,7 +63,7 @@
         {
             "label": "Deploy everything",
             "group": "build",
-            "dependsOn": ["Deploy infrastructure", "Deploy authentication", "Deploy application", "Deploy monitoring", "Deploy certificates"],
+            "dependsOn": ["Deploy infrastructure", "Deploy certificates", "Deploy authentication", "Deploy application", "Deploy monitoring"],
             "dependsOrder": "sequence"
         },
         {
