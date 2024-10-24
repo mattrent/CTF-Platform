@@ -1,7 +1,3 @@
----
-title: "CTF Platform"
----
-
 <head>
     <link rel="icon" type="image/x-icon" href="https://sso.sdu.dk/static/favicon.ico" />
 </head>
