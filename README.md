@@ -1,4 +1,4 @@
-<div id="birds>
+<div id="birds">
 
 <p align="center">
 <a href="https://odin.sdu.dk/sitecore/index.php?a=fagbesk&id=83401&lang=en&listid=">
