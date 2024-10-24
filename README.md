@@ -1,18 +1,4 @@
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/vanta/dist/vanta.birds.min.js"></script>
-<script>
-VANTA.BIRDS({
-  el: "#main_content_wrap",
-  mouseControls: true,
-  touchControls: true,
-  gyroControls: true,
-  minHeight: 200.00,
-  minWidth: 200.00,
-  scale: 1.00,
-  scaleMobile: 1.00,
-  backgroundAlpha: 0
-})
-</script>
+<div id="birds>
 
 <p align="center">
 <a href="https://odin.sdu.dk/sitecore/index.php?a=fagbesk&id=83401&lang=en&listid=">
@@ -62,3 +48,21 @@ You can also just execute the VSCode task `deploy everyting`.
 - [ ] Optimize deployment using [Nx](https://nx.dev/getting-started/intro)
 - [ ] Configure Keycloak to use external AD
 - [ ] https://localhost/keycloak/realms/ctf/account/#/register
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta/dist/vanta.birds.min.js"></script>
+<script>
+VANTA.BIRDS({
+  el: "#birds",
+  mouseControls: true,
+  touchControls: true,
+  gyroControls: true,
+  minHeight: 200.00,
+  minWidth: 200.00,
+  scale: 1.00,
+  scaleMobile: 1.00,
+  backgroundAlpha: 0
+})
+</script>
