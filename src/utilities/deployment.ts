@@ -1,5 +1,5 @@
 import { Deployment, DeploymentArgs } from "@pulumi/kubernetes/apps/v1";
-import { Input, Output } from "@pulumi/pulumi";
+import { CustomResourceOptions, Input, Output } from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 
 interface Container {
@@ -33,7 +33,8 @@ export function singleContainerDeploymentTemplate(
     container: Container,
     volumes?: Volume[],
     containerOverrides?: Partial<k8s.types.input.core.v1.Container>,
-    argOverrides?: DeploymentArgs
+    argOverrides?: DeploymentArgs,
+    opts?: CustomResourceOptions 
 ): Deployment {
 
     const volumeMounts = volumes?.map(volume => ({
@@ -80,7 +81,7 @@ export function singleContainerDeploymentTemplate(
         },
     }
 
-    return new Deployment(`${resource}-deployment`, { ...baseConfig, ...argOverrides });
+    return new Deployment(`${resource}-deployment`, { ...baseConfig, ...argOverrides }, opts);
 };
 
 

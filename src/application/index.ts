@@ -24,37 +24,48 @@ const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}
 
 /* --------------------------------- config --------------------------------- */
 
+const HENRIK_BACKEND_CHART = config.require("HENRIK_BACKEND_CHART")
 const NS = stack;
 const CTFD_PORT = 8000
-const CTFD_IMAGE = config.require("CTFD_IMAGE");
 const HOST = config.require("HOST");
 const CTFD_CLIENT_SECRET =
     stackReference.requireOutput("ctfdRealmSecret") as pulumi.Output<string>;
 
-/* ----------------------------- loading plugin ----------------------------- */
+/* ---------------------------------- CTFD ---------------------------------- */
 
-const pluginFolder = path.resolve("ctfd_oidc");
-const pluginFiles = fs.readdirSync(pluginFolder);
+// Challenges plugin baked into image
 
-const configMap: { [key: string]: string } = {};
-pluginFiles.forEach((file) => {
-    const pluginFile = path.join(pluginFolder, file);
-    configMap[file] = fs.readFileSync(pluginFile, { encoding: "utf-8" });
+const ctfdImage = new docker.Image("ctfd-image", {
+    build: {
+        context: ".",
+        dockerfile: "./ctfd/Dockerfile",
+        platform: "linux/amd64"
+    },
+    imageName: "cftd",
+    skipPush: true,
+});
+
+// OIDC
+
+const ctfdOidcFolder = path.resolve("ctfd/oidc");
+const oidcFiles = fs.readdirSync(ctfdOidcFolder);
+
+const configMapOidc: { [key: string]: string } = {};
+oidcFiles.forEach((file) => {
+    const pluginFile = path.join(ctfdOidcFolder, file);
+    configMapOidc[file] = fs.readFileSync(pluginFile, { encoding: "utf-8" });
 })
 
-const configFile = "config.json"
-
 CTFD_CLIENT_SECRET.apply(secret => {
-    configMap[configFile] = envSubst(configMap[configFile], "OIDC_CLIENT_SECRET", secret)
+    const configFile = "config.json"
+    configMapOidc[configFile] = envSubst(configMapOidc[configFile], "OIDC_CLIENT_SECRET", secret)
 
     const oidcPlugin = new k8s.core.v1.ConfigMap("oidc-plugin", {
         metadata: {
             namespace: NS
         },
-        data: configMap,
+        data: configMapOidc,
     });
-
-    /* ------------------------------- deployment ------------------------------- */
 
     singleContainerDeploymentTemplate(
         "ctfd",
@@ -63,7 +74,8 @@ CTFD_CLIENT_SECRET.apply(secret => {
             matchLabels: appLabels.ctfd
         },
         {
-            image: CTFD_IMAGE,
+            image: ctfdImage.imageName,
+            imagePullPolicy: stack == Stack.DEV ? "Never" : undefined,
             env: {
                 APPLICATION_ROOT: "/ctfd",
                 REVERSE_PROXY: "true"
@@ -80,13 +92,14 @@ CTFD_CLIENT_SECRET.apply(secret => {
             // Just because CTFd is stupid
             command: ["/bin/sh", "-c"],
             args: [
-                "pip install --no-cache-dir -r CTFd/plugins/ctfd_oidc/requirements.txt && /opt/CTFd/docker-entrypoint.sh"
+                `pip install --no-cache-dir -r CTFd/plugins/ctfd_oidc/requirements.txt &&
+                 /opt/CTFd/docker-entrypoint.sh`
             ]
-        }
+        },
+        undefined,
+        {dependsOn: ctfdImage}
     );
 });
-
-/* --------------------------------- service -------------------------------- */
 
 const ctfdService = serviceTemplate(
     "ctfd",
@@ -94,8 +107,6 @@ const ctfdService = serviceTemplate(
     [{ port: CTFD_PORT }],
     appLabels.ctfd
 )
-
-/* --------------------------------- ingress -------------------------------- */
 
 ingressTemplate(
     "ctfd",
@@ -123,6 +134,8 @@ const bastionImage = new docker.Image("bastion-image", {
     imageName: "bastion",
     skipPush: true,
 });
+
+/* ------------------------------- SSH Bastion ------------------------------ */
 
 new k8s.apps.v1.Deployment("bastion-deployment", {
     metadata: { namespace: NS },
@@ -170,4 +183,12 @@ new k8s.core.v1.Service("bastion-service", {
             nodePort: 30022
         }]
     }
+});
+
+/* ----------------------------- Henrik Backend ----------------------------- */
+
+
+new k8s.helm.v3.Chart("deployer", {
+    namespace: NS,
+    path: HENRIK_BACKEND_CHART
 });

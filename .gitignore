@@ -22,3 +22,6 @@ node_modules/
 # VSCode
 .vscode/*
 !.vscode/tasks.json
+
+# Henrik
+src/application/ctf
