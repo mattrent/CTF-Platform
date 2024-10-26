@@ -146,8 +146,3 @@ const henrikRepo = new command.local.Command("clone-repo-henrik", {
 const getDepBackendChart = new command.local.Command("get-dep-backend-chart", {
     create: `helm dep update ${dirOffset}/backend/deployment/helm`
 }, {dependsOn: henrikRepo});
-
-new command.local.Command("package-backend-helm-chart", {
-    create: `helm package ${dirOffset}/backend/deployment/helm -d ../application/`,
-    delete: "rm $(find ../application/ -maxdepth 1 -name 'deployer*.tgz')"
-}, {dependsOn: getDepBackendChart})

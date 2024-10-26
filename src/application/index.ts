@@ -97,7 +97,7 @@ CTFD_CLIENT_SECRET.apply(secret => {
             ]
         },
         undefined,
-        {dependsOn: ctfdImage}
+        { dependsOn: ctfdImage }
     );
 });
 
@@ -187,8 +187,29 @@ new k8s.core.v1.Service("bastion-service", {
 
 /* ----------------------------- Henrik Backend ----------------------------- */
 
+const releaseNameBackend = "deployer"
 
-new k8s.helm.v3.Chart("deployer", {
+const backendPostgresqlSecret = new k8s.core.v1.Secret("backend-postgresql-secret", {
+    metadata: {
+        namespace: NS,
+        name: `${releaseNameBackend}-postgresql`
+    },
+    stringData: {
+        "postgres-password": "my-very-secret-secret"
+    }
+});
+
+new k8s.helm.v3.Chart(releaseNameBackend, {
     namespace: NS,
-    path: HENRIK_BACKEND_CHART
+    path: HENRIK_BACKEND_CHART,
+    values: {
+        postgresql: {
+            auth: {
+                existingSecret: backendPostgresqlSecret.metadata.name,
+                secretKeys: {
+                    adminPasswordKey: "postgres-password",
+                }
+            }
+        }
+    }
 });
