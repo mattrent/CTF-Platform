@@ -52,15 +52,4 @@ You can also just execute the VSCode task `deploy everyting`.
 - [ ] https://localhost/keycloak/realms/ctf/account/#/register
 
 
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/vanta/dist/vanta.birds.min.js"></script>
-<script>
-VANTA.BIRDS({
-  el: "#main_content_wrap",
-  quantity: 1,
-  birdSize: 2,
-  speedLimit: 2,
-  backgroundAlpha: 0
-})
-</script>
+{% include timer.html %}
