@@ -52,4 +52,4 @@ You can also just execute the VSCode task `deploy everyting`.
 - [ ] https://localhost/keycloak/realms/ctf/account/#/register
 
 
-{% include timer.html %}
+{% include birds.html %}
