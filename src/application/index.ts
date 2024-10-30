@@ -15,7 +15,8 @@ const config = new pulumi.Config();
 const appLabels = {
     ctfd: { app: "ctfd" },
     ctfd_db: { app: "ctfd-db" },
-    bastion: { app: "bastion" }
+    bastion: { app: "bastion" },
+    sshl: { app: "sshl-multiplexer" }
 }
 
 const stack = pulumi.getStack();
@@ -137,7 +138,7 @@ const bastionImage = new docker.Image("bastion-image", {
 
 /* ------------------------------- SSH Bastion ------------------------------ */
 
-new k8s.apps.v1.Deployment("bastion-deployment", {
+const bastion = new k8s.apps.v1.Deployment("bastion-deployment", {
     metadata: { namespace: NS },
     spec: {
         selector: { matchLabels: appLabels.bastion },
@@ -173,43 +174,58 @@ new k8s.apps.v1.Deployment("bastion-deployment", {
 }, { dependsOn: bastionImage });
 
 new k8s.core.v1.Service("bastion-service", {
-    metadata: { namespace: NS },
+    metadata: { namespace: NS, name: "bastion" },
     spec: {
         selector: appLabels.bastion,
-        type: "NodePort",
-        ports: [{
-            port: 22,
-            targetPort: 22,
-            nodePort: 30022
-        }]
+        ports: [{ port: 22 }]
     }
 });
 
 /* ----------------------------- Henrik Backend ----------------------------- */
 
-const releaseNameBackend = "deployer"
-
-const backendPostgresqlSecret = new k8s.core.v1.Secret("backend-postgresql-secret", {
-    metadata: {
-        namespace: NS,
-        name: `${releaseNameBackend}-postgresql`
-    },
-    stringData: {
-        "postgres-password": "my-very-secret-secret"
-    }
-});
-
-new k8s.helm.v3.Chart(releaseNameBackend, {
+new k8s.helm.v3.Chart("deployer", {
     namespace: NS,
     path: HENRIK_BACKEND_CHART,
-    values: {
-        postgresql: {
-            auth: {
-                existingSecret: backendPostgresqlSecret.metadata.name,
-                secretKeys: {
-                    adminPasswordKey: "postgres-password",
-                }
+});
+
+/* ------------------------------- Multiplexer ------------------------------ */
+
+new k8s.apps.v1.Deployment("sslh-deployment", {
+    metadata: { namespace: stack },
+    spec: {
+        selector: { matchLabels: appLabels.sshl },
+        template: {
+            metadata: { labels: appLabels.sshl },
+            spec: {
+                containers: [
+                    {
+                        name: "sslh",
+                        image: "ghcr.io/yrutschle/sslh:latest",
+                        args: [
+                            "--foreground",
+                            "--listen=0.0.0.0:443",
+                            "--tls=ingress-nginx-controller.ingress-nginx:443",
+                            "--http=ingress-nginx-controller.ingress-nginx:80",
+                            "--ssh=bastion:22"
+                        ]
+                    }
+                ],
             }
         }
+    }
+}, { dependsOn: bastion });
+
+new k8s.core.v1.Service("sslh-service", {
+    metadata: { namespace: stack, name: "sslh-service" },
+    spec: {
+        selector: appLabels.sshl,
+        type: "NodePort",
+        ports: [
+            {
+                port: 443,
+                targetPort: 443,
+                nodePort: 30443
+            },
+        ]
     }
 });

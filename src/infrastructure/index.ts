@@ -143,6 +143,7 @@ const henrikRepo = new command.local.Command("clone-repo-henrik", {
     delete: `rm -rf ${dirOffset}`
 });
 
-const getDepBackendChart = new command.local.Command("get-dep-backend-chart", {
+new command.local.Command("get-dep-backend-chart", {
     create: `helm dep update ${dirOffset}/backend/deployment/helm`
 }, {dependsOn: henrikRepo});
+
