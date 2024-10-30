@@ -41,12 +41,14 @@ The driving force behind this Master's Thesis is the urgent need for a robust an
 
 <a name="requirements"></a>
 ## 🧐 Requirements
-To run the platform locally, you will need to have the following tools installed:
+To run the platform locally, ensure you have the following tools installed:
 * [Minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fdebian+package)
 * [npm](https://www.npmjs.com/)
 * [Pulumi](https://www.pulumi.com/docs/install/)
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
 * [Docker](https://www.docker.com/)
+
+Once the requirements are fulfilled, you are ready to deploy the platform.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -57,20 +59,58 @@ To run the platform locally, you will need to have the following tools installed
 
 <a name="getting-started"></a>
 ## 👷‍♂️ Getting started
-Currently the only stack available is the dev. A stack within a project can be deployed using the command 
+This project comprises five Pulumi projects:
 
+1. infrastructure
+2. certificates
+3. authentication
+4. application
+5. monitoring
 
+Before deploying any project, ensure that the infrastructure project is up and running. There is a circular dependency between the certificates and authentication projects (which needs to be solved). Other services may also depend on the certificate provisioning provided by the certificates project.
+
+We use stacks like environments, so use the stack `dev` for local development in Minikube and the `prod` stack for production.
+
+### Initialize Stack
+
+If this is your first time deploying, you need to create and select:
+
+Select or Create Your Stack: Navigate to your project directory and select your stack:
+
+```bash
+pulumi stack init <stack-name>
 ```
-pulumi up --stack dev
+
+### Deployment Instructions
+Deploy the Infrastructure:
+
+```bash
+cd src/infrastructure
+pulumi up --stack <stack-name> -y
 ```
 
-In order to get a fully running system, then you need to enable the ingress add-on and deploy the following projects:
+Deploy the Certificates:
 
-* infrastructure
-* authentication
-* monitoring
+```bash
+cd src/certificates
+pulumi up --stack <stack-name> -y
+```
 
-You can also just execute the VSCode task `deploy everyting`.
+Deploy the Remaining Projects (authentication, application, monitoring):
+
+```bash
+cd src/<project-directory>
+pulumi up --stack <stack-name> -y
+```
+
+### Visual Studio Code Tasks
+To simplify the deployment process, Visual Studio Code tasks are available:
+
+* `Deploy everything`: Executes deployment for all projects, simulating a staged pipeline.
+
+* `Destroy everything`: Similarly, destroys all projects.
+
+You can either deploy individual projects or deploy everything at once using the `Deploy everything` task. Similar tasks exist for destroying the projects.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
