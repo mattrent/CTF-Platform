@@ -23,6 +23,14 @@ Revolutionize Your CTF Challenges with Our Easy Deployment Platform
     </li>
     <li>
       <a href="#getting-started">👷‍♂️ Getting Started</a>
+        <ol> 
+            <li><a href="#init-stack">Initialize Stack</a></li>
+            <li><a href="#deployment-instructions">Deployment Instructions</a></li> 
+            <li><a href="#vscode">Visual Studio Code Tasks</a></li> 
+        </ol>
+    </li>
+    <li>
+      <a href="#usage">🪁 How to Use the Platform</a>
     </li>
     <li>
         <a href="#todo">✅ TODO</a>
@@ -43,10 +51,12 @@ The driving force behind this Master's Thesis is the urgent need for a robust an
 ## 🧐 Requirements
 To run the platform locally, ensure you have the following tools installed:
 * [Minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fdebian+package)
-* [npm](https://www.npmjs.com/)
+* [Node](https://github.com/nvm-sh/nvm)
+* [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 * [Pulumi](https://www.pulumi.com/docs/install/)
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
 * [Docker](https://www.docker.com/)
+* [Helm](https://helm.sh/docs/intro/install/)
 
 Once the requirements are fulfilled, you are ready to deploy the platform.
 
@@ -71,6 +81,7 @@ Before deploying any project, ensure that the infrastructure project is up and r
 
 We use stacks like environments, so use the stack `dev` for local development in Minikube and the `prod` stack for production.
 
+<a name="init-stack"></a>
 ### Initialize Stack
 
 If this is your first time deploying, you need to create a stack in your state file. Navigate to your project directory and initialize your stack:
@@ -81,6 +92,7 @@ pulumi stack init <stack-name>
 
 This command creates an empty stack and sets it as the active stack.
 
+<a name="deployment-instructions"></a>
 ### Deployment Instructions
 Deploy the Infrastructure:
 
@@ -105,6 +117,7 @@ pulumi up --stack <stack-name> -y
 
 **Note**: After successfully deploying Keycloak, you may need to delete the step-certificates pod to force a reinitialization of the SSO SSH certificate feature.
 
+<a name="vscode"></a>
 ### Visual Studio Code Tasks
 To simplify the deployment process, Visual Studio Code tasks are available:
 
@@ -120,6 +133,11 @@ You can either deploy individual projects or deploy everything at once using the
 ## ✅ TODO
 - [ ] Configure Keycloak to use external AD
 - [ ] Allow [User registration](https://localhost/keycloak/realms/ctf/account/#/register)?
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<a name="usage"></a>
+## 🪁 How to Use the Platform
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
