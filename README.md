@@ -1,3 +1,4 @@
+<a name="readme-top"></a>
 <p align="center">
 <a href="https://odin.sdu.dk/sitecore/index.php?a=fagbesk&id=83401&lang=en&listid=">
 <img src="https://www.sdu.dk/-/media/files/nyheder/logoer/sdu_black_rgb_png.png" width="400" style="padding-bottom: 1em;">
@@ -15,6 +16,12 @@ Revolutionize Your CTF Challenges with Our Easy Deployment Platform
       <a href="#👋-about-the-project">👋 About The Project</a>
     </li>
     <li>
+      <a href="#🧐-requirements">🧐 Requirements</a>
+    </li>
+    <li>
+      <a href="#📚-project-structure">📚 Project Structure</a>
+    </li>
+    <li>
       <a href="#👷‍♂️-getting-started">👷‍♂️ Getting Started</a>
     </li>
     <li>
@@ -29,6 +36,8 @@ Revolutionize Your CTF Challenges with Our Easy Deployment Platform
 ## 👋 About The Project
 The driving force behind this Master's Thesis is the urgent need for a robust and secure Capture The Flag (CTF) platform. CTF competitions are designed to test participants' knowledge and skills across various aspects of information security. These events serve not only as educational tools but also as team-building exercises and recruitment opportunities for cybersecurity talent. As these challenges grow increasingly complex, both educational institutions and organizations are in search of effective methods to train students and professionals in offensive and defensive cybersecurity techniques. This thesis seeks to address this need by developing an innovative CTF platform.
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ## 🧐 Requirements
 To run the platform locally, you will need to have the following tools installed:
 * [Minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fdebian+package)
@@ -36,6 +45,12 @@ To run the platform locally, you will need to have the following tools installed
 * [Pulumi](https://www.pulumi.com/docs/install/)
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
 * [Docker](https://www.docker.com/)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## 📚 Project Structure
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## 👷‍♂️ Getting started
 Currently the only stack available is the dev. A stack within a project can be deployed using the command 
@@ -53,12 +68,21 @@ In order to get a fully running system, then you need to enable the ingress add-
 
 You can also just execute the VSCode task `deploy everyting`.
 
-## Architecture
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## ✅ TODO
 - [ ] Configure Keycloak to use external AD
 - [ ] Allow [User registration](https://localhost/keycloak/realms/ctf/account/#/register)?
 
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ## 📜 License
 
 Distributed under the MIT License. See [LICENSE](./LICENSE) for more information.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+---
+
+Please read the [report](report/main.tex) for a more in-depth review.
