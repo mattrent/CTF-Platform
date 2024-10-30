@@ -103,6 +103,8 @@ cd src/<project-directory>
 pulumi up --stack <stack-name> -y
 ```
 
+**Note**: After successfully deploying Keycloak, you may need to delete the step-certificates pod to force a reinitialization of the SSO SSH certificate feature.
+
 ### Visual Studio Code Tasks
 To simplify the deployment process, Visual Studio Code tasks are available:
 
