@@ -3,7 +3,7 @@
 <img src="https://www.sdu.dk/-/media/files/nyheder/logoer/sdu_black_rgb_png.png" width="400" style="padding-bottom: 1em;">
 </a>
 <br />
-Exploring microservices using Kubernetes and Pulumi!
+Revolutionize Your CTF Challenges with Our Easy Deployment Platform
 <br />
 <a href="https://github.com/KianBankeLarsen/CTF-Platform"><strong>Explore the code»</strong></a>
 </p>
