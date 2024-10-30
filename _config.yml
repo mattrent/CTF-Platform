@@ -1,5 +1,5 @@
 theme: jekyll-theme-slate
 title: CTF Platform
 description: >
-  Microservice architecture using technologies like Pulumi, Kubernetes, and KubeVirt, monitoring with Prometheus and Grafana, implementing zero-trust with Smallstep, SSO with Keycloak and much more.
+  Microservice architecture using Pulumi, Kubernetes, and KubeVirt, monitoring with Prometheus and Grafana, zero-trust with Smallstep, SSO with Keycloak and much more.
 show_downloads: true
