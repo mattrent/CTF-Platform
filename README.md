@@ -73,13 +73,13 @@ We use stacks like environments, so use the stack `dev` for local development in
 
 ### Initialize Stack
 
-If this is your first time deploying, you need to create and select:
-
-Select or Create Your Stack: Navigate to your project directory and select your stack:
+If this is your first time deploying, you need to create a stack in your state file. Navigate to your project directory and initialize your stack:
 
 ```bash
 pulumi stack init <stack-name>
 ```
+
+This command creates an empty stack and sets it as the active stack.
 
 ### Deployment Instructions
 Deploy the Infrastructure:
@@ -118,7 +118,6 @@ You can either deploy individual projects or deploy everything at once using the
 ## ✅ TODO
 - [ ] Configure Keycloak to use external AD
 - [ ] Allow [User registration](https://localhost/keycloak/realms/ctf/account/#/register)?
-
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
