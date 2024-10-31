@@ -84,7 +84,14 @@ We use stacks like environments, so use the stack `dev` for local development in
 <a name="init-stack"></a>
 ### Initialize Stack
 
-If this is your first time deploying, you need to create a stack in your state file. Navigate to your project directory and initialize your stack:
+If this is your first time deploying, you need to install npm packages,
+
+```bash
+cd src
+npm i
+```
+
+and create a stack in your state file. Navigate to your project directory and initialize your stack:
 
 ```bash
 pulumi stack init <stack-name>
