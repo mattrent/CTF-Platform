@@ -1,6 +1,6 @@
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
-import { sleep } from "../utilities/misc";
+import { sleep } from "@ctf/utilities";
 
 /* ------------------------------ prerequisite ------------------------------ */
 

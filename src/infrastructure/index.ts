@@ -2,7 +2,7 @@ import * as command from "@pulumi/command";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import axios from 'axios';
-import { Stack } from "../utilities/misc";
+import { Stack } from "@ctf/utilities";
 import * as crypto from "crypto";
 /* -------------------------------- namespace ------------------------------- */
 

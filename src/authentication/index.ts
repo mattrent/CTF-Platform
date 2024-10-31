@@ -1,7 +1,7 @@
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import * as fs from 'fs';
-import { envSubst, Stack } from "../utilities/misc";
+import { envSubst, Stack } from "@ctf/utilities";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -79,6 +79,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
 
     new k8s.helm.v3.Chart("keycloak", {
         namespace: NS,
+        version: "24.0.2", // ? Fixed versoin because because 24.03 is not depoyable        
         chart: "keycloak",
         fetchOpts: {
             repo: "https://charts.bitnami.com/bitnami",

@@ -1,13 +1,4 @@
 {
-    "name": "application",
-    "main": "index.ts",
-    "devDependencies": {
-        "@types/node": "^18",
-        "typescript": "^5.0.0"
-    },
-    "dependencies": {
-        "@pulumi/docker": "^4.5.7",
-        "@pulumi/kubernetes": "^4.0.0",
-        "@pulumi/pulumi": "^3.113.0"
-    }
+    "name": "@ctf/application",
+    "main": "index.ts"
 }

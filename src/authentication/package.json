@@ -1,12 +1,4 @@
 {
-    "name": "authentication",
-    "main": "index.ts",
-    "devDependencies": {
-        "@types/node": "^18",
-        "typescript": "^5.0.0"
-    },
-    "dependencies": {
-        "@pulumi/kubernetes": "^4.0.0",
-        "@pulumi/pulumi": "^3.113.0"
-    }
+    "name": "@ctf/authentication",
+    "main": "index.ts"
 }
