@@ -1,3 +1,4 @@
+import * as command from "@pulumi/command";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import { sleep } from "@ctf/utilities";
@@ -159,6 +160,6 @@ deployStepIssuer();
 /* ---------------------- Enable autocert for namespace --------------------- */
 
 new command.local.Command("enable-autocert-namespace", {
-    create: `kubectl label namespace dev --overwrite autocert.step.sm=enabled`,
-    delete: "kubectl label namespace dev --overwrite autocert.step.sm="
-});   
+    create: `kubectl label namespace ${NS} --overwrite autocert.step.sm=enabled`,
+    delete: `kubectl label namespace ${NS} --overwrite autocert.step.sm=`
+});
