@@ -1,10 +1,9 @@
-import { envSubst, serviceTemplate, Stack } from "@ctf/utilities";
+import { envSubst, serviceTemplate } from "@ctf/utilities";
 import * as docker from "@pulumi/docker";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import * as fs from "fs";
 import * as path from 'path';
-import { PassThrough } from "stream";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -27,354 +26,356 @@ const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}
 const HENRIK_BACKEND_CHART = config.require("HENRIK_BACKEND_CHART")
 const NS = stack;
 const CTFD_PORT = 8000
+const REGISTRY_PORT = 5000;
 const HOST = config.require("HOST");
 const CTFD_CLIENT_SECRET =
     stackReference.requireOutput("ctfdRealmSecret") as pulumi.Output<string>;
+const DOCKER_USERNAME =
+    stackReference.requireOutput("dockerUsername") as pulumi.Output<string>;
+const DOCKER_PASSWORD =
+    stackReference.requireOutput("dockerPassword") as pulumi.Output<string>;
 
 /* -------------------------------- Regsitry -------------------------------- */
 
-const mypassword = "secret-no-secret"
-const username = "docker"
-
-const registryPort = 5000;
-
-const imageRegistryDeployment = new k8s.apps.v1.Deployment("docker-registry-deployment", {
-    metadata: { namespace: NS},
-    spec: {
-        selector: { matchLabels: appLabels.registry },
-        template: {
-            metadata: { 
-                labels: appLabels.registry, 
-                name: "image-registry",
-                annotations: { 
-                    "autocert.step.sm/name": `image-registry.${NS}.svc.cluster.local` 
-                } 
-            },
-            spec: {
-                initContainers: [{
-                    name: "init-htpasswd",
-                    image: "httpd:2",
-                    command: ["bash", "-c"],
-                    args: [`htpasswd -Bbn ${username} ${mypassword} > /auth/htpasswd`],
-                    volumeMounts: [
-                        { name: "auth-volume", mountPath: "/auth" },
-                    ],
-                }],
-                containers: [{
-                    name: "docker-registry",
-                    image: "registry:2",
-                    env: [
-                        { name: "REGISTRY_AUTH", value: "htpasswd" },
-                        { name: "REGISTRY_AUTH_HTPASSWD_REALM", value: "Registry Realm" },
-                        { name: "REGISTRY_AUTH_HTPASSWD_PATH", value: "/auth/htpasswd" },
-                        { name: "REGISTRY_HTTP_TLS_CERTIFICATE", value: "/var/run/autocert.step.sm/site.crt" },
-                        { name: "REGISTRY_HTTP_TLS_KEY", value: "/var/run/autocert.step.sm/site.key" },
-                    ],
-                    volumeMounts: [
-                        { name: "auth-volume", mountPath: "/auth" },
-                    ],
-                    readinessProbe: {
-                        httpGet: {
-                            path: "/",
-                            port: registryPort,
-                            scheme: "HTTPS"
-                        },
-                        initialDelaySeconds: 5,
-                        periodSeconds: 10
+pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPassword]) => {
+    const imageRegistryDeployment = new k8s.apps.v1.Deployment("docker-registry-deployment", {
+        metadata: { namespace: NS },
+        spec: {
+            selector: { matchLabels: appLabels.registry },
+            template: {
+                metadata: {
+                    labels: appLabels.registry,
+                    name: "image-registry",
+                    annotations: {
+                        "autocert.step.sm/name": `image-registry.${NS}.svc.cluster.local`
                     }
-                }],
-                volumes: [
-                    { name: "auth-volume", emptyDir: {} },
-                ],
-            },
-        },
-    },
-});
-
-const imagePullSecret = new k8s.core.v1.Secret("image-pull-secret", {
-    metadata: {
-        namespace: NS
-    },
-    type: "kubernetes.io/dockerconfigjson",
-    data: {
-        ".dockerconfigjson": pulumi.secret(Buffer.from(JSON.stringify({
-            auths: {
-                "localregistry:80": {
-                    username: username,
-                    password: mypassword,
-                    auth: Buffer.from(`${username}:${mypassword}`).toString('base64'),
+                },
+                spec: {
+                    initContainers: [{
+                        name: "init-htpasswd",
+                        image: "httpd:2",
+                        command: ["bash", "-c"],
+                        args: [`htpasswd -Bbn ${dockerUsername} ${dockerPassword} > /auth/htpasswd`],
+                        volumeMounts: [
+                            { name: "auth-volume", mountPath: "/auth" },
+                        ],
+                    }],
+                    containers: [{
+                        name: "docker-registry",
+                        image: "registry:2",
+                        env: [
+                            { name: "REGISTRY_AUTH", value: "htpasswd" },
+                            { name: "REGISTRY_AUTH_HTPASSWD_REALM", value: "Registry Realm" },
+                            { name: "REGISTRY_AUTH_HTPASSWD_PATH", value: "/auth/htpasswd" },
+                            { name: "REGISTRY_HTTP_TLS_CERTIFICATE", value: "/var/run/autocert.step.sm/site.crt" },
+                            { name: "REGISTRY_HTTP_TLS_KEY", value: "/var/run/autocert.step.sm/site.key" },
+                        ],
+                        volumeMounts: [
+                            { name: "auth-volume", mountPath: "/auth" },
+                        ],
+                        readinessProbe: {
+                            httpGet: {
+                                path: "/",
+                                port: REGISTRY_PORT,
+                                scheme: "HTTPS"
+                            },
+                            initialDelaySeconds: 5,
+                            periodSeconds: 10
+                        }
+                    }],
+                    volumes: [
+                        { name: "auth-volume", emptyDir: {} },
+                    ],
                 },
             },
-        })).toString('base64')),
-    },
-});
-
-const dockerImageRegistryService = new k8s.core.v1.Service(`image-registry-service`, {
-    metadata: { namespace: NS, name: "localregistry" },
-    spec: {
-        selector: appLabels.registry,
-        ports: [{
-            port: 80,
-            targetPort: registryPort
-        }],
-    }
-});
-
-const registryIngress = new k8s.networking.v1.Ingress("registry-ingress", {
-    metadata: {
-        namespace: NS,
-        annotations: {
-            "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
-            "nginx.ingress.kubernetes.io/proxy-body-size": "0"
         },
-    },
-    spec: {
-        ingressClassName: "nginx",
-        rules: [{
-            host: "localregistry",
-            http: {
-                paths: [{
-                    path: "/",
-                    pathType: "Prefix",
-                    backend: {
-                        service: {
-                            name: dockerImageRegistryService.metadata.name,
-                            port: {
-                                number: 80,
-                            },
-                        },
-                    },
-                }],
-            },
-        }],
-    },
-});
+    });
 
-/* ---------------------------------- CTFD ---------------------------------- */
-
-// Challenges plugin baked into image
-
-const ctfdImage = new docker.Image("ctfd-image", {
-    build: {
-        context: ".",
-        dockerfile: "./ctfd/Dockerfile",
-        platform: "linux/amd64",
-        builderVersion: docker.BuilderVersion.BuilderV1,
-    },
-    registry: {
-        server: "http://localregistry:80",
-        username: username,
-        password: mypassword
-    },
-    imageName: "localregistry:80/ctfd:latest",
-    skipPush: false,
-}, {dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService]});
-
-// OIDC
-
-const ctfdOidcFolder = path.resolve("ctfd/oidc");
-const configFile = "config.json"
-
-const configMapOidc: { [key: string]: string } = {};
-const pluginFile = path.join(ctfdOidcFolder, configFile);
-configMapOidc[configFile] = fs.readFileSync(pluginFile, { encoding: "utf-8" });
-
-CTFD_CLIENT_SECRET.apply(secret => {
-    configMapOidc[configFile] = envSubst(configMapOidc[configFile], "OIDC_CLIENT_SECRET", secret)
-
-    const oidcPlugin = new k8s.core.v1.ConfigMap("oidc-plugin", {
+    const imagePullSecret = new k8s.core.v1.Secret("image-pull-secret", {
         metadata: {
             namespace: NS
         },
-        data: configMapOidc,
+        type: "kubernetes.io/dockerconfigjson",
+        data: {
+            ".dockerconfigjson": pulumi.secret(Buffer.from(JSON.stringify({
+                auths: {
+                    "localregistry:80": {
+                        username: dockerUsername,
+                        password: dockerPassword,
+                        auth: Buffer.from(`${dockerUsername}:${dockerPassword}`).toString('base64'),
+                    },
+                },
+            })).toString('base64')),
+        },
     });
 
-    new k8s.apps.v1.Deployment("ctfd-deployment", {
+    const dockerImageRegistryService = new k8s.core.v1.Service(`image-registry-service`, {
+        metadata: { namespace: NS, name: "localregistry" },
+        spec: {
+            selector: appLabels.registry,
+            ports: [{
+                port: 80,
+                targetPort: REGISTRY_PORT
+            }],
+        }
+    });
+
+    const registryIngress = new k8s.networking.v1.Ingress("registry-ingress", {
+        metadata: {
+            namespace: NS,
+            annotations: {
+                "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
+                "nginx.ingress.kubernetes.io/proxy-body-size": "0"
+            },
+        },
+        spec: {
+            ingressClassName: "nginx",
+            rules: [{
+                host: "localregistry",
+                http: {
+                    paths: [{
+                        path: "/",
+                        pathType: "Prefix",
+                        backend: {
+                            service: {
+                                name: dockerImageRegistryService.metadata.name,
+                                port: {
+                                    number: 80,
+                                },
+                            },
+                        },
+                    }],
+                },
+            }],
+        },
+    });
+
+    /* ---------------------------------- CTFD ---------------------------------- */
+
+    // Challenges plugin baked into image
+
+    const ctfdImage = new docker.Image("ctfd-image", {
+        build: {
+            context: ".",
+            dockerfile: "./ctfd/Dockerfile",
+            platform: "linux/amd64",
+            builderVersion: docker.BuilderVersion.BuilderV1,
+        },
+        registry: {
+            server: "http://localregistry:80",
+            username: dockerUsername,
+            password: dockerPassword
+        },
+        imageName: "localregistry:80/ctfd:latest",
+        skipPush: false,
+    }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
+
+    // OIDC
+
+    const ctfdOidcFolder = path.resolve("ctfd/oidc");
+    const configFile = "config.json"
+
+    const configMapOidc: { [key: string]: string } = {};
+    const pluginFile = path.join(ctfdOidcFolder, configFile);
+    configMapOidc[configFile] = fs.readFileSync(pluginFile, { encoding: "utf-8" });
+
+    CTFD_CLIENT_SECRET.apply(secret => {
+        configMapOidc[configFile] = envSubst(configMapOidc[configFile], "OIDC_CLIENT_SECRET", secret)
+
+        const oidcPlugin = new k8s.core.v1.ConfigMap("oidc-plugin", {
+            metadata: {
+                namespace: NS
+            },
+            data: configMapOidc,
+        });
+
+        new k8s.apps.v1.Deployment("ctfd-deployment", {
+            metadata: { namespace: NS },
+            spec: {
+                selector: { matchLabels: appLabels.ctfd },
+                template: {
+                    metadata: { labels: appLabels.ctfd },
+                    spec: {
+                        containers: [
+                            {
+                                name: "ctfd",
+                                image: ctfdImage.repoDigest,
+                                volumeMounts: [{
+                                    name: "plugin-config",
+                                    mountPath: "/opt/CTFd/CTFd/plugins/ctfd_oidc/config.json",
+                                    subPath: "config.json"
+                                }],
+                                env: [
+                                    { name: "APPLICATION_ROOT", value: "/ctfd" },
+                                    { name: "REVERSE_PROXY", value: "true" }
+                                ]
+                            }
+                        ],
+                        imagePullSecrets: [{ name: imagePullSecret.metadata.name }],
+                        volumes: [{
+                            name: "plugin-config",
+                            configMap: {
+                                name: oidcPlugin.metadata.name,
+                            }
+                        }]
+                    }
+                }
+            }
+        }, { dependsOn: ctfdImage });
+    });
+
+    const ctfdService = serviceTemplate(
+        "ctfd",
+        NS,
+        [{ port: CTFD_PORT }],
+        appLabels.ctfd
+    )
+
+    new k8s.networking.v1.Ingress("ctfd-ingress", {
+        metadata: {
+            namespace: NS,
+            annotations: {
+                "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
+                "cert-manager.io/issuer": "step-issuer",
+                "cert-manager.io/issuer-kind": "StepIssuer",
+                "cert-manager.io/issuer-group": "certmanager.step.sm",
+                "nginx.ingress.kubernetes.io/rewrite-target": "/ctfd/$2",
+            },
+        },
+        spec: {
+            ingressClassName: "nginx",
+            tls: [{
+                hosts: [HOST],
+                secretName: "ctfd-tls",
+            }],
+            rules: [{
+                host: HOST,
+                http: {
+                    paths: [{
+                        path: "/ctfd(/|$)(.*)",
+                        pathType: "ImplementationSpecific",
+                        backend: {
+                            service: {
+                                name: ctfdService.metadata.name,
+                                port: {
+                                    number: CTFD_PORT,
+                                },
+                            },
+                        },
+                    }],
+                },
+            }],
+        },
+    });
+
+    // /* ------------------------------- SSH Bastion ------------------------------ */
+
+    const bastionImage = new docker.Image("bastion-image", {
+        build: {
+            context: "./bastion",
+            dockerfile: "./bastion/Dockerfile",
+            platform: "linux/amd64",
+            builderVersion: docker.BuilderVersion.BuilderV1,
+        },
+        registry: {
+            server: "http://localregistry:80",
+            username: dockerUsername,
+            password: dockerPassword
+        },
+        imageName: "localregistry:80/bastion:latest",
+        skipPush: false,
+    }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
+
+
+    const bastion = new k8s.apps.v1.Deployment("bastion-deployment", {
         metadata: { namespace: NS },
         spec: {
-            selector: { matchLabels: appLabels.ctfd },
+            selector: { matchLabels: appLabels.bastion },
             template: {
-                metadata: { labels: appLabels.ctfd },
+                metadata: { labels: appLabels.bastion },
                 spec: {
                     containers: [
                         {
-                            name: "ctfd",
-                            image: ctfdImage.repoDigest,
+                            name: "ssh-bastion",
+                            image: bastionImage.repoDigest,
+                            ports: [{ containerPort: 22 }],
                             volumeMounts: [{
-                                name: "plugin-config",
-                                mountPath: "/opt/CTFd/CTFd/plugins/ctfd_oidc/config.json",
-                                subPath: "config.json"
-                            }],
-                            env: [
-                                {name: "APPLICATION_ROOT", value: "/ctfd"},
-                                {name: "REVERSE_PROXY", value: "true"}
-                            ]
+                                name: "ca-user-key",
+                                mountPath: "/etc/ssh/ca_user_key.pub",
+                                subPath: "ca_user_key.pub"
+                            }]
                         }
                     ],
-                    imagePullSecrets: [{name: imagePullSecret.metadata.name}],
+                    imagePullSecrets: [{ name: imagePullSecret.metadata.name }],
                     volumes: [{
-                        name: "plugin-config",
+                        name: "ca-user-key",
                         configMap: {
-                            name: oidcPlugin.metadata.name,
+                            name: "step-step-certificates-certs",
+                            items: [{
+                                key: "ssh_user_ca_key.pub",
+                                path: "ca_user_key.pub"
+                            }]
                         }
                     }]
                 }
             }
         }
-    }, { dependsOn: ctfdImage });
-});
+    }, { dependsOn: bastionImage });
 
-const ctfdService = serviceTemplate(
-    "ctfd",
-    NS,
-    [{ port: CTFD_PORT }],
-    appLabels.ctfd
-)
+    new k8s.core.v1.Service("bastion-service", {
+        metadata: { namespace: NS, name: "bastion" },
+        spec: {
+            selector: appLabels.bastion,
+            ports: [{ port: 22 }]
+        }
+    });
 
-new k8s.networking.v1.Ingress("ctfd-ingress", {
-    metadata: {
+    /* ----------------------------- Henrik Backend ----------------------------- */
+
+    new k8s.helm.v3.Chart("deployer", {
         namespace: NS,
-        annotations: {
-            "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
-            "cert-manager.io/issuer": "step-issuer",
-            "cert-manager.io/issuer-kind": "StepIssuer",
-            "cert-manager.io/issuer-group": "certmanager.step.sm",
-            "nginx.ingress.kubernetes.io/rewrite-target": "/ctfd/$2",
-        },
-    },
-    spec: {
-        ingressClassName: "nginx",
-        tls: [{
-            hosts: [HOST],
-            secretName: "ctfd-tls",
-        }],
-        rules: [{
-            host: HOST,
-            http: {
-                paths: [{
-                    path: "/ctfd(/|$)(.*)",
-                    pathType: "ImplementationSpecific",
-                    backend: {
-                        service: {
-                            name: ctfdService.metadata.name,
-                            port: {
-                                number: CTFD_PORT,
-                            },
-                        },
-                    },
-                }],
-            },
-        }],
-    },
-});
+        path: HENRIK_BACKEND_CHART,
+    });
 
-// /* ------------------------------- SSH Bastion ------------------------------ */
+    /* ------------------------------- Multiplexer ------------------------------ */
 
-const bastionImage = new docker.Image("bastion-image", {
-    build: {
-        context: "./bastion",
-        dockerfile: "./bastion/Dockerfile",
-        platform: "linux/amd64",
-        builderVersion: docker.BuilderVersion.BuilderV1,
-    },
-    registry: {
-        server: "http://localregistry:80",
-        username: username,
-        password: mypassword
-    },
-    imageName: "localregistry:80/bastion:latest",
-    skipPush: false,
-}, {dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService]});
-
-
-const bastion = new k8s.apps.v1.Deployment("bastion-deployment", {
-    metadata: { namespace: NS },
-    spec: {
-        selector: { matchLabels: appLabels.bastion },
-        template: {
-            metadata: { labels: appLabels.bastion },
-            spec: {
-                containers: [
-                    {
-                        name: "ssh-bastion",
-                        image: bastionImage.repoDigest,
-                        ports: [{ containerPort: 22 }],
-                        volumeMounts: [{
-                            name: "ca-user-key",
-                            mountPath: "/etc/ssh/ca_user_key.pub",
-                            subPath: "ca_user_key.pub"
-                        }]
-                    }
-                ],
-                imagePullSecrets: [{name: imagePullSecret.metadata.name}],
-                volumes: [{
-                    name: "ca-user-key",
-                    configMap: {
-                        name: "step-step-certificates-certs",
-                        items: [{
-                            key: "ssh_user_ca_key.pub",
-                            path: "ca_user_key.pub"
-                        }]
-                    }
-                }]
+    new k8s.apps.v1.Deployment("sslh-deployment", {
+        metadata: { namespace: stack },
+        spec: {
+            selector: { matchLabels: appLabels.sshl },
+            template: {
+                metadata: { labels: appLabels.sshl },
+                spec: {
+                    containers: [
+                        {
+                            name: "sslh",
+                            image: "ghcr.io/yrutschle/sslh:latest",
+                            args: [
+                                "--foreground",
+                                "--listen=0.0.0.0:443",
+                                "--tls=ingress-nginx-controller.ingress-nginx:443",
+                                "--http=ingress-nginx-controller.ingress-nginx:80",
+                                "--ssh=bastion:22"
+                            ]
+                        }
+                    ],
+                }
             }
         }
-    }
-}, { dependsOn: bastionImage });
+    }, { dependsOn: bastion });
 
-new k8s.core.v1.Service("bastion-service", {
-    metadata: { namespace: NS, name: "bastion" },
-    spec: {
-        selector: appLabels.bastion,
-        ports: [{ port: 22 }]
-    }
-});
-
-/* ----------------------------- Henrik Backend ----------------------------- */
-
-new k8s.helm.v3.Chart("deployer", {
-    namespace: NS,
-    path: HENRIK_BACKEND_CHART,
-});
-
-/* ------------------------------- Multiplexer ------------------------------ */
-
-new k8s.apps.v1.Deployment("sslh-deployment", {
-    metadata: { namespace: stack },
-    spec: {
-        selector: { matchLabels: appLabels.sshl },
-        template: {
-            metadata: { labels: appLabels.sshl },
-            spec: {
-                containers: [
-                    {
-                        name: "sslh",
-                        image: "ghcr.io/yrutschle/sslh:latest",
-                        args: [
-                            "--foreground",
-                            "--listen=0.0.0.0:443",
-                            "--tls=ingress-nginx-controller.ingress-nginx:443",
-                            "--http=ingress-nginx-controller.ingress-nginx:80",
-                            "--ssh=bastion:22"
-                        ]
-                    }
-                ],
-            }
+    new k8s.core.v1.Service("sslh-service", {
+        metadata: { namespace: stack, name: "sslh-service" },
+        spec: {
+            selector: appLabels.sshl,
+            type: "NodePort",
+            ports: [
+                {
+                    port: 443,
+                    targetPort: 443,
+                    nodePort: 30443
+                },
+            ]
         }
-    }
-}, { dependsOn: bastion });
-
-new k8s.core.v1.Service("sslh-service", {
-    metadata: { namespace: stack, name: "sslh-service" },
-    spec: {
-        selector: appLabels.sshl,
-        type: "NodePort",
-        ports: [
-            {
-                port: 443,
-                targetPort: 443,
-                nodePort: 30443
-            },
-        ]
-    }
+    });
 });

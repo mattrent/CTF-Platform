@@ -18,6 +18,9 @@ export const grafanaRealmSecret = pulumi.secret(crypto.randomBytes(32).toString(
 export const ctfdRealmSecret = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const stepCaSecret = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 
+export const dockerUsername = pulumi.secret(crypto.randomBytes(32).toString("hex"));
+export const dockerPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
+
 /* ------------------------ NGINX ingress controller ------------------------ */
 
 if (stack === Stack.DEV) {
