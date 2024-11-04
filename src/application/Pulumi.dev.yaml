@@ -1,4 +1,3 @@
 encryptionsalt: v1:cmBhEiLHsIc=:v1:dJnXvH6dgqk0iNJF:9EltKb6YQw6aIy8dIGxPwUhJ6aWjkQ==
 config:
-  application:HENRIK_BACKEND_CHART: ctf/backend/deployment/helm
   application:HOST: myhost

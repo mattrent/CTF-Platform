@@ -1,3 +1,5 @@
 encryptionsalt: v1:Yn64XGcG2fM=:v1:83k/nEZl3fHFJDnK:kL6TMSYcRmDH/kkKhK2vi9TM1oTTiA==
 config:
-  certificates:HOST: myhost
+  certificates:KEYCLOAK_HOST: myhost
+  certificates:KEYCLOAK_RELATIVE_PATH: /keycloak/
+  certificates:STEP_CA_HOST: myhost

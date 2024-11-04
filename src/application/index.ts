@@ -23,7 +23,7 @@ const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}
 
 /* --------------------------------- config --------------------------------- */
 
-const HENRIK_BACKEND_CHART = config.require("HENRIK_BACKEND_CHART")
+const HENRIK_BACKEND_CHART = "ctf/backend/deployment/helm"
 const NS = stack;
 const CTFD_PORT = 8000
 const REGISTRY_PORT = 5000;

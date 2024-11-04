@@ -14,18 +14,16 @@ const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}
 
 const NS = stack;
 const REALM_CONFIGURATION_FILE = config.require("REALM_CONFIGURATION_FILE");
-const HOST = config.require("HOST");
-const POSTGRES_DB = config.require("POSTGRES_DB");
-const HTTP_RELATIVE_PATH = config.require("HTTP_RELATIVE_PATH")
+const KEYCLOAK_HOST = config.require("KEYCLOAK_HOST");
+const KEYCLOAK_RELATIVE_PATH = config.require("KEYCLOAK_RELATIVE_PATH")
+const KEYCLOAK_IMAGE_VERSION = config.require("KEYCLOAK_IMAGE_VERSION")
 
 /* --------------------------------- secrets -------------------------------- */
 
-const POSTGRES_USER = config.requireSecret("POSTGRES_USER");
-const POSTGRES_USER_PWD = config.requireSecret("POSTGRES_USER_PWD");
-const POSTGRES_ADMIN_PWD = config.requireSecret("POSTGRES_ADMIN_PWD");
 const KEYCLOAK_USER = config.requireSecret("KEYCLOAK_USER");
 const KEYCLOAK_PWD = config.requireSecret("KEYCLOAK_PWD");
 
+const postgresAdminPassword = stackReference.requireOutput("postgresAdminPassword") as pulumi.Output<string>;
 const grafanaRealmSecret = stackReference.requireOutput("grafanaRealmSecret") as pulumi.Output<string>;
 const ctfdRealmSecret = stackReference.requireOutput("ctfdRealmSecret") as pulumi.Output<string>;
 const stepCaSecret = stackReference.requireOutput("stepCaSecret") as pulumi.Output<string>;
@@ -43,7 +41,7 @@ const keycloakCert = new k8s.apiextensions.CustomResource("keycloak-intern-tls",
         secretName: "keycloak-intern-tls",
         commonName: `keycloak.${NS}.svc.cluster.local`,
         dnsNames: [
-            HOST,
+            KEYCLOAK_HOST,
             "keycloak",
             `keycloak.${NS}.svc.cluster.local`,
         ],
@@ -63,14 +61,12 @@ const keycloakPostgresqlSecret = new k8s.core.v1.Secret("keycloak-postgresql-sec
         namespace: NS,
     },
     stringData: {
-        "admin-password": POSTGRES_ADMIN_PWD,
-        "user-password": POSTGRES_USER_PWD
+        "postgres-password": postgresAdminPassword,
     }
 });
 
 let realmConfiguration = fs.readFileSync(REALM_CONFIGURATION_FILE, "utf-8");
-realmConfiguration = envSubst(realmConfiguration, "HOST", HOST);
-
+// TODO fix realm.json with variables from yaml
 pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaSecret, ctfdSecret, stepSecret]) => {
     realmConfiguration = envSubst(realmConfiguration, "HOST", HOST);
     realmConfiguration = envSubst(realmConfiguration, "GRAFANA_CLIENT_SECRET", grafanaSecret);
@@ -79,7 +75,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
 
     new k8s.helm.v3.Chart("keycloak", {
         namespace: NS,
-        version: "24.0.2", // ? Fixed version because because 24.03 is not depoyable        
+        version: KEYCLOAK_IMAGE_VERSION, // ? Fixed version because because 24.03 is not depoyable        
         chart: "keycloak",
         fetchOpts: {
             repo: "https://charts.bitnami.com/bitnami",
@@ -91,7 +87,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
                 existingSecret: keycloakCert.metadata.name,
                 usePem: true
             },
-            httpRelativePath: HTTP_RELATIVE_PATH,
+            httpRelativePath: KEYCLOAK_RELATIVE_PATH,
             auth: {
                 adminUser: KEYCLOAK_USER,
                 adminPassword: KEYCLOAK_PWD
@@ -108,7 +104,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
                     "cert-manager.io/issuer-group": "certmanager.step.sm"
                 },
                 tls: true,
-                hostname: HOST,
+                hostname: KEYCLOAK_HOST,
             },
             keycloakConfigCli: {
                 enabled: true,
@@ -119,12 +115,9 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
             postgresql: {
                 enabled: true,
                 auth: {
-                    username: POSTGRES_USER,
-                    database: POSTGRES_DB,
                     existingSecret: keycloakPostgresqlSecret.metadata.name,
                     secretKeys: {
-                        adminPasswordKey: "admin-password",
-                        userPasswordKey: "user-password"
+                        adminPasswordKey: "postgres-password",
                     }
                 }
             }
@@ -135,9 +128,9 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
 /* ---------------------- well-known configuration hack --------------------- */
 
 if (stack === Stack.DEV) {
-    new k8s.core.v1.Service(HOST, {
+    new k8s.core.v1.Service(KEYCLOAK_HOST, {
         metadata: {
-            name: HOST,
+            name: KEYCLOAK_HOST,
             namespace: NS,
         },
         spec: {

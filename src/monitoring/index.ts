@@ -14,7 +14,8 @@ const config = new pulumi.Config();
 const NS = stack
 const GRAFANA_CLIENT_SECRET =
     stackReference.requireOutput("grafanaRealmSecret") as pulumi.Output<string>;
-const HOST = config.require("HOST");
+const HOST = config.require("GRAFANA_HOST");
+const GRAFANA_RELATIVE_PATH = config.require("GRAFANA_RELATIVE_PATH"); 
 const kubePrometheusStackRelaseName = "kube-prometheus-stack"
 
 /* --------------------------------- Grafana -------------------------------- */
@@ -175,7 +176,7 @@ new k8s.helm.v3.Chart("grafana", {
         ingress: {
             enabled: true,
             ingressClassName: "nginx",
-            path: "/grafana(/|$)(.*)",
+            path: `${GRAFANA_RELATIVE_PATH}(/|$)(.*)`,
             pathType: "ImplementationSpecific",
             hosts: [HOST],
             annotations: {

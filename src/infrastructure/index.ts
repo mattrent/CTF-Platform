@@ -1,9 +1,14 @@
 import * as command from "@pulumi/command";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
-import axios from 'axios';
 import { Stack } from "@ctf/utilities";
 import * as crypto from "crypto";
+
+/* --------------------------------- config --------------------------------- */
+
+const config = new pulumi.Config();
+const KUBEVIRT_VERSION = config.require("KUBEVIRT_VERSION")
+
 /* -------------------------------- namespace ------------------------------- */
 
 const stack = pulumi.getStack();
@@ -20,6 +25,8 @@ export const stepCaSecret = pulumi.secret(crypto.randomBytes(32).toString("hex")
 
 export const dockerUsername = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const dockerPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
+export const jwtCtfd = pulumi.secret(crypto.randomBytes(32).toString("hex"));
+export const postgresAdminPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 
 /* ------------------------ NGINX ingress controller ------------------------ */
 
@@ -27,11 +34,11 @@ if (stack === Stack.DEV) {
     new command.local.Command("enable-ingress", {
         create: "minikube addons enable ingress",
         delete: "minikube addons disable ingress"
-    });   
+    });
     new command.local.Command("enable-rancher-local-path", {
         create: "minikube addons enable storage-provisioner-rancher",
         delete: "minikube addons disable storage-provisioner-rancher"
-    });   
+    });
 } else {
     new k8s.helm.v3.Chart("nginx-ingress", {
         chart: "ingress-nginx",
@@ -41,48 +48,53 @@ if (stack === Stack.DEV) {
         values: {
             controller: {
                 service: {
-                    type: "NodePort", // Change to "NodePort" if LoadBalancer is not supported
+                    type: "LoadBalancer", // Change to "NodePort" if LoadBalancer is not supported
                 },
             },
         },
     });
+
+    // TODO Add local path resource when Matteo is ready
 }
 
 // /* ---------------------------- install KubeVirt ---------------------------- */
 
-(async () => {
-    // Function to fetch the latest KubeVirt release
-    const RELEASE = await axios.get('https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt')
-        .then(res => res.data.trim())
-        .catch(error => `Error fetching release: ${error.message}`);
+// * Deletion ressource to add sleep and deletion order
+// ? Why is sleep needed... otherwise, weekhook is unavailable?
+const deleteKubeVirt = new command.local.Command("delete-kubevirt", {
+    delete: `
+        sleep 10 && \
+        kubectl delete -f https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml --wait=true && \
+        kubectl delete -f https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml --wait=false
+    `
+});
 
-    // Apply the KubeVirt operator manifest
-    const kubeVirtOperator = new k8s.yaml.ConfigFile("kubevirt-operator", {
-        file: `https://github.com/kubevirt/kubevirt/releases/download/${RELEASE}/kubevirt-operator.yaml`,
-    });
+// Apply the KubeVirt operator manifest
+const kubeVirtOperator = new k8s.yaml.ConfigFile("kubevirt-operator", {
+    file: `https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml`,
+}, {deletedWith: deleteKubeVirt});
 
-    // Apply the KubeVirt CR manifest
-    const kubeVirtCr = new k8s.yaml.ConfigFile("kubevirt-cr", {
-        file: `https://github.com/kubevirt/kubevirt/releases/download/${RELEASE}/kubevirt-cr.yaml`
-    });
+// Apply the KubeVirt CR manifest
+const kubeVirtCr = new k8s.yaml.ConfigFile("kubevirt-cr", {
+    file: `https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml`
+}, {deletedWith: deleteKubeVirt});
 
+// ? Might be needed
+// new command.local.Command("software-emulation-fallback", {
+//     create: `kubectl patch kubevirt kubevirt -n kubevirt --type merge -p '{
+//         "spec": {
+//             "configuration": {
+//                 "developerConfiguration": {
+//                     "useEmulation": true
+//                 }
+//             }
+//         }
+//     }'`
+// }, {dependsOn: installKubeVirt});
 
-    // new command.local.Command("software-emulation-fallback", {
-    //     create: `kubectl patch kubevirt kubevirt -n kubevirt --type merge -p '{
-    //         "spec": {
-    //             "configuration": {
-    //                 "developerConfiguration": {
-    //                     "useEmulation": true
-    //                 }
-    //             }
-    //         }
-    //     }'`
-    // }, {dependsOn: [kubeVirtOperator, kubeVirtOperator]});
-    
-})();
+/* ----------------------------- CRDs monitoring ---------------------------- */
 
-/* ---------------------------------- CRDs ---------------------------------- */
-
+// * Needs to be here due to some Pulumi error
 new k8s.helm.v3.Chart("crds", {
     namespace: stack,
     chart: "kube-prometheus-stack",
@@ -126,19 +138,6 @@ new k8s.helm.v3.Chart("crds", {
 
 /* --------------------------------- Henrik --------------------------------- */
 
-new k8s.helm.v3.Chart("traefik", {
-    chart: "traefik",
-    namespace: "kube-system",
-    fetchOpts: {
-        repo: "https://traefik.github.io/charts",
-    },
-    values: {
-        service: {
-            type: "ClusterIP"
-        }
-    }
-});
-
 const dirOffset = "../application/ctf"
 
 const henrikRepo = new command.local.Command("clone-repo-henrik", {
@@ -148,5 +147,5 @@ const henrikRepo = new command.local.Command("clone-repo-henrik", {
 
 new command.local.Command("get-dep-backend-chart", {
     create: `helm dep update ${dirOffset}/backend/deployment/helm`
-}, {dependsOn: henrikRepo});
+}, { dependsOn: henrikRepo });
 
