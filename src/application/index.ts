@@ -2,7 +2,6 @@ import { envSubst, serviceTemplate } from "@ctf/utilities";
 import * as docker from "@pulumi/docker";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
-import { PulumiCommand } from "@pulumi/pulumi/automation";
 import * as fs from "fs";
 import * as path from 'path';
 
