@@ -118,7 +118,8 @@ let CA_PROVISIONER_KID: pulumi.Output<any>;
 
 async function deployStepIssuer() {
     if (!pulumi.runtime.isDryRun()) {
-        await sleep(90000);
+        // TODO fix this!
+        await sleep(100000);
 
         const caCert = k8s.core.v1.ConfigMap.get("step-certificates-certs", "dev/step-step-certificates-certs");
         const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", "dev/step-step-certificates-config");

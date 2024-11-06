@@ -2,6 +2,7 @@ import { envSubst, serviceTemplate } from "@ctf/utilities";
 import * as docker from "@pulumi/docker";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
+import { PulumiCommand } from "@pulumi/pulumi/automation";
 import * as fs from "fs";
 import * as path from 'path';
 
@@ -30,6 +31,7 @@ const REGISTRY_PORT = 5000;
 const REGISTRY_EXPOSED_PORT = 443;
 const CTFD_HOST = config.require("CTFD_HOST");
 const IMAGE_REGISTRY_HOST = config.require("IMAGE_REGISTRY_HOST");
+const IMAGE_REGISTRY_SERVER = IMAGE_REGISTRY_HOST.includes(".") ? IMAGE_REGISTRY_HOST : `${IMAGE_REGISTRY_HOST}:${REGISTRY_EXPOSED_PORT}`
 const CTFD_OIDC_PLUGIN_PATH = config.require("CTFD_OIDC_PLUGIN_PATH");
 
 /* --------------------------------- secret --------------------------------- */
@@ -107,7 +109,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
         data: {
             ".dockerconfigjson": pulumi.secret(Buffer.from(JSON.stringify({
                 auths: {
-                    "localregistry:443": {
+                    [`${IMAGE_REGISTRY_SERVER}`]: {
                         username: dockerUsername,
                         password: dockerPassword,
                         auth: Buffer.from(`${dockerUsername}:${dockerPassword}`).toString('base64'),
@@ -178,11 +180,11 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
             builderVersion: docker.BuilderVersion.BuilderV1,
         },
         registry: {
-            server: "https://localregistry:443",
+            server: IMAGE_REGISTRY_SERVER,
             username: dockerUsername,
             password: dockerPassword
         },
-        imageName: "localregistry:443/ctfd:latest",
+        imageName: `${IMAGE_REGISTRY_SERVER}/ctfd:latest`,
         skipPush: false,
     }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
 
@@ -298,11 +300,11 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
             builderVersion: docker.BuilderVersion.BuilderV1,
         },
         registry: {
-            server: "https://localregistry:443",
+            server: IMAGE_REGISTRY_SERVER,
             username: dockerUsername,
             password: dockerPassword
         },
-        imageName: "localregistry:443/bastion:latest",
+        imageName: `${IMAGE_REGISTRY_SERVER}/bastion:latest`,
         skipPush: false,
     }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
 
@@ -394,7 +396,6 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
             ports: [
                 {
                     port: 443,
-                    targetPort: 443,
                     nodePort: 30443
                 },
             ]
