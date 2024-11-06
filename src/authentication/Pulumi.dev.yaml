@@ -1,16 +1,11 @@
 encryptionsalt: v1:YMYAEkyvB5o=:v1:XCJkE4ADyAs1PoPk:zetPZSUI6YrenfBfwr8DKFwxwzAyyw==
 config:
-  authentication:HOST: myhost
-  authentication:HTTP_RELATIVE_PATH: /keycloak/
+  authentication:CTFD_HOST: myhost
+  authentication:GRAFANA_HOST: myhost
+  authentication:KEYCLOAK_HOST: myhost
+  authentication:KEYCLOAK_IMAGE_VERSION: 24.0.2
   authentication:KEYCLOAK_PWD:
-    secure: v1:e/I8Vg7qe/ZJHf3y:NgeFoz7T45ChzTZmfTQsWdUS8P8T
+    secure: v1:HZdv3X3TXdxCwkbx:k46VYAGmi9yMBUsE2oXxmrJzD9Wf
   authentication:KEYCLOAK_USER:
-    secure: v1:qWRJgkR7q8fslfrK:AislbO0WaN6KQTq3wN6RIXPZ6vfx
-  authentication:POSTGRES_ADMIN_PWD:
-    secure: v1:WKGEWERbe+aROJp1:ftAf0AUQXz0R/XbP15NE8hXcp0CHpYGlAYqtchi1q9GnW5hmZEZL
-  authentication:POSTGRES_DB: keycloak
-  authentication:POSTGRES_USER:
-    secure: v1:mxrnjMLgjeIkSgse:JUcuKaQG8ogmsfrMGXtyxJ+EbYKwA23s
-  authentication:POSTGRES_USER_PWD:
-    secure: v1:RbHUK5XSV4f439x/:6ildSNhvBiD3CyvJN/TD6uHYP48UlAAMiLi5RJvlm0gn
+    secure: v1:PtP60UJfQo/3NOfl:P44a+lpWgV732zNqhdfBc14p3pKQ
   authentication:REALM_CONFIGURATION_FILE: realm.json

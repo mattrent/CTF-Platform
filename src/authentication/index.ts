@@ -1,3 +1,4 @@
+import * as command from "@pulumi/command";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import * as fs from 'fs';
@@ -14,36 +15,36 @@ const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}
 
 const NS = stack;
 const REALM_CONFIGURATION_FILE = config.require("REALM_CONFIGURATION_FILE");
-const HOST = config.require("HOST");
-const POSTGRES_DB = config.require("POSTGRES_DB");
-const HTTP_RELATIVE_PATH = config.require("HTTP_RELATIVE_PATH")
+const KEYCLOAK_HOST = config.require("KEYCLOAK_HOST");
+const CTFD_HOST = config.require("CTFD_HOST");
+const GRAFANA_HOST = config.require("GRAFANA_HOST");
+const KEYCLOAK_IMAGE_VERSION = config.require("KEYCLOAK_IMAGE_VERSION")
 
 /* --------------------------------- secrets -------------------------------- */
 
-const POSTGRES_USER = config.requireSecret("POSTGRES_USER");
-const POSTGRES_USER_PWD = config.requireSecret("POSTGRES_USER_PWD");
-const POSTGRES_ADMIN_PWD = config.requireSecret("POSTGRES_ADMIN_PWD");
 const KEYCLOAK_USER = config.requireSecret("KEYCLOAK_USER");
 const KEYCLOAK_PWD = config.requireSecret("KEYCLOAK_PWD");
 
+const postgresAdminPassword = stackReference.requireOutput("postgresAdminPassword") as pulumi.Output<string>;
+const postgresUserPassword = stackReference.requireOutput("postgresUserPassword") as pulumi.Output<string>;
 const grafanaRealmSecret = stackReference.requireOutput("grafanaRealmSecret") as pulumi.Output<string>;
 const ctfdRealmSecret = stackReference.requireOutput("ctfdRealmSecret") as pulumi.Output<string>;
 const stepCaSecret = stackReference.requireOutput("stepCaSecret") as pulumi.Output<string>;
 
 /* -------------------------------- keycloak -------------------------------- */
 
-const keycloakCert = new k8s.apiextensions.CustomResource("keycloak-intern-tls", {
+const keycloakCert = new k8s.apiextensions.CustomResource("keycloak-inbound-tls", {
     apiVersion: "cert-manager.io/v1",
     kind: "Certificate",
     metadata: {
-        name: "keycloak-intern-tls",
+        name: "keycloak-inbound-tls",
         namespace: NS,
     },
     spec: {
-        secretName: "keycloak-intern-tls",
+        secretName: "keycloak-inbound-tls",
         commonName: `keycloak.${NS}.svc.cluster.local`,
         dnsNames: [
-            HOST,
+            KEYCLOAK_HOST,
             "keycloak",
             `keycloak.${NS}.svc.cluster.local`,
         ],
@@ -63,23 +64,23 @@ const keycloakPostgresqlSecret = new k8s.core.v1.Secret("keycloak-postgresql-sec
         namespace: NS,
     },
     stringData: {
-        "admin-password": POSTGRES_ADMIN_PWD,
-        "user-password": POSTGRES_USER_PWD
+        "postgres-admin-password": postgresAdminPassword,
+        "postgres-user-password": postgresUserPassword
     }
 });
 
 let realmConfiguration = fs.readFileSync(REALM_CONFIGURATION_FILE, "utf-8");
-realmConfiguration = envSubst(realmConfiguration, "HOST", HOST);
-
+// TODO fix realm.json with variables from yaml
 pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaSecret, ctfdSecret, stepSecret]) => {
-    realmConfiguration = envSubst(realmConfiguration, "HOST", HOST);
+    realmConfiguration = envSubst(realmConfiguration, "GRAFANA_HOST", GRAFANA_HOST);
+    realmConfiguration = envSubst(realmConfiguration, "CTFD_HOST", CTFD_HOST);
     realmConfiguration = envSubst(realmConfiguration, "GRAFANA_CLIENT_SECRET", grafanaSecret);
     realmConfiguration = envSubst(realmConfiguration, "CTFD_CLIENT_SECRET", ctfdSecret);
     realmConfiguration = envSubst(realmConfiguration, "STEP_CLIENT_SECRET", stepSecret);
 
     new k8s.helm.v3.Chart("keycloak", {
         namespace: NS,
-        version: "24.0.2", // ? Fixed version because because 24.03 is not depoyable        
+        version: KEYCLOAK_IMAGE_VERSION, // ? Fixed version because because 24.03 is not depoyable        
         chart: "keycloak",
         fetchOpts: {
             repo: "https://charts.bitnami.com/bitnami",
@@ -91,7 +92,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
                 existingSecret: keycloakCert.metadata.name,
                 usePem: true
             },
-            httpRelativePath: HTTP_RELATIVE_PATH,
+            httpRelativePath: "/keycloak/",
             auth: {
                 adminUser: KEYCLOAK_USER,
                 adminPassword: KEYCLOAK_PWD
@@ -108,7 +109,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
                     "cert-manager.io/issuer-group": "certmanager.step.sm"
                 },
                 tls: true,
-                hostname: HOST,
+                hostname: KEYCLOAK_HOST,
             },
             keycloakConfigCli: {
                 enabled: true,
@@ -119,12 +120,10 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
             postgresql: {
                 enabled: true,
                 auth: {
-                    username: POSTGRES_USER,
-                    database: POSTGRES_DB,
                     existingSecret: keycloakPostgresqlSecret.metadata.name,
                     secretKeys: {
-                        adminPasswordKey: "admin-password",
-                        userPasswordKey: "user-password"
+                        adminPasswordKey: "postgres-admin-password",
+                        userPasswordKey: "postgres-user-password"
                     }
                 }
             }
@@ -132,27 +131,58 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
     });
 });
 
-/* ---------------------- well-known configuration hack --------------------- */
+// Reinitialize Step Certificate due to circular dependency
+// Manual wait condition because dependsOn does not "work" on Helm chart!?
+const stepRestartCommand = `
+    kubectl wait -n ${NS} --for=condition=Ready pod/keycloak-0 --timeout=600s && \
+    kubectl rollout restart -n ${NS} statefulset step-step-certificates
+`;
+
+new command.local.Command("restart-step-certificate", {
+    create: "sleep 20 && " + stepRestartCommand,
+    update: stepRestartCommand
+});
+
+
+/* ---------------- well-known configuration indirection hack --------------- */
 
 if (stack === Stack.DEV) {
-    new k8s.core.v1.Service(HOST, {
-        metadata: {
-            name: HOST,
-            namespace: NS,
-        },
+    const appLabels = {
+        sslh: {app: "sslh-authentication"}
+    }
+    
+    new k8s.apps.v1.Deployment("sslh-domain-shadow-deployment", {
+        metadata: { namespace: stack },
         spec: {
-            selector: {
-                "app.kubernetes.io/component": "keycloak",
-                "app.kubernetes.io/instance": "keycloak",
-                "app.kubernetes.io/name": "keycloak",
-            },
-            ports: [{
-                name: "https",
-                port: 443,
-                protocol: "TCP",
-                targetPort: "https",
-            }],
-            type: "ClusterIP",
-        },
+            selector: { matchLabels: appLabels.sslh },
+            template: {
+                metadata: { labels: appLabels.sslh },
+                spec: {
+                    containers: [
+                        {
+                            name: "sslh",
+                            image: "ghcr.io/yrutschle/sslh:latest",
+                            args: [
+                                "--foreground",
+                                "--listen=0.0.0.0:443",
+                                "--tls=ingress-nginx-controller.ingress-nginx:443"
+                            ]
+                        }
+                    ],
+                }
+            }
+        }
+    });
+    
+    new k8s.core.v1.Service(KEYCLOAK_HOST, {
+        metadata: { namespace: stack, name: KEYCLOAK_HOST },
+        spec: {
+            selector: appLabels.sslh,
+            ports: [
+                {
+                    port: 443
+                },
+            ]
+        }
     });
 }

@@ -13,7 +13,9 @@ const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}
 /* --------------------------------- config --------------------------------- */
 
 const NS = stack;
-const HOST = config.require("HOST");
+const STEP_CA_HOST = config.require("STEP_CA_HOST");
+const KEYCLOAK_HOST = config.require("KEYCLOAK_HOST");
+
 const CA_URL = `step-step-certificates.${NS}.svc.cluster.local`;
 
 /* --------------------------------- secrets -------------------------------- */
@@ -47,7 +49,7 @@ stepCaSecret.apply(stepCaSecret => {
                             "name": "keycloak",
                             "clientID": "step",
                             "clientSecret": "${stepCaSecret}",
-                            "configurationEndpoint": "https://${HOST}/keycloak/realms/ctf/.well-known/openid-configuration",
+                            "configurationEndpoint": "https://${KEYCLOAK_HOST}/keycloak/realms/ctf/.well-known/openid-configuration",
                             "listenAddress": ":10000",
                             "claims": {
                                 "enableSSHCA": true,
@@ -67,7 +69,7 @@ stepCaSecret.apply(stepCaSecret => {
                             "extensions": {{ toJson .Extensions }}
                           }' > $(step path)/templates/ssh/keycloak.tpl`
                     },
-                    dns: `myhost,${CA_URL},localhost,127.0.0.1`, // TODO be more specific
+                    dns: `${STEP_CA_HOST},${CA_URL},127.0.0.1`,
                 },
                 ingress: {
                     enabled: true,
@@ -80,11 +82,11 @@ stepCaSecret.apply(stepCaSecret => {
                         "cert-manager.io/issuer-group": "certmanager.step.sm"
                     },
                     tls: [{
-                        hosts: [HOST],
+                        hosts: [STEP_CA_HOST],
                         secretName: "step-tls"
                     }],
                     hosts: [{
-                        host: HOST,
+                        host: STEP_CA_HOST,
                         paths: [{
                             path: "/",
                             pathType: "Prefix"
@@ -116,7 +118,8 @@ let CA_PROVISIONER_KID: pulumi.Output<any>;
 
 async function deployStepIssuer() {
     if (!pulumi.runtime.isDryRun()) {
-        await sleep(90000);
+        // TODO fix this!
+        await sleep(100000);
 
         const caCert = k8s.core.v1.ConfigMap.get("step-certificates-certs", "dev/step-step-certificates-certs");
         const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", "dev/step-step-certificates-config");

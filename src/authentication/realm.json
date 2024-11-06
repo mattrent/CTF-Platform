@@ -763,10 +763,10 @@
             "clientAuthenticatorType": "client-secret",
             "secret": "${CTFD_CLIENT_SECRET}",
             "redirectUris": [
-                "https://${HOST}/ctfd/*"
+                "https://${CTFD_HOST}/ctfd/*"
             ],
             "webOrigins": [
-                "https://${HOST}"
+                "https://${CTFD_HOST}"
             ],
             "notBefore": 0,
             "bearerOnly": false,
@@ -867,10 +867,10 @@
             "clientAuthenticatorType": "client-secret",
             "secret": "${GRAFANA_CLIENT_SECRET}",
             "redirectUris": [
-                "https://${HOST}/grafana/*"
+                "https://${GRAFANA_HOST}/grafana/*"
             ],
             "webOrigins": [
-                "https://${HOST}"
+                "https://${GRAFANA_HOST}"
             ],
             "notBefore": 0,
             "bearerOnly": false,
