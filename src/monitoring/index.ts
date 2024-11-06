@@ -14,12 +14,13 @@ const config = new pulumi.Config();
 const NS = stack
 const GRAFANA_CLIENT_SECRET =
     stackReference.requireOutput("grafanaRealmSecret") as pulumi.Output<string>;
-const HOST = config.require("GRAFANA_HOST");
-const GRAFANA_RELATIVE_PATH = config.require("GRAFANA_RELATIVE_PATH"); 
+const GRAFANA_HOST = config.require("GRAFANA_HOST");
+const KEYCLOAK_HOST = config.require("KEYCLOAK_HOST");
 const kubePrometheusStackRelaseName = "kube-prometheus-stack"
 
 /* --------------------------------- Grafana -------------------------------- */
 
+// TODO configure backend HTTPS
 new k8s.helm.v3.Chart("grafana", {
     namespace: NS,
     chart: "grafana",
@@ -50,13 +51,13 @@ new k8s.helm.v3.Chart("grafana", {
                 id_token_attribute_name: "access_token",
                 login_attribute_path: "preferred_username",
                 token_url: `https://keycloak/keycloak/realms/ctf/protocol/openid-connect/token`,
-                auth_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/auth`,
-                api_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/userinfo`,
-                signout_redirect_url: `https://${HOST}/keycloak/realms/ctf/protocol/openid-connect/logout`,
+                auth_url: `https://${KEYCLOAK_HOST}/keycloak/realms/ctf/protocol/openid-connect/auth`,
+                api_url: `https://${KEYCLOAK_HOST}/keycloak/realms/ctf/protocol/openid-connect/userinfo`,
+                signout_redirect_url: `https://${KEYCLOAK_HOST}/keycloak/realms/ctf/protocol/openid-connect/logout`,
                 role_attribute_path: "contains(resource_access.grafana.roles, 'admin') && 'Admin' || contains(resource_access.grafana.roles, 'editor') && 'Editor' || ''"
             },
             server: {
-                root_url: `https://${HOST}/grafana/`
+                root_url: `https://${GRAFANA_HOST}/grafana/`
             }
         },
         datasources: {
@@ -176,12 +177,22 @@ new k8s.helm.v3.Chart("grafana", {
         ingress: {
             enabled: true,
             ingressClassName: "nginx",
-            path: `${GRAFANA_RELATIVE_PATH}(/|$)(.*)`,
+            path: `/grafana(/|$)(.*)`,
             pathType: "ImplementationSpecific",
-            hosts: [HOST],
+            hosts: [GRAFANA_HOST],
             annotations: {
                 "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
-            }
+                "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
+                "cert-manager.io/issuer": "step-issuer",
+                "cert-manager.io/issuer-kind": "StepIssuer",
+                "cert-manager.io/issuer-group": "certmanager.step.sm"
+            },
+            tls: [
+                {
+                    secretName: "grafana-tls",
+                    hosts: [GRAFANA_HOST]
+                }
+            ]
         }
     }
 });

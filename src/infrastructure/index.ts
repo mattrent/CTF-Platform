@@ -8,13 +8,17 @@ import * as crypto from "crypto";
 
 const config = new pulumi.Config();
 const KUBEVIRT_VERSION = config.require("KUBEVIRT_VERSION")
+const PROVISIONER_PATH = config.require("PROVISIONER_PATH")
+const PROVISIONER_VOLUME_TYPE = config.require("PROVISIONER_VOLUME_TYPE");
+const PROVISIONER_VERSION = config.require("PROVISIONER_VERSION")
 
 /* -------------------------------- namespace ------------------------------- */
 
 const stack = pulumi.getStack();
+const NS = stack;
 
 new k8s.core.v1.Namespace("namespace", {
-    metadata: { name: stack },
+    metadata: { name: NS },
 });
 
 /* ------------------- generate client secrets for export ------------------- */
@@ -48,13 +52,35 @@ if (stack === Stack.DEV) {
         values: {
             controller: {
                 service: {
-                    type: "LoadBalancer", // Change to "NodePort" if LoadBalancer is not supported
+                    type: "LoadBalancer",
                 },
             },
         },
     });
 
-    // TODO Add local path resource when Matteo is ready
+    new k8s.helm.v3.Chart("local-path-provisioner", {
+        chart: "local-path-provisioner",
+        version: PROVISIONER_VERSION,
+        fetchOpts: {
+            repo: "https://rancher.github.io/local-path-provisioner/",
+        },
+        namespace: NS,
+        values: {
+            storageClass: {
+                create: true,
+                defaultClass: true,
+                name: "local-path",
+                pathPattern: "{{ .PVC.Namespace }}-{{ .PVC.Name }}",
+                defaultVolumeType: PROVISIONER_VOLUME_TYPE,
+            },
+            nodePathMap: [
+                {
+                    node: "DEFAULT_PATH_FOR_NON_LISTED_NODES",
+                    paths: [PROVISIONER_PATH]
+                }
+            ]
+        },
+    });
 }
 
 // /* ---------------------------- install KubeVirt ---------------------------- */
@@ -72,12 +98,12 @@ const deleteKubeVirt = new command.local.Command("delete-kubevirt", {
 // Apply the KubeVirt operator manifest
 const kubeVirtOperator = new k8s.yaml.ConfigFile("kubevirt-operator", {
     file: `https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml`,
-}, {deletedWith: deleteKubeVirt});
+}, { deletedWith: deleteKubeVirt });
 
 // Apply the KubeVirt CR manifest
 const kubeVirtCr = new k8s.yaml.ConfigFile("kubevirt-cr", {
     file: `https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml`
-}, {deletedWith: deleteKubeVirt});
+}, { deletedWith: deleteKubeVirt });
 
 // ? Might be needed
 // new command.local.Command("software-emulation-fallback", {
@@ -96,7 +122,7 @@ const kubeVirtCr = new k8s.yaml.ConfigFile("kubevirt-cr", {
 
 // * Needs to be here due to some Pulumi error
 new k8s.helm.v3.Chart("crds", {
-    namespace: stack,
+    namespace: NS,
     chart: "kube-prometheus-stack",
     fetchOpts: {
         repo: "https://prometheus-community.github.io/helm-charts",

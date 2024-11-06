@@ -15,7 +15,6 @@ const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}
 const NS = stack;
 const STEP_CA_HOST = config.require("STEP_CA_HOST");
 const KEYCLOAK_HOST = config.require("KEYCLOAK_HOST");
-const KEYCLOAK_RELATIVE_PATH = config.require("KEYCLOAK_RELATIVE_PATH");
 
 const CA_URL = `step-step-certificates.${NS}.svc.cluster.local`;
 
@@ -50,7 +49,7 @@ stepCaSecret.apply(stepCaSecret => {
                             "name": "keycloak",
                             "clientID": "step",
                             "clientSecret": "${stepCaSecret}",
-                            "configurationEndpoint": "https://${KEYCLOAK_HOST}${KEYCLOAK_RELATIVE_PATH}realms/ctf/.well-known/openid-configuration",
+                            "configurationEndpoint": "https://${KEYCLOAK_HOST}/keycloak/realms/ctf/.well-known/openid-configuration",
                             "listenAddress": ":10000",
                             "claims": {
                                 "enableSSHCA": true,

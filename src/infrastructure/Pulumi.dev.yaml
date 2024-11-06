@@ -1,3 +1,6 @@
 encryptionsalt: v1:oEgFURhW14A=:v1:swU625FHZp6cZERd:ONRFaNwkQlf/cFLS4WrLy2MbS9vOEg==
 config:
   infrastructure:KUBEVIRT_VERSION: v1.3.1
+  infrastructure:PROVISIONER_PATH: /tmp/local-path-provisioner
+  infrastructure:PROVISIONER_VERSION: 0.0.30
+  infrastructure:PROVISIONER_VOLUME_TYPE: hostPath

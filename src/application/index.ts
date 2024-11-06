@@ -27,17 +27,25 @@ const HENRIK_BACKEND_CHART = "ctf/backend/deployment/helm"
 const NS = stack;
 const CTFD_PORT = 8000
 const REGISTRY_PORT = 5000;
-const HOST = config.require("HOST");
+const REGISTRY_EXPOSED_PORT = 443;
+const CTFD_HOST = config.require("CTFD_HOST");
+const IMAGE_REGISTRY_HOST = config.require("IMAGE_REGISTRY_HOST");
+const CTFD_OIDC_PLUGIN_PATH = config.require("CTFD_OIDC_PLUGIN_PATH");
+
+/* --------------------------------- secret --------------------------------- */
+
 const CTFD_CLIENT_SECRET =
     stackReference.requireOutput("ctfdRealmSecret") as pulumi.Output<string>;
 const DOCKER_USERNAME =
     stackReference.requireOutput("dockerUsername") as pulumi.Output<string>;
 const DOCKER_PASSWORD =
     stackReference.requireOutput("dockerPassword") as pulumi.Output<string>;
+const CTFD_JWT_SECRET =
+    stackReference.requireOutput("jwtCtfd") as pulumi.Output<string>;
 
 /* -------------------------------- Regsitry -------------------------------- */
 
-pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPassword]) => {
+pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUsername, dockerPassword, jwtCtfd]) => {
     const imageRegistryDeployment = new k8s.apps.v1.Deployment("docker-registry-deployment", {
         metadata: { namespace: NS },
         spec: {
@@ -99,7 +107,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPas
         data: {
             ".dockerconfigjson": pulumi.secret(Buffer.from(JSON.stringify({
                 auths: {
-                    "localregistry:80": {
+                    "localregistry:443": {
                         username: dockerUsername,
                         password: dockerPassword,
                         auth: Buffer.from(`${dockerUsername}:${dockerPassword}`).toString('base64'),
@@ -110,11 +118,11 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPas
     });
 
     const dockerImageRegistryService = new k8s.core.v1.Service(`image-registry-service`, {
-        metadata: { namespace: NS, name: "localregistry" },
+        metadata: { namespace: NS, name: IMAGE_REGISTRY_HOST },
         spec: {
             selector: appLabels.registry,
             ports: [{
-                port: 80,
+                port: REGISTRY_EXPOSED_PORT,
                 targetPort: REGISTRY_PORT
             }],
         }
@@ -125,13 +133,17 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPas
             namespace: NS,
             annotations: {
                 "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
-                "nginx.ingress.kubernetes.io/proxy-body-size": "0"
+                "nginx.ingress.kubernetes.io/proxy-body-size": "0", // disable package size
+                "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
+                "cert-manager.io/issuer": "step-issuer",
+                "cert-manager.io/issuer-kind": "StepIssuer",
+                "cert-manager.io/issuer-group": "certmanager.step.sm"
             },
         },
         spec: {
             ingressClassName: "nginx",
             rules: [{
-                host: "localregistry",
+                host: IMAGE_REGISTRY_HOST,
                 http: {
                     paths: [{
                         path: "/",
@@ -140,13 +152,17 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPas
                             service: {
                                 name: dockerImageRegistryService.metadata.name,
                                 port: {
-                                    number: 80,
+                                    number: REGISTRY_EXPOSED_PORT,
                                 },
                             },
                         },
                     }],
                 },
             }],
+            tls: [{
+              hosts: [IMAGE_REGISTRY_HOST],
+              secretName: "image-registry-tls"
+            }]
         },
     });
 
@@ -162,17 +178,19 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPas
             builderVersion: docker.BuilderVersion.BuilderV1,
         },
         registry: {
-            server: "http://localregistry:80",
+            server: "https://localregistry:443",
             username: dockerUsername,
             password: dockerPassword
         },
-        imageName: "localregistry:80/ctfd:latest",
+        imageName: "localregistry:443/ctfd:latest",
         skipPush: false,
     }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
 
+    ctfdImage.repoDigest.apply(digest => console.log("CTFd image digest:", digest))
+
     // OIDC
 
-    const ctfdOidcFolder = path.resolve("ctfd/oidc");
+    const ctfdOidcFolder = path.resolve(CTFD_OIDC_PLUGIN_PATH);
     const configFile = "config.json"
 
     const configMapOidc: { [key: string]: string } = {};
@@ -207,7 +225,9 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPas
                                 }],
                                 env: [
                                     { name: "APPLICATION_ROOT", value: "/ctfd" },
-                                    { name: "REVERSE_PROXY", value: "true" }
+                                    { name: "REVERSE_PROXY", value: "true" },
+                                    { name: "JWTSECRET", value: jwtCtfd },
+                                    { name: "BACKENDURL", value: "http://deployer" }
                                 ]
                             }
                         ],
@@ -245,11 +265,11 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPas
         spec: {
             ingressClassName: "nginx",
             tls: [{
-                hosts: [HOST],
+                hosts: [CTFD_HOST],
                 secretName: "ctfd-tls",
             }],
             rules: [{
-                host: HOST,
+                host: CTFD_HOST,
                 http: {
                     paths: [{
                         path: "/ctfd(/|$)(.*)",
@@ -278,13 +298,15 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPas
             builderVersion: docker.BuilderVersion.BuilderV1,
         },
         registry: {
-            server: "http://localregistry:80",
+            server: "https://localregistry:443",
             username: dockerUsername,
             password: dockerPassword
         },
-        imageName: "localregistry:80/bastion:latest",
+        imageName: "localregistry:443/bastion:latest",
         skipPush: false,
     }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
+
+    bastionImage.repoDigest.apply(digest => console.log("Bastion image digest:", digest))
 
 
     const bastion = new k8s.apps.v1.Deployment("bastion-deployment", {
@@ -332,10 +354,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPas
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
-    new k8s.helm.v3.Chart("deployer", {
-        namespace: NS,
-        path: HENRIK_BACKEND_CHART,
-    });
+    // new k8s.helm.v3.Chart("deployer", {
+    //     namespace: NS,
+    //     path: HENRIK_BACKEND_CHART,
+    // });
 
     /* ------------------------------- Multiplexer ------------------------------ */
 
