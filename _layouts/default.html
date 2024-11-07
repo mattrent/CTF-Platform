@@ -67,7 +67,12 @@
                 loop: true,
                 volume: 0.075
             });
-            sound.play();
+        // Simulate a user gesture 
+        document.body.addEventListener('click', () => { 
+            sound.play(); 
+        }); 
+        // Programmatically simulate the click 
+        document.body.click();
         }
     </script>
 </body>
