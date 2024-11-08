@@ -65,7 +65,7 @@ Please read the [report](report/main.tex) for a more in-depth review.
 This platform has been developed in collaboration with:
 
 1. Jacopo Mauro: Master's Thesis supervisor and professor, guiding the project's vision and academic rigor.
-2. Matteo Trentin: Computer Science PhD Student, contributing research and technical expertise.
+2. Matteo Trentin: Computer Science PhD student, contributing research and technical expertise.
 3. Henrik Jakobsen, Computer Science Master's student.
 4. Kian Larsen (me), Computer Science Master's student.
 
@@ -140,6 +140,21 @@ Each project is a bundle of deployments, services, and even Helm charts. They ar
 
 <a name="getting-started"></a>
 ## 👷‍♂️ Getting started
+If this is your first time using Pulumi, fear not—the setup process is straightforward. For accessing config secrets, you will need to enter a passphrase to decrypt the passwords using the encryption salt. If you know the passphrase, you can use the provided secrets.
+
+You might want to set this environment variable in your `~/.bashrc` file to avoid being prompted every time you work with config secrets:
+
+```bash
+export PULUMI_CONFIG_PASSPHRASE=<passphrase>
+```
+
+If you do not know the passphrase, you can create your own stack from scratch with a new passphrase. However, you will need to generate your own secrets, as the provided ones will be unavailable. You can always change the passphrase later using the command:
+
+```bash
+pulumi stack change-secrets-provider passphrase
+# This will prompt you to enter the current passphrase and then a new one.
+```
+
 If this is your first time deploying the platform, you'll need to initialize the stacks. Pulumi projects can store their state in either an external BLOB or a local state file. Regardless, you'll need to initialize the stacks to ensure they are part of your state. Do this by running:
 
 ```bash
