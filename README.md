@@ -64,10 +64,10 @@ Please read the [report](report/main.tex) for a more in-depth review.
 
 This platform has been developed in collaboration with:
 
-1. Jacopo Mauro: Master's Thesis supervisor and professor, guiding the project's vision and academic rigor.
-2. Matteo Trentin: Computer Science PhD student, contributing research and technical expertise.
-3. Henrik Jakobsen, Computer Science Master's student.
-4. Kian Larsen (me), Computer Science Master's student.
+1. Jacopo Mauro: Master's Thesis Supervisor and Professor, guiding the project's vision and academic rigor.
+2. Matteo Trentin: Computer Science PhD Student, contributing research and technical expertise.
+3. Henrik Jakobsen, Computer Science Master's Student.
+4. Kian Larsen (me), Computer Science Master's Student.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
