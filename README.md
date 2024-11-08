@@ -12,9 +12,9 @@
 <a href="https://github.com/KianBankeLarsen/CTF-Platform/blob/main/LICENSE" style="text-decoration:none;">
   <img src="https://img.shields.io/github/license/KianBankeLarsen/CTF-Platform?style=for-the-badge" style="padding-bottom: 5px;/">
 </a>
-<a href="https://kianbankelarsen.github.io/CTF-Platform/" style="text-decoration:none;">
+<!-- <a href="https://kianbankelarsen.github.io/CTF-Platform/" style="text-decoration:none;">
   <img src="https://img.shields.io/website?url=https%3A%2F%2Fkianbankelarsen.github.io%2FCTF-Platform%2F&style=for-the-badge" style="padding-bottom: 5px;"/>
-</a>
+</a> -->
 </p>
 <p align="center">
 <a href="https://odin.sdu.dk/sitecore/index.php?a=fagbesk&id=83401&lang=en&listid=">
