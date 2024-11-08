@@ -140,7 +140,7 @@ Each project is a bundle of deployments, services, and even Helm charts. They ar
 
 <a name="getting-started"></a>
 ## 👷‍♂️ Getting started
-If this is your first time using Pulumi, fear not—the setup process is straightforward. For accessing config secrets, you will need to enter a passphrase to decrypt the passwords using the encryption salt. If you know the passphrase, you can use the provided secrets.
+If this is your first time using Pulumi, fear not—the setup process is straightforward. For accessing config secrets, you will need to enter a passphrase to decrypt the passwords using the encryption salt. If you know the passphrase, you can use the provided secrets. 🔑
 
 You might want to set this environment variable in your `~/.bashrc` file to avoid being prompted every time you work with config secrets:
 
@@ -148,7 +148,7 @@ You might want to set this environment variable in your `~/.bashrc` file to avoi
 export PULUMI_CONFIG_PASSPHRASE=<passphrase>
 ```
 
-If you do not know the passphrase, you can create your own stack from scratch with a new passphrase. However, you will need to generate your own secrets, as the provided ones will be unavailable. You can always change the passphrase later using the command:
+If you do not know the passphrase, you can create your own stack from scratch with a new passphrase. However, you will need to generate your own secrets, as the provided ones will be unavailable. 🛡️ You can always change the passphrase later using the command:
 
 ```bash
 pulumi stack change-secrets-provider passphrase
