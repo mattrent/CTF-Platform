@@ -20,11 +20,12 @@ const CA_URL = `step-step-certificates.${NS}.svc.cluster.local`;
 
 /* --------------------------------- secrets -------------------------------- */
 
-const stepCaSecret = stackReference.requireOutput("stepCaSecret");
+const STEP_CLIRENT_CA_SECRET = stackReference.requireOutput("stepCaSecret");
+const STEP_CA_ADMIN_PROVISIONER_PASSWORD = stackReference.requireOutput("stepCaAdminProvisionerPassword");
 
 /* --------------------------------- step-ca -------------------------------- */
 
-stepCaSecret.apply(stepCaSecret => {
+pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply(([stepCaClientSecret, stepCaAdminProvisionerPassword]) => {
     new k8s.helm.v3.Chart("step", {
         namespace: NS,
         chart: "autocert",
@@ -39,7 +40,7 @@ stepCaSecret.apply(stepCaSecret => {
                     },
                     provisioner: {
                         name: "admin",
-                        password: "secret-not-so-secret"
+                        password: stepCaAdminProvisionerPassword
                     },
                     bootstrap: {
                         postInitHook: `wget https://github.com/stedolan/jq/releases/download/jq-1.7/jq-linux64 && \
@@ -48,7 +49,7 @@ stepCaSecret.apply(stepCaSecret => {
                             "type": "OIDC",
                             "name": "keycloak",
                             "clientID": "step",
-                            "clientSecret": "${stepCaSecret}",
+                            "clientSecret": "${stepCaClientSecret}",
                             "configurationEndpoint": "https://${KEYCLOAK_HOST}/keycloak/realms/ctf/.well-known/openid-configuration",
                             "listenAddress": ":10000",
                             "claims": {

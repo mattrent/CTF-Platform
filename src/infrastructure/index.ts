@@ -32,6 +32,7 @@ export const dockerPassword = pulumi.secret(crypto.randomBytes(32).toString("hex
 export const jwtCtfd = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const postgresAdminPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const postgresUserPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
+export const stepCaAdminProvisionerPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 
 /* ------------------------ NGINX ingress controller ------------------------ */
 
