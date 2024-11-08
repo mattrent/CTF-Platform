@@ -1,5 +1,22 @@
 <a name="readme-top"></a>
 <p align="center">
+<a href="https://sonarcloud.io/summary/overall?id=KianBankeLarsen_CTF-Platform" style="text-decoration:none;">
+  <img src="https://img.shields.io/sonar/quality_gate/KianBankeLarsen_CTF-Platform?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge" style="padding-bottom: 5px;"/>
+</a>
+<a href="https://sonarcloud.io/summary/overall?id=KianBankeLarsen_CTF-Platform" style="text-decoration:none;">
+  <img src="https://img.shields.io/sonar/tech_debt/KianBankeLarsen_CTF-Platform?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge" style="padding-bottom: 5px;" />
+</a>
+<a href="https://sonarcloud.io/summary/overall?id=KianBankeLarsen_CTF-Platform" style="text-decoration:none;">
+  <img src="https://img.shields.io/sonar/major_violations/KianBankeLarsen_CTF-Platform?server=https%3A%2F%2Fsonarcloud.io&style=for-the-badge" style="padding-bottom: 5px;"/>
+</a>
+<a href="https://github.com/KianBankeLarsen/CTF-Platform/blob/main/LICENSE" style="text-decoration:none;">
+  <img src="https://img.shields.io/github/license/KianBankeLarsen/CTF-Platform?style=for-the-badge" style="padding-bottom: 5px;/">
+</a>
+<a href="https://kianbankelarsen.github.io/CTF-Platform/" style="text-decoration:none;">
+  <img src="https://img.shields.io/website?url=https%3A%2F%2Fkianbankelarsen.github.io%2FCTF-Platform%2F&style=for-the-badge" style="padding-bottom: 5px;"/>
+</a>
+</p>
+<p align="center">
 <a href="https://odin.sdu.dk/sitecore/index.php?a=fagbesk&id=83401&lang=en&listid=">
 <img src="https://www.sdu.dk/-/media/files/nyheder/logoer/sdu_black_rgb_png.png" width="400" style="padding-bottom: 1em;">
 </a>
