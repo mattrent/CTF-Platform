@@ -82,6 +82,7 @@ Ready to dive into deploying your platform? Fantastic! Whether you're gearing up
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/): The command-line tool for interacting with your Kubernetes cluster.
 * [Docker](https://www.docker.com/): Containerize and run your applications seamlessly.
 * [Helm](https://helm.sh/docs/intro/install/): The package manager for Kubernetes.
+* [virtctl](https://kubevirt.io/user-guide/user_workloads/virtctl_client_tool/) The command-line tool for interacting with KubeVirt.
 
 Once you've got these tools locked and loaded, you're all set to deploy the platform! 🛠️🚀
 
@@ -129,10 +130,28 @@ CTF-Platform/
 Our project consists of five Pulumi projects, each with a specific role to play:
 
 * **application:** 🖥️ Home to CTF platform/cloud-specific functionality.
+  * **SSHD Alpine bastion:** A secure SSHD server based on Alpine Linux, serving as a bastion host for your cloud environment.
+  * **CTFd:** A CTF platform for hosting cybersecurity challenges and competitions.
+  * **Henrik Backend:** The backend service providing core functionality and APIs for the platform.
+  * **SSLH protocol multiplexer:** A protocol multiplexer that allows multiple services to share a single port, such as SSH and HTTPS.
 * **authentication:** 🔑 Manages SSO capabilities provided by Keycloak.
+  * **Keycloak:** An open-source identity and access management solution for Single Sign-On (SSO), enabling secure authentication and authorization.
 * **certificates:** 📜 Handles certificate CA and issuers.
+  * **Step Certificates:** A Certificate Authority (CA) toolkit for managing and issuing certificates within your environment.
+  * **Step Autocert:** Automates the issuance and renewal of TLS certificates to ensure your services remain secure.
+  * **Step Issuer:** An issuer that integrates with Cert-Manager to manage certificate lifecycles.
+  * **Cert-Manager:** A Kubernetes add-on to automate the management and issuance of TLS certificates from various issuing sources.
 * **infrastructure:** 🏗️ Takes care of basic cluster configuration.
+  * **Rancher Local Path Storage Provisioner:** Manages dynamic storage provisioning for Kubernetes using local paths on nodes.
+  * **Nginx Ingress Controller:** Manages external access to services in a Kubernetes cluster through HTTP and HTTPS.
+  * **KubeVirt:** Extends Kubernetes by adding support for running virtual machine workloads alongside container workloads.
 * **monitoring:** 📊 Ensures cluster observability and log collection.
+  * **Prometheus:** A monitoring system and time-series database for capturing metrics and alerts.
+  * **Prometheus-Operator:** Simplifies the setup and management of Prometheus instances within Kubernetes.
+  * **Grafana:** An open-source platform for monitoring and observability, providing dashboards and visualizations for your metrics.
+  * **Loki:** A log aggregation system designed for efficiency and ease of use, seamlessly integrating with Prometheus.
+  * **Promtail:** An agent that ships the contents of local logs to a Loki instance.
+  * **Node-exporter:** Exports hardware and OS metrics exposed by Linux kernels for monitoring.
 
 Each project is a bundle of deployments, services, and even Helm charts. They are designed to group similar services that share characteristics, ensuring modularity and maintainability.
 
