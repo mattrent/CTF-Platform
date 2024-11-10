@@ -361,10 +361,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
-    // new k8s.helm.v3.Chart("deployer", {
-    //     namespace: NS,
-    //     path: HENRIK_BACKEND_CHART,
-    // });
+    new k8s.helm.v3.Chart("deployer", {
+        namespace: NS,
+        path: HENRIK_BACKEND_CHART,
+    });
 
     /* ------------------------------- Multiplexer ------------------------------ */
 
