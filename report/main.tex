@@ -351,7 +351,7 @@ A diagram showing the flow is given below:
 This two-step process is essential for avoiding issues with Cross-Origin Resource Sharing (CORS). CORS is a security feature implemented by web browsers to prevent web pages from making requests to a different domain than the one that served the web page, known as the same-origin policy. By using the Authorization Code Grant, the exchange of the authorization code for an access token happens server-to-server, reducing the risk of exposing sensitive information through client-side scripts, which could be subject to CORS restrictions.
 
 \subsection*{Implicit}
-The Implicit Grant is designed for browser-based applications like single-page applications (SPAs). In this flow, the access token is issued directly without an intermediate authorization code. A key security risk is that the token is provided in the URL, which can be logged in browser history, server logs, or shared inadvertently, exposing the token to malicious actors. On the positive side, the client does not handle user credentials directly.
+The Implicit Grant is designed for browser-based applications like single-page applications (SPAs). In this flow, the access token is issued directly without an intermediate authorization code. A key security risk is that the token is provided in the URL, which can be logged in browser history, server logs, or shared inadvertently, exposing the token to malicious actors. On the positive side, the client does not handle user credentials directly.\todo{revise SPA}
 
 Including the access token in the URL is necessary to address CORS restrictions. CORS policies can block requests from the browser to a different domain if the access token is included in the response body, as this can trigger a preflight request.
 
@@ -397,7 +397,7 @@ CTFd is arguably our most important exposed service from a practical user perspe
 
 However, there is a significant challenge: CTFd does not support any form of SSO unless it is either an enterprise or hosted version \parencite{ctfd_sso}. This limitation forces us to make a choice. Given that CTFd is open-source, we can either 1) modify the source code to implement SSO our way, or 2) create a custom plugin to handle authentication. Modifying the source code would necessitate freezing the version, as future updates could disrupt our changes. Therefore, creating a plugin is the more rational approach.
 
-Fortunately, creating plugins for CTFd is relatively straightforward and well-documented \parencite{ctfd_plugins}. However, there is a notable issue with how the Docker image is developed. Plugin requirements are installed at build time rather than at the entrypoint, which complicates the process. This means we cannot simply mount the plugin to the specified folder without building the Docker file from scratch, as the necessary pip packages are not installed. The solution was to update the entrypoint -- a simple but inconvenient fix.
+Fortunately, creating plugins for CTFd is relatively straightforward and well-documented \parencite{ctfd_plugins}. However, there is a notable issue with how the Docker image is developed. Plugin requirements are installed at build time rather than at the entrypoint, which complicates the process. This means we cannot simply mount the plugin to the specified folder without building the Docker file from scratch, as the necessary pip packages are not installed. The solution was to update the entrypoint -- a simple but inconvenient fix\todo{revise}.
 
 The most important detail about the Keycloak plugin developed for CTFd is that it can be configured using the \texttt{config.json} file, and that endpoints can be overwritten as follows:
 
@@ -468,7 +468,7 @@ def patch_user(user_id, data):
     ...
 \end{minted}
 
-By understanding and properly handling polymorphic types in SQLAlchemy, you can avoid issues like \texttt{ObjectDeletedError} and ensure that related objects are preserved when changing the type of a user. This involves generating responses before changing types and using methods to manage related objects effectively. This approach ensures that properties and linked objects like submissions and comments are not lost during the type change.
+By understanding and properly handling polymorphic types in SQLAlchemy, you can avoid issues like \texttt{ObjectDeletedError} and ensure that related objects are preserved when changing the type of a user. This involves generating responses before changing types and using methods to manage related objects effectively. This approach ensures that properties and linked objects like submissions and comments are not lost during the type change.\todo{explain API keys}
 
 \subsection{Grafana}\label{sec:grafana_auth}
 Integrating Grafana with Keycloak addresses the critical challenges of secure and efficient user authentication and authorization by leveraging standardized protocols. This section details the configuration process, focusing on protocol integration, PKCE, refresh tokens, role mapping, and the underlying protocols \parencite{GrafanaKeycloak}.

@@ -139,7 +139,8 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
 // Manual wait condition because dependsOn does not "work" on Helm chart!?
 const stepRestartCommand = `
     kubectl wait -n ${NS} --for=condition=Ready pod/keycloak-0 --timeout=600s && \
-    kubectl rollout restart -n ${NS} statefulset step-step-certificates
+    kubectl rollout restart -n ${NS} statefulset step-step-certificates && \
+    sleep 20
 `;
 
 new command.local.Command("restart-step-certificate", {
