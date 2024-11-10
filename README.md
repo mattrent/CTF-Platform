@@ -82,7 +82,8 @@ Ready to dive into deploying your platform? Fantastic! Whether you're gearing up
 * [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/): The command-line tool for interacting with your Kubernetes cluster.
 * [Docker](https://www.docker.com/): Containerize and run your applications seamlessly.
 * [Helm](https://helm.sh/docs/intro/install/): The package manager for Kubernetes.
-* [virtctl](https://kubevirt.io/user-guide/user_workloads/virtctl_client_tool/) The command-line tool for interacting with KubeVirt.
+* [virtctl](https://kubevirt.io/user-guide/user_workloads/virtctl_client_tool/): The command-line tool for interacting with KubeVirt.
+* [step CLI](https://smallstep.com/docs/step-cli/installation/): Boostrap CA and request personal SSH certificates.
 
 Once you've got these tools locked and loaded, you're all set to deploy the platform! 🛠️🚀
 

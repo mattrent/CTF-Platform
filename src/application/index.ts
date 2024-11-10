@@ -32,6 +32,13 @@ const CTFD_HOST = config.require("CTFD_HOST");
 const IMAGE_REGISTRY_HOST = config.require("IMAGE_REGISTRY_HOST");
 const IMAGE_REGISTRY_SERVER = IMAGE_REGISTRY_HOST.includes(".") ? IMAGE_REGISTRY_HOST : `${IMAGE_REGISTRY_HOST}:${REGISTRY_EXPOSED_PORT}`
 const CTFD_OIDC_PLUGIN_PATH = config.require("CTFD_OIDC_PLUGIN_PATH");
+const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH");
+
+// Remove trailing slash if it exists, but keep the root '/' intact
+const cleanedCtfdPath = (CTFD_HTTP_RELATIVE_PATH !== '/' && CTFD_HTTP_RELATIVE_PATH.endsWith('/')) 
+  ? CTFD_HTTP_RELATIVE_PATH.slice(0, -1) 
+  : CTFD_HTTP_RELATIVE_PATH;
+
 
 /* --------------------------------- secret --------------------------------- */
 
@@ -225,7 +232,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
                                     subPath: "config.json"
                                 }],
                                 env: [
-                                    { name: "APPLICATION_ROOT", value: "/ctfd" },
+                                    { name: "APPLICATION_ROOT", value: cleanedCtfdPath },
                                     { name: "REVERSE_PROXY", value: "true" },
                                     { name: "JWTSECRET", value: jwtCtfd },
                                     { name: "BACKENDURL", value: "http://deployer" }
@@ -260,7 +267,6 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
                 "cert-manager.io/issuer": "step-issuer",
                 "cert-manager.io/issuer-kind": "StepIssuer",
                 "cert-manager.io/issuer-group": "certmanager.step.sm",
-                "nginx.ingress.kubernetes.io/rewrite-target": "/ctfd/$2",
             },
         },
         spec: {
@@ -273,8 +279,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
                 host: CTFD_HOST,
                 http: {
                     paths: [{
-                        path: "/ctfd(/|$)(.*)",
-                        pathType: "ImplementationSpecific",
+                        path: cleanedCtfdPath,
+                        pathType: "Prefix",
                         backend: {
                             service: {
                                 name: ctfdService.metadata.name,

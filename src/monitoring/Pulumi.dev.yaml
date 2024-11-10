@@ -1,4 +1,6 @@
 encryptionsalt: v1:dD3UZ13UAKo=:v1:WVk6qrwPj6dzlqpW:dk7gvr8AVTcoit94RPtYUssn+yoEVg==
 config:
   monitoring:GRAFANA_HOST: myhost
+  monitoring:GRAFANA_HTTP_RELATIVE_PATH: /grafana/
   monitoring:KEYCLOAK_HOST: myhost
+  monitoring:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/

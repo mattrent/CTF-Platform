@@ -1,8 +1,11 @@
 encryptionsalt: v1:YMYAEkyvB5o=:v1:XCJkE4ADyAs1PoPk:zetPZSUI6YrenfBfwr8DKFwxwzAyyw==
 config:
   authentication:CTFD_HOST: myhost
+  authentication:CTFD_HTTP_RELATIVE_PATH: /ctfd/
   authentication:GRAFANA_HOST: myhost
+  authentication:GRAFANA_HTTP_RELATIVE_PATH: /keycloak/
   authentication:KEYCLOAK_HOST: myhost
+  authentication:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
   authentication:KEYCLOAK_IMAGE_VERSION: 24.0.2
   authentication:KEYCLOAK_PWD:
     secure: v1:HZdv3X3TXdxCwkbx:k46VYAGmi9yMBUsE2oXxmrJzD9Wf

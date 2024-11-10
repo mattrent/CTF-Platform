@@ -19,6 +19,9 @@ const KEYCLOAK_HOST = config.require("KEYCLOAK_HOST");
 const CTFD_HOST = config.require("CTFD_HOST");
 const GRAFANA_HOST = config.require("GRAFANA_HOST");
 const KEYCLOAK_IMAGE_VERSION = config.require("KEYCLOAK_IMAGE_VERSION")
+const KEYCLOAK_HTTP_RELATIVE_PATH = config.require("KEYCLOAK_HTTP_RELATIVE_PATH")
+const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH")
+const GRAFANA_HTTP_RELATIVE_PATH = config.require("GRAFANA_HTTP_RELATIVE_PATH")
 
 /* --------------------------------- secrets -------------------------------- */
 
@@ -70,10 +73,11 @@ const keycloakPostgresqlSecret = new k8s.core.v1.Secret("keycloak-postgresql-sec
 });
 
 let realmConfiguration = fs.readFileSync(REALM_CONFIGURATION_FILE, "utf-8");
-// TODO fix realm.json with variables from yaml
 pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaSecret, ctfdSecret, stepSecret]) => {
     realmConfiguration = envSubst(realmConfiguration, "GRAFANA_HOST", GRAFANA_HOST);
+    realmConfiguration = envSubst(realmConfiguration, "GRAFANA_HTTP_RELATIVE_PATH", GRAFANA_HTTP_RELATIVE_PATH);
     realmConfiguration = envSubst(realmConfiguration, "CTFD_HOST", CTFD_HOST);
+    realmConfiguration = envSubst(realmConfiguration, "CTFD_HTTP_RELATIVE_PATH", CTFD_HTTP_RELATIVE_PATH);
     realmConfiguration = envSubst(realmConfiguration, "GRAFANA_CLIENT_SECRET", grafanaSecret);
     realmConfiguration = envSubst(realmConfiguration, "CTFD_CLIENT_SECRET", ctfdSecret);
     realmConfiguration = envSubst(realmConfiguration, "STEP_CLIENT_SECRET", stepSecret);
@@ -92,7 +96,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
                 existingSecret: keycloakCert.metadata.name,
                 usePem: true
             },
-            httpRelativePath: "/keycloak/",
+            httpRelativePath: KEYCLOAK_HTTP_RELATIVE_PATH,
             auth: {
                 adminUser: KEYCLOAK_USER,
                 adminPassword: KEYCLOAK_PWD

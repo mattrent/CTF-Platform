@@ -1,5 +1,6 @@
 encryptionsalt: v1:cmBhEiLHsIc=:v1:dJnXvH6dgqk0iNJF:9EltKb6YQw6aIy8dIGxPwUhJ6aWjkQ==
 config:
   application:CTFD_HOST: myhost
+  application:CTFD_HTTP_RELATIVE_PATH: /ctfd/
   application:CTFD_OIDC_PLUGIN_PATH: ctfd/oidc
   application:IMAGE_REGISTRY_HOST: localregistry
