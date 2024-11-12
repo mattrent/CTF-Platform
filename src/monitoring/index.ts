@@ -32,6 +32,7 @@ const grafanaIngressPathType = GRAFANA_HTTP_RELATIVE_PATH !== "/" ? "Implementat
 const grafanaIngressPath = GRAFANA_HTTP_RELATIVE_PATH !== "/" ? `${cleanedGrafanaPath}(/|$)(.*)` : "/"
 const grafanaIngressAnnotations: {[key: string]: string} = {
     "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
+    "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
     "cert-manager.io/issuer": "step-issuer",
     "cert-manager.io/issuer-kind": "StepIssuer",
     "cert-manager.io/issuer-group": "certmanager.step.sm"
@@ -62,8 +63,8 @@ new k8s.helm.v3.Chart("grafana", {
                 allow_sign_up: true,
                 use_refresh_token: true,
                 role_attribute_strict: true,
-                // ! TLS not verified
-                tls_skip_verify_insecure: true, // TODO not a valid solution
+                tls_skip_verify_insecure: false,
+                tls_client_ca: "/var/run/autocert.step.sm/root.crt",
                 client_secret: GRAFANA_CLIENT_SECRET,
                 scopes: "openid",
                 client_id: "grafana",
@@ -79,8 +80,34 @@ new k8s.helm.v3.Chart("grafana", {
                 role_attribute_path: "contains(resource_access.grafana.roles, 'admin') && 'Admin' || contains(resource_access.grafana.roles, 'editor') && 'Editor' || ''"
             },
             server: {
-                root_url: `https://${GRAFANA_HOST}${GRAFANA_HTTP_RELATIVE_PATH}`
+                root_url: `https://${GRAFANA_HOST}${GRAFANA_HTTP_RELATIVE_PATH}`,
+                protocol: "https",
+                cert_key: "/var/run/autocert.step.sm/site.key",
+                cert_file: "/var/run/autocert.step.sm/site.crt"
             }
+        },
+        podAnnotations: {
+            "autocert.step.sm/name": `grafana.${NS}.svc.cluster.local`
+        },
+        readinessProbe: {
+            httpGet: {
+                path: "/api/health",
+                port: 3000,
+                scheme: "HTTPS"
+            },
+            initialDelaySeconds: 60,
+            timeoutSeconds: 30,
+            failureThreshold: 10
+        },
+        livenessProbe: {
+            httpGet: {
+                path: "/api/health",
+                port: 3000,
+                scheme: "HTTPS"
+            },
+            initialDelaySeconds: 60,
+            timeoutSeconds: 30,
+            failureThreshold: 10
         },
         datasources: {
             "datasources.yaml": {
@@ -89,14 +116,26 @@ new k8s.helm.v3.Chart("grafana", {
                     {
                         name: "Prometheus",
                         type: "prometheus",
-                        url: "http://kube-prometheus-stack-prometheus:9090",
-                        access: "proxy"
+                        url: "https://kube-prometheus-stack-prometheus:9090",
+                        access: "proxy",
+                        jsonData: {
+                            tlsAuthWithCACert: true
+                        },
+                        secureJsonData: {
+                            tlsCACert: "$__file{/var/run/autocert.step.sm/root.crt}"
+                        }
                     },
                     {
                         name: "Loki",
                         type: "loki",
                         url: "http://loki-gateway",
-                        access: "proxy"
+                        access: "proxy",
+                        jsonData: {
+                            tlsAuthWithCACert: true
+                        },
+                        secureJsonData: {
+                            tlsCACert: "$__file{/var/run/autocert.step.sm/root.crt}"
+                        }
                     }
                 ]
             }
@@ -194,6 +233,12 @@ new k8s.helm.v3.Chart("grafana", {
             enabled: true,
             labels: {
                 release: kubePrometheusStackRelaseName
+            },
+            scheme: "https",
+            tlsConfig: {
+                caFile: "/var/run/step/ca.crt",
+                //serverName: "",
+                insecureSkipVerify: true
             }
         },
         ingress: {
@@ -215,6 +260,30 @@ new k8s.helm.v3.Chart("grafana", {
 
 /* -------------------------- kube-prometheus-stack ------------------------- */
 
+const prometheusCert = new k8s.apiextensions.CustomResource("prometheus-inbound-tls", {
+    apiVersion: "cert-manager.io/v1",
+    kind: "Certificate",
+    metadata: {
+        name: "prometheus-inbound-tls",
+        namespace: NS,
+    },
+    spec: {
+        secretName: "prometheus-inbound-tls",
+        commonName: `kube-prometheus-stack-prometheus.${NS}.svc.cluster.local`,
+        dnsNames: [
+            `kube-prometheus-stack-prometheus.${NS}.svc.cluster.local`,
+            "kube-prometheus-stack-prometheus"
+        ],
+        duration: "24h",
+        renewBefore: "8h",
+        issuerRef: {
+            group: "certmanager.step.sm",
+            kind: "StepIssuer",
+            name: "step-issuer",
+        },
+    },
+});
+
 new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
     namespace: NS,
     chart: "kube-prometheus-stack",
@@ -233,6 +302,48 @@ new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
             enabled: false,
             // Tailored dashboards
             forceDeployDashboards: true
+        },
+        prometheus: {
+            serviceMonitor: {
+                scheme: "https",
+                tlsConfig: {
+                    caFile: "/var/run/step/ca.crt",
+                    //serverName: "",
+                    insecureSkipVerify: true
+                }
+            },
+            prometheusSpec: { 
+                web: { 
+                    tlsConfig: { 
+                        keySecret: { 
+                            key: "tls.key", 
+                            name: prometheusCert.metadata.name 
+                        },
+                        cert: { 
+                            secret: { 
+                                key: "tls.crt", 
+                                name: prometheusCert.metadata.name 
+                            } 
+                        }
+                    }
+                },
+                // For Service Monitors to use
+                // TODO fix service monitor use ip and not hostname
+                volumes: [
+                    {
+                        name: prometheusCert.metadata.name,
+                        secret: {
+                            secretName: prometheusCert.metadata.name
+                        }
+                    }
+                ],
+                volumeMounts: [
+                    {
+                        name: prometheusCert.metadata.name,
+                        mountPath: "/var/run/step"
+                    }
+                ]
+            }
         },
         // https://github.com/dotdc/grafana-dashboards-kubernetes?tab=readme-ov-file#known-issues
         "prometheus-node-exporter": {

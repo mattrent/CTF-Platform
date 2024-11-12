@@ -3,7 +3,7 @@ config:
   authentication:CTFD_HOST: myhost
   authentication:CTFD_HTTP_RELATIVE_PATH: /ctfd/
   authentication:GRAFANA_HOST: myhost
-  authentication:GRAFANA_HTTP_RELATIVE_PATH: /keycloak/
+  authentication:GRAFANA_HTTP_RELATIVE_PATH: /grafana/
   authentication:KEYCLOAK_HOST: myhost
   authentication:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
   authentication:KEYCLOAK_IMAGE_VERSION: 24.0.2
