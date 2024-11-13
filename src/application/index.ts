@@ -215,6 +215,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
             data: configMapOidc,
         });
 
+        // TODO verify tls
         new k8s.apps.v1.Deployment("ctfd-deployment", {
             metadata: { namespace: NS },
             spec: {
@@ -368,6 +369,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
 
     /* ------------------------------- Multiplexer ------------------------------ */
 
+    // TODO upgrade connection to https on forward
     new k8s.apps.v1.Deployment("sslh-deployment", {
         metadata: { namespace: stack },
         spec: {

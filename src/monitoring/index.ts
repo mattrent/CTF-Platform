@@ -43,7 +43,6 @@ if (GRAFANA_HTTP_RELATIVE_PATH !== "/") {
 }
 
 
-// TODO configure backend HTTPS
 new k8s.helm.v3.Chart("grafana", {
     namespace: NS,
     chart: "grafana",
@@ -128,13 +127,17 @@ new k8s.helm.v3.Chart("grafana", {
                     {
                         name: "Loki",
                         type: "loki",
+                        // url: "https://loki-gateway",
                         url: "http://loki-gateway",
                         access: "proxy",
                         jsonData: {
-                            tlsAuthWithCACert: true
+                            tlsAuthWithCACert: true,
+                            tlsAuth: true
                         },
                         secureJsonData: {
-                            tlsCACert: "$__file{/var/run/autocert.step.sm/root.crt}"
+                            tlsCACert: "$__file{/var/run/autocert.step.sm/root.crt}",
+                            tlsClientKey: "$__file{/var/run/autocert.step.sm/site.key}",
+                            tlsClientCert: "$__file{/var/run/autocert.step.sm/site.crt}"
                         }
                     }
                 ]
@@ -237,8 +240,8 @@ new k8s.helm.v3.Chart("grafana", {
             scheme: "https",
             tlsConfig: {
                 caFile: "/var/run/step/ca.crt",
-                //serverName: "",
-                insecureSkipVerify: true
+                serverName: `grafana.${NS}.svc.cluster.local`,
+                insecureSkipVerify: false
             }
         },
         ingress: {
@@ -284,6 +287,8 @@ const prometheusCert = new k8s.apiextensions.CustomResource("prometheus-inbound-
     },
 });
 
+// TODO prometheus-operator need to verify tls
+// TODO configure tls node-exporter
 new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
     namespace: NS,
     chart: "kube-prometheus-stack",
@@ -308,8 +313,8 @@ new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
                 scheme: "https",
                 tlsConfig: {
                     caFile: "/var/run/step/ca.crt",
-                    //serverName: "",
-                    insecureSkipVerify: true
+                    serverName: `kube-prometheus-stack-prometheus.${NS}.svc.cluster.local`,
+                    insecureSkipVerify: false
                 }
             },
             prometheusSpec: { 
@@ -327,8 +332,6 @@ new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
                         }
                     }
                 },
-                // For Service Monitors to use
-                // TODO fix service monitor use ip and not hostname
                 volumes: [
                     {
                         name: prometheusCert.metadata.name,
@@ -366,6 +369,8 @@ new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
 
 /* ---------------------------------- Loki ---------------------------------- */
 
+// TODO Configure TLS
+// https://grafana.com/docs/loki/latest/setup/install/helm/install-monolithic/
 new k8s.helm.v3.Chart("loki", {
     namespace: NS,
     chart: "loki",
@@ -373,7 +378,12 @@ new k8s.helm.v3.Chart("loki", {
         repo: "https://grafana.github.io/helm-charts",
     },
     values: {
-        // https://grafana.com/docs/loki/latest/setup/install/helm/install-monolithic/
+        // // ? Added after tls config... sceptical.
+        // memberlist: {
+        //     service: {
+        //         publishNotReadyAddresses: true
+        //     }
+        // },
         deploymentMode: "SingleBinary",
         loki: {
             auth_enabled: false,
@@ -396,7 +406,29 @@ new k8s.helm.v3.Chart("loki", {
                         schema: "v13"
                     }
                 ]
-            }
+            },
+            // server: {
+            //     http_tls_config: {
+            //         // ! should have been RequireAndVerifyClientCert
+            //         client_auth_type: "VerifyClientCertIfGiven",
+            //         client_ca_file:"/var/run/autocert.step.sm/root.crt",
+            //         cert_file: "/var/run/autocert.step.sm/site.crt",
+            //         key_file: "/var/run/autocert.step.sm/site.key"
+            //     }
+            // },
+            // readinessProbe: {
+            //     httpGet: {
+            //         path: "/ready",
+            //         port: "http-metrics",
+            //         scheme: "HTTPS",
+            //     },
+            //     initialDelaySeconds: 30,
+            //     timeoutSeconds: 1
+            // },
+            // podAnnotations: {
+            //     "autocert.step.sm/name": `loki-gateway.${NS}.svc.cluster.local`,
+            //     "autocert.step.sm/sans": `loki-gateway.${NS}.svc.cluster.local,loki-gateway,loki-canary`
+            // },
         },
         // TODO What is this?
         singleBinary: {
@@ -419,7 +451,15 @@ new k8s.helm.v3.Chart("loki", {
                 enabled: true,
                 labels: {
                     release: kubePrometheusStackRelaseName
-                }
+                },
+                // scheme: "https",
+                // tlsConfig: {
+                //     caFile: "/var/run/step/ca.crt",
+                //     certFile: "/var/run/step/tls.crt",
+                //     keyFile: "/var/run/step/tls.key",
+                //     serverName: `loki-gateway.${NS}.svc.cluster.local`,
+                //     insecureSkipVerify: false
+                // }
             }
         },
         gateway: {
@@ -441,6 +481,19 @@ new k8s.helm.v3.Chart("promtail", {
         repo: "https://grafana.github.io/helm-charts",
     },
     values: {
+        config: {
+            clients: [{
+                url: "https://loki-gateway/loki/api/v1/push",        
+                tls_config: {        
+                    ca_file:"/var/run/autocert.step.sm/root.crt",
+                    cert_file: "/var/run/autocert.step.sm/site.crt",
+                    key_file: "/var/run/autocert.step.sm/site.key"
+                }
+            }],
+        },
+        podAnnotations: {
+            "autocert.step.sm/name": `promtail-metrics.${NS}.svc.cluster.local`
+        },
         serviceMonitor: {
             enabled: true,
             labels: {

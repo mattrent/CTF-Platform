@@ -84,6 +84,7 @@ Ready to dive into deploying your platform? Fantastic! Whether you're gearing up
 * [Helm](https://helm.sh/docs/intro/install/): The package manager for Kubernetes.
 * [virtctl](https://kubevirt.io/user-guide/user_workloads/virtctl_client_tool/): The command-line tool for interacting with KubeVirt.
 * [step CLI](https://smallstep.com/docs/step-cli/installation/): Boostrap CA and request personal SSH certificates.
+* [Git](https://git-scm.com/downloads): The distributed version control system that tracks changes in your code, collaborates with other developers, and manages your project history.
 
 Once you've got these tools locked and loaded, you're all set to deploy the platform! 🛠️🚀
 
