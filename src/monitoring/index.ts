@@ -369,7 +369,7 @@ new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
 
 /* ---------------------------------- Loki ---------------------------------- */
 
-// TODO Configure TLS
+// TODO Configure TLS... tried but failed
 // https://grafana.com/docs/loki/latest/setup/install/helm/install-monolithic/
 new k8s.helm.v3.Chart("loki", {
     namespace: NS,
