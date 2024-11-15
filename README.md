@@ -112,8 +112,9 @@ CTF-Platform/
     │   │   └── Dockerfile
     │   ├── nginx/
     │   │   ├── Dockerfile
-        │   ├── entrypoint.sh
-    │   │   └── nginx.conf
+    │   │   ├── entrypoint.sh
+    │   │   ├── nginx-http.conf
+    │   │   └── nginx-https.conf
     │   └── index.ts
     ├── authentication/
     │   ├── index.ts
