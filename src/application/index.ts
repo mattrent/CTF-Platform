@@ -52,10 +52,12 @@ const DOCKER_PASSWORD =
     stackReference.requireOutput("dockerPassword") as pulumi.Output<string>;
 const CTFD_JWT_SECRET =
     stackReference.requireOutput("jwtCtfd") as pulumi.Output<string>;
+const CTFD_API_TOKEN =
+    stackReference.requireOutput("ctfdApiToken") as pulumi.Output<string>;
 
 /* -------------------------------- Regsitry -------------------------------- */
 
-pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUsername, dockerPassword, jwtCtfd]) => {
+pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPassword]) => {
     const imageRegistryDeployment = new k8s.apps.v1.Deployment("docker-registry-deployment", {
         metadata: { namespace: NS },
         spec: {
@@ -262,9 +264,9 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
                                 env: [
                                     { name: "APPLICATION_ROOT", value: cleanedCtfdPath },
                                     { name: "REVERSE_PROXY", value: "true" },
-                                    { name: "JWTSECRET", value: jwtCtfd },
+                                    { name: "JWTSECRET", value: CTFD_JWT_SECRET },
                                     { name: "BACKENDURL", value: "http://deployer" },
-                                    { name: "API_TOKEN", value: "secret-not-so-secret" }
+                                    { name: "API_TOKEN", value: CTFD_API_TOKEN }
                                 ]
                             },
                             {
@@ -397,10 +399,17 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
-    // new k8s.helm.v3.Chart("deployer", {
-    //     namespace: NS,
-    //     path: HENRIK_BACKEND_CHART,
-    // });
+    new k8s.helm.v3.Chart("deployer", {
+        namespace: NS,
+        path: HENRIK_BACKEND_CHART,
+        values: {
+            env: {
+                CTFDAPITOKEN: CTFD_API_TOKEN,
+                BACKENDURL: `http://deployer.${NS}.svc.cluster.local:8080`,
+                JWKSURL: "https://keycloak/keycloak/realms/ctf/protocol/openid-connect/certs"
+            }
+        }
+    });
 
     /* ------------------------------- Multiplexer ------------------------------ */
 

@@ -483,7 +483,7 @@ new k8s.helm.v3.Chart("promtail", {
     values: {
         config: {
             clients: [{
-                url: "https://loki-gateway/loki/api/v1/push",        
+                url: "http://loki-gateway/loki/api/v1/push",        
                 tls_config: {        
                     ca_file:"/var/run/autocert.step.sm/root.crt",
                     cert_file: "/var/run/autocert.step.sm/site.crt",
