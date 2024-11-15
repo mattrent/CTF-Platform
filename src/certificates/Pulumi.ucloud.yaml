@@ -1,0 +1,5 @@
+encryptionsalt: v1:hDuZoHuW94o=:v1:DgxM34RVvo/YtlLS:qogNFqUOPyR4lrawSbPqCQP0AHx5Ww==
+config:
+  certificates:KEYCLOAK_HOST: myhost
+  certificates:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
+  certificates:STEP_CA_HOST: myhost

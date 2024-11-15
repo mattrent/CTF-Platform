@@ -1,0 +1,14 @@
+encryptionsalt: v1:zPoG23l2tQM=:v1:236kCqA5fFQjjva8:FbxN1M34v0e+4jZPdbie3UU/pJVWsg==
+config:
+  authentication:CTFD_HOST: myhost
+  authentication:CTFD_HTTP_RELATIVE_PATH: /ctfd/
+  authentication:GRAFANA_HOST: myhost
+  authentication:GRAFANA_HTTP_RELATIVE_PATH: /grafana/
+  authentication:KEYCLOAK_HOST: myhost
+  authentication:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
+  authentication:KEYCLOAK_IMAGE_VERSION: 24.0.2
+  authentication:KEYCLOAK_PWD:
+    secure: v1:tjVKE+uWKel/bQVt:EMzP8U3CUUl9xrpaYKzQLpt67snS
+  authentication:KEYCLOAK_USER:
+    secure: v1:yds5mwQxV36EsE5t:+5Jh3+v7NF04SO98egoz3cdngEI+
+  authentication:REALM_CONFIGURATION_FILE: realm.json
