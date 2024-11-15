@@ -26,6 +26,7 @@ const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}
 const HENRIK_BACKEND_CHART = "ctf/backend/deployment/helm"
 const NS = stack;
 const CTFD_PORT = 8000
+const CTFD_PROXY_PORT = 3080;
 const REGISTRY_PORT = 5000;
 const REGISTRY_EXPOSED_PORT = 443;
 const CTFD_HOST = config.require("CTFD_HOST");
@@ -33,11 +34,12 @@ const IMAGE_REGISTRY_HOST = config.require("IMAGE_REGISTRY_HOST");
 const IMAGE_REGISTRY_SERVER = IMAGE_REGISTRY_HOST.includes(".") ? IMAGE_REGISTRY_HOST : `${IMAGE_REGISTRY_HOST}:${REGISTRY_EXPOSED_PORT}`
 const CTFD_OIDC_PLUGIN_PATH = config.require("CTFD_OIDC_PLUGIN_PATH");
 const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH");
+const SSLH_NODEPORT = config.require("SSLH_NODEPORT");
 
 // Remove trailing slash if it exists, but keep the root '/' intact
-const cleanedCtfdPath = (CTFD_HTTP_RELATIVE_PATH !== '/' && CTFD_HTTP_RELATIVE_PATH.endsWith('/')) 
-  ? CTFD_HTTP_RELATIVE_PATH.slice(0, -1) 
-  : CTFD_HTTP_RELATIVE_PATH;
+const cleanedCtfdPath = (CTFD_HTTP_RELATIVE_PATH !== '/' && CTFD_HTTP_RELATIVE_PATH.endsWith('/'))
+    ? CTFD_HTTP_RELATIVE_PATH.slice(0, -1)
+    : CTFD_HTTP_RELATIVE_PATH;
 
 
 /* --------------------------------- secret --------------------------------- */
@@ -168,13 +170,32 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
                 },
             }],
             tls: [{
-              hosts: [IMAGE_REGISTRY_HOST],
-              secretName: "image-registry-tls"
+                hosts: [IMAGE_REGISTRY_HOST],
+                secretName: "image-registry-tls"
             }]
         },
     });
 
     /* ---------------------------------- CTFD ---------------------------------- */
+
+    const nginxImageHttps = new docker.Image("nginx-https-image", {
+        build: {
+            context: "./nginx",
+            dockerfile: "./nginx/Dockerfile",
+            platform: "linux/amd64",
+            args: { NGINX_CONF: "nginx-https.conf" },
+            builderVersion: docker.BuilderVersion.BuilderV1,
+        },
+        registry: {
+            server: IMAGE_REGISTRY_SERVER,
+            username: dockerUsername,
+            password: dockerPassword
+        },
+        imageName: `${IMAGE_REGISTRY_SERVER}/nginx:https-latest`,
+        skipPush: false,
+    }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
+
+    nginxImageHttps.repoDigest.apply(digest => console.log("nginx-https image digest:", digest))
 
     // Challenges plugin baked into image
 
@@ -221,7 +242,13 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
             spec: {
                 selector: { matchLabels: appLabels.ctfd },
                 template: {
-                    metadata: { labels: appLabels.ctfd },
+                    metadata: {
+                        labels: appLabels.ctfd,
+                        annotations: {
+                            "autocert.step.sm/name": `ctfd.${NS}.svc.cluster.local`,
+                            "autocert.step.sm/sans": `ctfd.${NS}.svc.cluster.local,ctfd-service,ctfd`
+                        }
+                    },
                     spec: {
                         containers: [
                             {
@@ -236,8 +263,15 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
                                     { name: "APPLICATION_ROOT", value: cleanedCtfdPath },
                                     { name: "REVERSE_PROXY", value: "true" },
                                     { name: "JWTSECRET", value: jwtCtfd },
-                                    { name: "BACKENDURL", value: "http://deployer" }
+                                    { name: "BACKENDURL", value: "http://deployer" },
+                                    { name: "API_TOKEN", value: "secret-not-so-secret" }
                                 ]
+                            },
+                            {
+                                name: "nginx-tls-proxy",
+                                image: nginxImageHttps.repoDigest,
+                                ports: [{ containerPort: CTFD_PROXY_PORT }],
+                                env: [{ name: "PROXY_PASS_URL", value: `http://localhost:${CTFD_PORT}` }]
                             }
                         ],
                         imagePullSecrets: [{ name: imagePullSecret.metadata.name }],
@@ -250,13 +284,13 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
                     }
                 }
             }
-        }, { dependsOn: ctfdImage });
+        }, { dependsOn: [ctfdImage, nginxImageHttps] });
     });
 
     const ctfdService = serviceTemplate(
         "ctfd",
         NS,
-        [{ port: CTFD_PORT }],
+        [{ port: CTFD_PROXY_PORT }],
         appLabels.ctfd
     )
 
@@ -264,6 +298,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
         metadata: {
             namespace: NS,
             annotations: {
+                "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
                 "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
                 "cert-manager.io/issuer": "step-issuer",
                 "cert-manager.io/issuer-kind": "StepIssuer",
@@ -286,7 +321,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
                             service: {
                                 name: ctfdService.metadata.name,
                                 port: {
-                                    number: CTFD_PORT,
+                                    number: CTFD_PROXY_PORT,
                                 },
                             },
                         },
@@ -362,14 +397,32 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
-    new k8s.helm.v3.Chart("deployer", {
-        namespace: NS,
-        path: HENRIK_BACKEND_CHART,
-    });
+    // new k8s.helm.v3.Chart("deployer", {
+    //     namespace: NS,
+    //     path: HENRIK_BACKEND_CHART,
+    // });
 
     /* ------------------------------- Multiplexer ------------------------------ */
 
-    // TODO upgrade connection to https on forward
+    const nginxImageHttp = new docker.Image("nginx-http-image", {
+        build: {
+            context: "./nginx",
+            dockerfile: "./nginx/Dockerfile",
+            platform: "linux/amd64",
+            args: { NGINX_CONF: "nginx-http.conf" },
+            builderVersion: docker.BuilderVersion.BuilderV1,
+        },
+        registry: {
+            server: IMAGE_REGISTRY_SERVER,
+            username: dockerUsername,
+            password: dockerPassword
+        },
+        imageName: `${IMAGE_REGISTRY_SERVER}/nginx:http-latest`,
+        skipPush: false,
+    }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
+
+    nginxImageHttp.repoDigest.apply(digest => console.log("nginx-http image digest:", digest))
+
     new k8s.apps.v1.Deployment("sslh-deployment", {
         metadata: { namespace: stack },
         spec: {
@@ -383,17 +436,24 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
                             image: "ghcr.io/yrutschle/sslh:latest",
                             args: [
                                 "--foreground",
-                                "--listen=0.0.0.0:443",
+                                "--listen=0.0.0.0:3443",
                                 "--tls=ingress-nginx-controller.ingress-nginx:443",
-                                "--http=ingress-nginx-controller.ingress-nginx:80",
+                                "--http=localhost:3080", // use IPv6 // upgrade connection to https
                                 "--ssh=bastion:22"
                             ]
+                        },
+                        {
+                            name: "sslh-proxy",
+                            image: nginxImageHttp.repoDigest,
+                            env: [{ name: "PROXY_PASS_URL", value: "https://ingress-nginx-controller.ingress-nginx" }],
+                            ports: [{ containerPort: 3080 }]
                         }
                     ],
+                    imagePullSecrets: [{ name: imagePullSecret.metadata.name }]
                 }
             }
         }
-    }, { dependsOn: bastion });
+    }, { dependsOn: [bastion, nginxImageHttp] });
 
     new k8s.core.v1.Service("sslh-service", {
         metadata: { namespace: stack, name: "sslh-service" },
@@ -403,7 +463,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, CTFD_JWT_SECRET]).apply(([dockerUs
             ports: [
                 {
                     port: 443,
-                    nodePort: 30443
+                    targetPort: 3443,
+                    nodePort: parseInt(SSLH_NODEPORT)
                 },
             ]
         }

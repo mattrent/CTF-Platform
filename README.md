@@ -110,6 +110,10 @@ CTF-Platform/
     │   ├── ctfd/
     │   │   ├── oidc
     │   │   └── Dockerfile
+    │   ├── nginx/
+    │   │   ├── Dockerfile
+        │   ├── entrypoint.sh
+    │   │   └── nginx.conf
     │   └── index.ts
     ├── authentication/
     │   ├── index.ts
