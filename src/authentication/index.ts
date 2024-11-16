@@ -196,7 +196,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
                     certificatesSecret: postgresCert.metadata.name,
                     certFilename: "tls.crt",
                     certKeyFilename: "tls.key",
-                    // certCAFilename: "ca.crt" 
+                    // certCAFilename: "ca.crt" // disable mTLS
                 }, 
                 auth: {
                     existingSecret: keycloakPostgresqlSecret.metadata.name,

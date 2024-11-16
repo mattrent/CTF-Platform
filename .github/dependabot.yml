@@ -1,0 +1,24 @@
+# Basic `dependabot.yml` file with
+# minimum configuration for two package managers
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/src"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "docker"
+    directory: "/src/application/bastion"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/src/application/ctfd"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/src/application/nginx"
+    schedule:
+      interval: "weekly"
