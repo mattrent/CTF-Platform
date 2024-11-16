@@ -42,7 +42,7 @@ if (GRAFANA_HTTP_RELATIVE_PATH !== "/") {
     grafanaIngressAnnotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2";
 }
 
-
+// TODO add keycloak dashboard
 new k8s.helm.v3.Chart("grafana", {
     namespace: NS,
     chart: "grafana",
@@ -287,8 +287,8 @@ const prometheusCert = new k8s.apiextensions.CustomResource("prometheus-inbound-
     },
 });
 
-// TODO prometheus-operator need to verify tls
-// TODO configure tls node-exporter
+// TODO prometheus-operator need to verify TLS
+// TODO configure TLS node-exporter
 new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
     namespace: NS,
     chart: "kube-prometheus-stack",
@@ -430,7 +430,6 @@ new k8s.helm.v3.Chart("loki", {
             //     "autocert.step.sm/sans": `loki-gateway.${NS}.svc.cluster.local,loki-gateway,loki-canary`
             // },
         },
-        // TODO What is this?
         singleBinary: {
             replicas: 1
         },

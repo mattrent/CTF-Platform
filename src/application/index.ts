@@ -35,6 +35,7 @@ const IMAGE_REGISTRY_SERVER = IMAGE_REGISTRY_HOST.includes(".") ? IMAGE_REGISTRY
 const CTFD_OIDC_PLUGIN_PATH = config.require("CTFD_OIDC_PLUGIN_PATH");
 const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH");
 const SSLH_NODEPORT = config.require("SSLH_NODEPORT");
+const HENRIK_BACKEND_HOST = config.require("HENRIK_BACKEND_HOST");
 
 // Remove trailing slash if it exists, but keep the root '/' intact
 const cleanedCtfdPath = (CTFD_HTTP_RELATIVE_PATH !== '/' && CTFD_HTTP_RELATIVE_PATH.endsWith('/'))
@@ -238,7 +239,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPas
             data: configMapOidc,
         });
 
-        // TODO verify tls
+        // TODO verify OIDC TLS
+        // TODO add postgres database
         new k8s.apps.v1.Deployment("ctfd-deployment", {
             metadata: { namespace: NS },
             spec: {
@@ -399,10 +401,14 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD]).apply(([dockerUsername, dockerPas
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
+    // TODO implement TLS
     new k8s.helm.v3.Chart("deployer", {
         namespace: NS,
         path: HENRIK_BACKEND_CHART,
         values: {
+            ingress: {
+                host: HENRIK_BACKEND_HOST
+            },
             env: {
                 CTFDAPITOKEN: CTFD_API_TOKEN,
                 BACKENDURL: `http://deployer.${NS}.svc.cluster.local:8080`,
