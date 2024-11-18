@@ -70,9 +70,8 @@ const postgresCert = new k8s.apiextensions.CustomResource("postgres-inbound-tls"
     },
     spec: {
         secretName: "postgres-inbound-tls",
-        commonName: `bn_keycloak`,
+        commonName: "keycloak-postgresql",
         dnsNames: [
-            "bn_keycloak",
             "keycloak-postgresql",
             `keycloak-postgresql.${NS}.svc.cluster.local`,
         ],
@@ -196,7 +195,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
                     certificatesSecret: postgresCert.metadata.name,
                     certFilename: "tls.crt",
                     certKeyFilename: "tls.key",
-                    // certCAFilename: "ca.crt" // disable mTLS
+                    // certCAFilename: "ca.crt" // disable mTLS... "Could not read SSL key file"
                 }, 
                 auth: {
                     existingSecret: keycloakPostgresqlSecret.metadata.name,

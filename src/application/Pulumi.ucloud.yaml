@@ -1,5 +1,6 @@
 encryptionsalt: v1:kwJXUuFUtJw=:v1:XcAKEpGkBi0eLJzZ:EG+LZd0hkcKbsDvU55P9Lo6YPwLsbA==
 config:
+  application:CTFD_DATABASE_NAME: ctfd
   application:CTFD_HOST: myhost
   application:CTFD_HTTP_RELATIVE_PATH: /ctfd/
   application:CTFD_OIDC_PLUGIN_PATH: ctfd/oidc
