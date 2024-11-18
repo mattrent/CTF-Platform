@@ -287,6 +287,30 @@ const prometheusCert = new k8s.apiextensions.CustomResource("prometheus-inbound-
     },
 });
 
+const nodeExporterCert = new k8s.apiextensions.CustomResource("node-exporter-inbound-tls", {
+    apiVersion: "cert-manager.io/v1",
+    kind: "Certificate",
+    metadata: {
+        name: "node-exporter-inbound-tls",
+        namespace: NS,
+    },
+    spec: {
+        secretName: "node-exporter-inbound-tls",
+        commonName: "kube-prometheus-stack-prometheus-node-exporter",
+        dnsNames: [
+            `kube-prometheus-stack-prometheus-node-exporter.${NS}.svc.cluster.local`,
+            "kube-prometheus-stack-prometheus-node-exporter"
+        ],
+        duration: "24h",
+        renewBefore: "8h",
+        issuerRef: {
+            group: "certmanager.step.sm",
+            kind: "StepIssuer",
+            name: "step-issuer",
+        },
+    },
+});
+
 // TODO prometheus-operator need to verify TLS
 // TODO configure TLS node-exporter
 new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
@@ -350,8 +374,30 @@ new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
         },
         // https://github.com/dotdc/grafana-dashboards-kubernetes?tab=readme-ov-file#known-issues
         "prometheus-node-exporter": {
+            kubeRBACProxy: {
+                enabled: false, // shit does not work
+                tls: {
+                    enabled: true,
+                    tlsClientAuth: false
+                }
+            },
+            tlsSecret: {
+                enabled: true,
+                caItem: "ca.crt",
+                certItem: "tls.crt",
+                keyItem: "tls.key",
+                secretName: nodeExporterCert.metadata.name,
+            },
             prometheus: {
                 monitor: {
+                    scheme: "http", // change to https when proxy works
+                    tlsConfig: {
+                        caFile: "/var/run/step/ca.crt",
+                        certFile: "/var/run/step/tls.crt",
+                        keyFile: "/var/run/step/tls.key",
+                        serverName: `kube-prometheus-stack-prometheus-node-exporter.${NS}.svc.cluster.local`,
+                        insecureSkipVerify: false
+                    },
                     relabelings: [
                         {
                             action: "replace",
