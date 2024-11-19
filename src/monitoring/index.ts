@@ -127,7 +127,6 @@ new k8s.helm.v3.Chart("grafana", {
                     {
                         name: "Loki",
                         type: "loki",
-                        // url: "https://loki-gateway",
                         url: "http://loki-gateway",
                         access: "proxy",
                         jsonData: {
@@ -311,8 +310,8 @@ const nodeExporterCert = new k8s.apiextensions.CustomResource("node-exporter-inb
     },
 });
 
-// TODO prometheus-operator need to verify TLS
-// TODO configure TLS node-exporter
+// TODO prometheus-operator, and more, need to verify TLS (default skip verify).
+// TODO configure TLS for kube-state-metrics
 new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
     namespace: NS,
     chart: "kube-prometheus-stack",
@@ -353,7 +352,14 @@ new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
                                 key: "tls.crt", 
                                 name: prometheusCert.metadata.name 
                             } 
-                        }
+                        },
+                        client_ca: {
+                            secret: { 
+                                key: "ca.crt", 
+                                name: prometheusCert.metadata.name 
+                            } 
+                        },
+                        clientAuthType: "VerifyClientCertIfGiven" // can be upgraded to RequireAndVerifyClientCert
                     }
                 },
                 volumes: [
@@ -375,10 +381,10 @@ new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
         // https://github.com/dotdc/grafana-dashboards-kubernetes?tab=readme-ov-file#known-issues
         "prometheus-node-exporter": {
             kubeRBACProxy: {
-                enabled: false, // shit does not work
+                enabled: true,
                 tls: {
                     enabled: true,
-                    tlsClientAuth: false
+                    tlsClientAuth: true
                 }
             },
             tlsSecret: {
@@ -390,11 +396,12 @@ new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
             },
             prometheus: {
                 monitor: {
-                    scheme: "http", // change to https when proxy works
+                    scheme: "https",
+                    bearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
                     tlsConfig: {
                         caFile: "/var/run/step/ca.crt",
-                        certFile: "/var/run/step/tls.crt",
-                        keyFile: "/var/run/step/tls.key",
+                        // certFile: "/var/run/step/tls.crt",
+                        // keyFile: "/var/run/step/tls.key",
                         serverName: `kube-prometheus-stack-prometheus-node-exporter.${NS}.svc.cluster.local`,
                         insecureSkipVerify: false
                     },
