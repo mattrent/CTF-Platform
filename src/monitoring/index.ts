@@ -310,7 +310,7 @@ const nodeExporterCert = new k8s.apiextensions.CustomResource("node-exporter-inb
     },
 });
 
-// TODO prometheus-operator, and more, need to verify TLS (default skip verify).
+// TODO check default insecureSkipVerify
 // TODO configure TLS for kube-state-metrics
 new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
     namespace: NS,
@@ -376,6 +376,26 @@ new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
                         mountPath: "/var/run/step"
                     }
                 ]
+            }
+        },
+        prometheusOperator: {
+            // Readiness probes cannot send certificate
+            // https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/templates/prometheus-operator/deployment.yaml
+            // extraArgs: [
+            //     "--web.client-ca-file=/cert/ca.crt",
+            // ],
+            admissionWebhooks: {
+                certManager: {
+                    enabled: true,
+                    admissionCert: {
+                        duration: "24h"
+                    },
+                    issuerRef: {
+                        group: "certmanager.step.sm",
+                        kind: "StepIssuer",
+                        name: "step-issuer",
+                    }
+                }
             }
         },
         // https://github.com/dotdc/grafana-dashboards-kubernetes?tab=readme-ov-file#known-issues
