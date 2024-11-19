@@ -466,7 +466,6 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
-    // TODO implement TLS
     new k8s.helm.v3.Chart("deployer", {
         namespace: NS,
         path: HENRIK_BACKEND_CHART,
