@@ -26,4 +26,5 @@ node_modules/
 # Henrik
 src/application/ctf
 
+# Public keys
 id_ed25519.pub
