@@ -1,0 +1,56 @@
+name: Run Ansible Playbook
+
+on:
+  workflow_dispatch:
+    inputs:
+      CONTROL_HOST_IP:
+        description: 'IP address of the control host'
+        required: true
+      WORKER_0_IP:
+        description: 'IP address of worker 0'
+        required: true
+      WORKER_1_IP:
+        description: 'IP address of worker 1'
+        required: true
+
+jobs:
+  ucloud:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12'
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible
+
+      - name: Add SSH keys
+        run: |
+          mkdir -p ~/.ssh
+          echo ${{ secrets.SSH_PRIVATE_KEY }} > ~/.ssh/id_ed25519
+          echo ${{ secrets.SSH_PUBLIC_KEY }} > ~/.ssh/id_ed25519.pub
+          chmod 600 ~/.ssh/ucloud
+          chmod 644 ~/.ssh/ucloud.pub
+
+      - name: Create hosts-ucloud.ini
+        env:
+          CONTROL_HOST_IP: ${{ github.event.inputs.CONTROL_HOST_IP }}
+          WORKER_0_IP: ${{ github.event.inputs.WORKER_0_IP }}
+          WORKER_1_IP: ${{ github.event.inputs.WORKER_1_IP }}
+        run: |
+          cat hosts.ini.example | envsubst > hosts.ini
+        working-directory: ./ucloud-k8s/ansible
+
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook cluster.yml
+        working-directory: ./ucloud-k8s/ansible
