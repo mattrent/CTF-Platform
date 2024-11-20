@@ -1,0 +1,3 @@
+[submodule "ucloud-k8s"]
+	path = ucloud-k8s
+	url = https://github.com/KianBankeLarsen/ucloud-k8s.git
