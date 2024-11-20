@@ -43,11 +43,16 @@ jobs:
 
       - name: Create hosts-ucloud.ini
         env:
-          CONTROL_HOST_IP: ${{ github.event.inputs.CONTROL_HOST_IP }}
-          WORKER_0_IP: ${{ github.event.inputs.WORKER_0_IP }}
-          WORKER_1_IP: ${{ github.event.inputs.WORKER_1_IP }}
+            CONTROL_HOST_IP: ${{ github.event.inputs.CONTROL_HOST_IP }}
+            WORKER_0_IP: ${{ github.event.inputs.WORKER_0_IP }}
+            WORKER_1_IP: ${{ github.event.inputs.WORKER_1_IP }}
         run: |
-          cat hosts.ini.example | envsubst > hosts.ini
+            cat hosts.ini.example | envsubst > hosts.ini
+        working-directory: ./ucloud-k8s/ansible
+
+      - name: Create tailscale_key
+        run: |
+          echo ${{ secrets.TAILSCALE_KEY }} > tailscale_key
         working-directory: ./ucloud-k8s/ansible
 
       - name: Run Ansible Playbook
