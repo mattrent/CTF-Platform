@@ -25,3 +25,5 @@ node_modules/
 
 # Henrik
 src/application/ctf
+
+id_ed25519.pub
