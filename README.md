@@ -45,6 +45,9 @@ Revolutionize Your CTF Challenges with Our Easy Deployment Platform
       <a href="#usage">🪁 How to Use the Platform</a>
     </li>
     <li>
+      <a href="#ucloud">☁️ Deploy to UCloud</a>
+    </li>
+    <li>
         <a href="#license">📜 License</a>
     </li>
   </ol>
@@ -227,6 +230,12 @@ For even more advanced setups, if using a provider, the complete infrastructure 
 
 <a name="usage"></a>
 ## 🪁 How to Use the Platform
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<a name="ucloud"></a>
+## ☁️ Deploy to UCloud
+Deploying our platform onto UCloud is a streamlined process, thanks to our comprehensive Ansible script. This script is crafted to set up the Kubernetes cluster, install Tailscale, and deploy the Pulumi stacks, ensuring a seamless and efficient deployment experience. For detailed setup instructions and additional information, please refer to the [README.md](./ucloud-k8s/README.md)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
