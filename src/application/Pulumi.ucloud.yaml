@@ -1,9 +1,9 @@
 encryptionsalt: v1:kwJXUuFUtJw=:v1:XcAKEpGkBi0eLJzZ:EG+LZd0hkcKbsDvU55P9Lo6YPwLsbA==
 config:
   application:CTFD_DATABASE_NAME: ctfd
-  application:CTFD_HOST: myhost
+  application:CTFD_HOST: ctf-platform
   application:CTFD_HTTP_RELATIVE_PATH: /ctfd/
   application:CTFD_OIDC_PLUGIN_PATH: ctfd/oidc
-  application:HENRIK_BACKEND_HOST: deployer.local.lan
-  application:IMAGE_REGISTRY_HOST: localregistry
+  application:HENRIK_BACKEND_HOST: deployer.ctf-platform
+  application:IMAGE_REGISTRY_HOST: registry.ctf-platform
   application:SSLH_NODEPORT: "30443"

@@ -1,6 +1,6 @@
 encryptionsalt: v1:8a5zUYFTTR8=:v1:xj5R/1k4yZObszgn:JyiE8GUHGbnbjePOl95WFKRd1O54hQ==
 config:
-  monitoring:GRAFANA_HOST: myhost
+  monitoring:GRAFANA_HOST: ctf-platform
   monitoring:GRAFANA_HTTP_RELATIVE_PATH: /grafana/
-  monitoring:KEYCLOAK_HOST: myhost
+  monitoring:KEYCLOAK_HOST: ctf-platform
   monitoring:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/

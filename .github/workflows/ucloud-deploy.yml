@@ -56,6 +56,11 @@ jobs:
           echo ${{ secrets.TAILSCALE_KEY }} > tailscale_key
         working-directory: ${{ github.workspace }}/ucloud-k8s/ansible
 
+      - name: Create pulumi_passphrase
+        run: |
+          echo ${{ secrets.PULUMI_PASSPHRASE }} > pulumi_passphrase
+        working-directory: ${{ github.workspace }}/ucloud-k8s/ansible
+
       - name: Run Ansible Playbook
         run: |
           ansible-playbook cluster.yml
