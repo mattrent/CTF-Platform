@@ -10,7 +10,6 @@ const config = new pulumi.Config();
 const KUBEVIRT_VERSION = config.require("KUBEVIRT_VERSION")
 const PROVISIONER_PATH = config.require("PROVISIONER_PATH")
 const PROVISIONER_VOLUME_TYPE = config.require("PROVISIONER_VOLUME_TYPE");
-const PROVISIONER_VERSION = config.require("PROVISIONER_VERSION")
 
 /* -------------------------------- namespace ------------------------------- */
 
