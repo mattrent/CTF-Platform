@@ -63,11 +63,7 @@ if (stack === Stack.DEV) {
     });
 
     new k8s.helm.v3.Chart("local-path-provisioner", {
-        chart: "local-path-provisioner",
-        version: PROVISIONER_VERSION,
-        fetchOpts: {
-            repo: "https://rancher.github.io/local-path-provisioner/",
-        },
+        path: "local-path-provisioner-0.0.30.tgz",
         namespace: NS,
         values: {
             storageClass: {
