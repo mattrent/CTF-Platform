@@ -53,6 +53,8 @@ jobs:
       - name: Create tailscale_key
         run: |
           echo ${{ secrets.TAILSCALE_KEY }} > tailscale_key
+          ls
+          pwd
         working-directory: ucloud-k8s/ansible
 
       - name: Create pulumi_passphrase
