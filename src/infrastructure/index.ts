@@ -59,6 +59,7 @@ if (stack === Stack.DEV) {
             repo: "https://kubernetes.github.io/ingress-nginx",
         },
         values: {
+            fullnameOverride: "ingress-nginx",
             controller: {
                 service: {
                     type: "NodePort",

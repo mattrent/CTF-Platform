@@ -16,6 +16,7 @@ const NS = stack;
 const STEP_CA_HOST = config.require("STEP_CA_HOST");
 const KEYCLOAK_HOST = config.require("KEYCLOAK_HOST");
 const KEYCLOAK_HTTP_RELATIVE_PATH = config.require("KEYCLOAK_HTTP_RELATIVE_PATH");
+const SLEEP = config.require("SLEEP");
 
 const CA_URL = `step-step-certificates.${NS}.svc.cluster.local`;
 
@@ -120,7 +121,7 @@ let CA_PROVISIONER_KID: pulumi.Output<any>;
 
 async function deployStepIssuer() {
     if (!pulumi.runtime.isDryRun()) {
-        await sleep(100000);
+        await sleep(parseInt(SLEEP));
 
         const caCert = k8s.core.v1.ConfigMap.get("step-certificates-certs", "dev/step-step-certificates-certs");
         const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", "dev/step-step-certificates-config");
