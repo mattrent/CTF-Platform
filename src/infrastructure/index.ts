@@ -48,6 +48,7 @@ if (stack === Stack.DEV) {
     });
 } else {
     new k8s.helm.v3.Chart("nginx-ingress", {
+        namespace: "ingress-nginx",
         chart: "ingress-nginx",
         fetchOpts: {
             repo: "https://kubernetes.github.io/ingress-nginx",
@@ -55,7 +56,7 @@ if (stack === Stack.DEV) {
         values: {
             controller: {
                 service: {
-                    type: "LoadBalancer",
+                    type: "NodePort",
                 },
             },
         },
