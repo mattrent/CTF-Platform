@@ -15,9 +15,14 @@ const PROVISIONER_VOLUME_TYPE = config.require("PROVISIONER_VOLUME_TYPE");
 
 const stack = pulumi.getStack();
 const NS = stack;
+const NGINX_NS = "ingress-nginx";
 
 new k8s.core.v1.Namespace("namespace", {
     metadata: { name: NS },
+});
+
+new k8s.core.v1.Namespace("namespace-nginx", {
+    metadata: { name: NGINX_NS },
 });
 
 /* ------------------- generate client secrets for export ------------------- */
@@ -48,7 +53,7 @@ if (stack === Stack.DEV) {
     });
 } else {
     new k8s.helm.v3.Chart("nginx-ingress", {
-        namespace: "ingress-nginx",
+        namespace: NGINX_NS,
         chart: "ingress-nginx",
         fetchOpts: {
             repo: "https://kubernetes.github.io/ingress-nginx",
