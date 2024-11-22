@@ -123,8 +123,8 @@ async function deployStepIssuer() {
     if (!pulumi.runtime.isDryRun()) {
         await sleep(parseInt(SLEEP));
 
-        const caCert = k8s.core.v1.ConfigMap.get("step-certificates-certs", "dev/step-step-certificates-certs");
-        const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", "dev/step-step-certificates-config");
+        const caCert = k8s.core.v1.ConfigMap.get("step-certificates-certs", `${NS}/step-step-certificates-certs`);
+        const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", `${NS}/step-step-certificates-config`);
 
         CA_ROOT_B64 = caCert.data.apply(data => Buffer.from(data['root_ca.crt']).toString('base64'));
         CA_PROVISIONER_KID = caConfig.data.apply(data => JSON.parse(data['ca.json']).authority.provisioners[0].key.kid);
