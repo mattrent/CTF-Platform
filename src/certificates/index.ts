@@ -1,7 +1,6 @@
 import * as command from "@pulumi/command";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
-import { sleep } from "@ctf/utilities";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -16,7 +15,6 @@ const NS = stack;
 const STEP_CA_HOST = config.require("STEP_CA_HOST");
 const KEYCLOAK_HOST = config.require("KEYCLOAK_HOST");
 const KEYCLOAK_HTTP_RELATIVE_PATH = config.require("KEYCLOAK_HTTP_RELATIVE_PATH");
-const SLEEP = config.require("SLEEP");
 
 const CA_URL = `step-step-certificates.${NS}.svc.cluster.local`;
 
@@ -28,10 +26,10 @@ const STEP_CA_ADMIN_PROVISIONER_PASSWORD = stackReference.requireOutput("stepCaA
 /* --------------------------------- step-ca -------------------------------- */
 
 pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply(([stepCaClientSecret, stepCaAdminProvisionerPassword]) => {
-    new k8s.helm.v3.Chart("step", {
+    const stepChart = new k8s.helm.v4.Chart("step", {
         namespace: NS,
         chart: "autocert",
-        fetchOpts: {
+        repositoryOpts: {
             repo: "https://smallstep.github.io/helm-charts/",
         },
         values: {
@@ -99,41 +97,23 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
             }
         },
     });
-})
 
-/* ------------------------------- certmanager ------------------------------ */
+    /* ------------------------------- step issuer ------------------------------ */
 
-new k8s.helm.v3.Chart("cert-manager", {
-    namespace: NS,
-    chart: "cert-manager",
-    fetchOpts: {
-        repo: "https://charts.jetstack.io",
-    },
-    values: {
-        installCRDs: true,
-    },
-});
+    let CA_ROOT_B64: pulumi.Output<string>;
+    let CA_PROVISIONER_KID: pulumi.Output<any>;
 
-/* ------------------------------- step issuer ------------------------------ */
-
-let CA_ROOT_B64: pulumi.Output<string>;
-let CA_PROVISIONER_KID: pulumi.Output<any>;
-
-async function deployStepIssuer() {
     if (!pulumi.runtime.isDryRun()) {
-        await sleep(parseInt(SLEEP));
-
-        const caCert = k8s.core.v1.ConfigMap.get("step-certificates-certs", `${NS}/step-step-certificates-certs`);
-        const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", `${NS}/step-step-certificates-config`);
+        const caCert = k8s.core.v1.ConfigMap.get("step-certificates-certs", `${NS}/step-step-certificates-certs`, {dependsOn: stepChart});
+        const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", `${NS}/step-step-certificates-config`, {dependsOn: stepChart});
 
         CA_ROOT_B64 = caCert.data.apply(data => Buffer.from(data['root_ca.crt']).toString('base64'));
         CA_PROVISIONER_KID = caConfig.data.apply(data => JSON.parse(data['ca.json']).authority.provisioners[0].key.kid);
     }
 
-    // Deploy step-issuer using Helm
-    new k8s.helm.v3.Chart("step-issuer", {
+    new k8s.helm.v4.Chart("step-issuer", {
         chart: "step-issuer",
-        fetchOpts: {
+        repositoryOpts: {
             repo: "https://smallstep.github.io/helm-charts/",
         },
         namespace: NS,
@@ -158,9 +138,20 @@ async function deployStepIssuer() {
             }
         }
     });
-}
+})
 
-deployStepIssuer();
+/* ------------------------------- certmanager ------------------------------ */
+
+new k8s.helm.v4.Chart("cert-manager", {
+    namespace: NS,
+    chart: "cert-manager",
+    repositoryOpts: {
+        repo: "https://charts.jetstack.io",
+    },
+    values: {
+        installCRDs: true,
+    },
+});
 
 /* ---------------------- Enable autocert for namespace --------------------- */
 

@@ -21,10 +21,6 @@ new k8s.core.v1.Namespace("namespace", {
     metadata: { name: NS },
 });
 
-new k8s.core.v1.Namespace("namespace-nginx", {
-    metadata: { name: NGINX_NS },
-});
-
 /* ------------------- generate client secrets for export ------------------- */
 
 export const grafanaRealmSecret = pulumi.secret(crypto.randomBytes(32).toString("hex"));
@@ -52,10 +48,15 @@ if (stack === Stack.DEV) {
         delete: "minikube addons disable storage-provisioner-rancher"
     });
 } else {
-    new k8s.helm.v3.Chart("nginx-ingress", {
+    new k8s.core.v1.Namespace("namespace-nginx", {
+        metadata: { name: NGINX_NS },
+    });
+
+    // ? Use cert-manager to create root certificate
+    new k8s.helm.v4.Chart("nginx-ingress", {
         namespace: NGINX_NS,
         chart: "ingress-nginx",
-        fetchOpts: {
+        repositoryOpts: {
             repo: "https://kubernetes.github.io/ingress-nginx",
         },
         values: {
@@ -68,8 +69,8 @@ if (stack === Stack.DEV) {
         },
     });
 
-    new k8s.helm.v3.Chart("local-path-provisioner", {
-        path: "local-path-provisioner-0.0.30.tgz",
+    new k8s.helm.v4.Chart("local-path-provisioner", {
+        chart: "local-path-provisioner-0.0.30.tgz",
         namespace: NS,
         values: {
             storageClass: {
@@ -124,60 +125,11 @@ const kubeVirtCr = new k8s.yaml.ConfigFile("kubevirt-cr", {
 //     }'`
 // }, {dependsOn: installKubeVirt});
 
-/* ----------------------------- CRDs monitoring ---------------------------- */
-
-// * Needs to be here due to some Pulumi error
-new k8s.helm.v3.Chart("crds", {
-    namespace: NS,
-    chart: "kube-prometheus-stack",
-    fetchOpts: {
-        repo: "https://prometheus-community.github.io/helm-charts",
-    },
-    values: {
-        // Only need crds (explicit)
-        crds: {
-            enabled: true
-        },
-        prometheus: {
-            enabled: false
-        },
-        alertmanager: {
-            enabled: false
-        },
-        grafana: {
-            enabled: false
-        },
-        kubeStateMetrics: {
-            enabled: false
-        },
-        nodeExporter: {
-            enabled: false
-        },
-        windowsMonitoring: {
-            enabled: false
-        },
-        kubernetesServiceMonitors: {
-            enabled: false
-        },
-        defaultRules: {
-            create: false
-        },
-        prometheusOperator: {
-            enabled: false
-        }
-    },
-});
-
 /* --------------------------------- Henrik --------------------------------- */
 
 const dirOffset = "../application/ctf"
 
-const henrikRepo = new command.local.Command("clone-repo-henrik", {
+new command.local.Command("clone-repo-henrik", {
     create: `git clone https://gitlab.com/ctf9215737/ctf.git ${dirOffset}`,
     delete: `rm -rf ${dirOffset}`
 });
-
-new command.local.Command("get-dep-backend-chart", {
-    create: `helm dep update ${dirOffset}/backend/deployment/helm`
-}, { dependsOn: henrikRepo });
-

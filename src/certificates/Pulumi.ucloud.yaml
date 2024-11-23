@@ -2,5 +2,4 @@ encryptionsalt: v1:hDuZoHuW94o=:v1:DgxM34RVvo/YtlLS:qogNFqUOPyR4lrawSbPqCQP0AHx5
 config:
   certificates:KEYCLOAK_HOST: ctf-platform
   certificates:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
-  certificates:SLEEP: "100000"
   certificates:STEP_CA_HOST: ctf-platform

@@ -312,16 +312,16 @@ const nodeExporterCert = new k8s.apiextensions.CustomResource("node-exporter-inb
 
 // TODO check default insecureSkipVerify
 // TODO configure TLS for kube-state-metrics
-new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
+new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
     namespace: NS,
     chart: "kube-prometheus-stack",
-    fetchOpts: {
+    repositoryOpts: {
         repo: "https://prometheus-community.github.io/helm-charts",
     },
     // Includes scraping for cAdvisor
     values: {
         crds: {
-            enabled: false
+            enabled: true
         },
         alertmanager: {
             enabled: false
@@ -444,10 +444,10 @@ new k8s.helm.v3.Chart(kubePrometheusStackRelaseName, {
 
 // TODO Configure TLS... tried but failed
 // https://grafana.com/docs/loki/latest/setup/install/helm/install-monolithic/
-new k8s.helm.v3.Chart("loki", {
+new k8s.helm.v4.Chart("loki", {
     namespace: NS,
     chart: "loki",
-    fetchOpts: {
+    repositoryOpts: {
         repo: "https://grafana.github.io/helm-charts",
     },
     values: {

@@ -2,7 +2,7 @@ import * as command from "@pulumi/command";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import * as fs from 'fs';
-import { envSubst, Stack } from "@ctf/utilities";
+import { envSubst } from "@ctf/utilities";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -106,7 +106,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
     realmConfiguration = envSubst(realmConfiguration, "CTFD_CLIENT_SECRET", ctfdSecret);
     realmConfiguration = envSubst(realmConfiguration, "STEP_CLIENT_SECRET", stepSecret);
 
-    new k8s.helm.v3.Chart("keycloak", {
+    const keycloakChart = new k8s.helm.v3.Chart("keycloak", {
         namespace: NS,
         version: KEYCLOAK_IMAGE_VERSION, // ? Fixed version because because 24.03 is not depoyable without realm migration        
         chart: "keycloak",
@@ -174,6 +174,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
             },
             keycloakConfigCli: {
                 enabled: true,
+                backoffLimit: 4, // try 5 times (default is 1)
                 configuration: {
                     "ctfd.json": realmConfiguration
                 },
@@ -207,21 +208,20 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
             }
         }
     });
+
+    // Reinitialize Step Certificate due to circular dependency
+    // Manual wait condition because dependsOn does not "work" on Helm chart!?
+    const stepRestartCommand = `
+        kubectl rollout restart -n ${NS} statefulset step-step-certificates && \
+        sleep 30
+    `;
+
+    new command.local.Command("restart-step-certificate", {
+        create: stepRestartCommand,
+        update: stepRestartCommand
+    }, {dependsOn: keycloakChart.ready});
+
 });
-
-// Reinitialize Step Certificate due to circular dependency
-// Manual wait condition because dependsOn does not "work" on Helm chart!?
-const stepRestartCommand = `
-    kubectl wait -n ${NS} --for=condition=Ready pod/keycloak-0 --timeout=600s && \
-    kubectl rollout restart -n ${NS} statefulset step-step-certificates && \
-    sleep 20
-`;
-
-new command.local.Command("restart-step-certificate", {
-    create: "sleep 20 && " + stepRestartCommand,
-    update: stepRestartCommand
-});
-
 
 /* ---------------- well-known configuration indirection hack --------------- */
 

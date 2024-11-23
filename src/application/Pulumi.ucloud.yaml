@@ -5,5 +5,5 @@ config:
   application:CTFD_HTTP_RELATIVE_PATH: /ctfd/
   application:CTFD_OIDC_PLUGIN_PATH: ctfd/oidc
   application:HENRIK_BACKEND_HOST: deployer.ctf-platform
-  application:IMAGE_REGISTRY_HOST: registry.ctf-platform
+  application:IMAGE_REGISTRY_HOST: localregistry
   application:SSLH_NODEPORT: "30443"

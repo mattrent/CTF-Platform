@@ -23,7 +23,7 @@ const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}
 
 /* --------------------------------- config --------------------------------- */
 
-const HENRIK_BACKEND_CHART = "ctf/backend/deployment/helm"
+const HENRIK_BACKEND_CHART = "./ctf/backend/deployment/helm"
 const NS = stack;
 const CTFD_PORT = 8000
 const CTFD_PROXY_PORT = 3080;
@@ -217,12 +217,9 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         },
     });
 
-    new k8s.helm.v3.Chart("postgresql-ctfd", {
+    new k8s.helm.v4.Chart("postgresql-ctfd", {
         namespace: NS,
-        chart: "postgresql",
-        fetchOpts: {
-            repo: "https://charts.bitnami.com/bitnami",
-        },
+        chart: "oci://registry-1.docker.io/bitnamicharts/postgresql",
         values: {
             tls: {
                 enabled: true,
@@ -466,9 +463,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
-    new k8s.helm.v3.Chart("deployer", {
+    new k8s.helm.v4.Chart("deployer", {
         namespace: NS,
-        path: HENRIK_BACKEND_CHART,
+        chart: HENRIK_BACKEND_CHART,
+        dependencyUpdate: true,
         values: {
             ingress: {
                 host: HENRIK_BACKEND_HOST

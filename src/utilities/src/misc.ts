@@ -4,7 +4,8 @@ export function envSubst(content: string, envVariable: string, replaceValue: str
 }
 
 export enum Stack {
-    DEV = "dev"
+    DEV = "dev",
+    UCLOUD = "ucloud"
 }
 
 export function sleep(ms: number): Promise<void> {
