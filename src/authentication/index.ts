@@ -18,10 +18,11 @@ const REALM_CONFIGURATION_FILE = config.require("REALM_CONFIGURATION_FILE");
 const KEYCLOAK_HOST = config.require("KEYCLOAK_HOST");
 const CTFD_HOST = config.require("CTFD_HOST");
 const GRAFANA_HOST = config.require("GRAFANA_HOST");
-const KEYCLOAK_IMAGE_VERSION = config.require("KEYCLOAK_IMAGE_VERSION")
+const KEYCLOAK_VERSION = config.require("KEYCLOAK_VERSION")
 const KEYCLOAK_HTTP_RELATIVE_PATH = config.require("KEYCLOAK_HTTP_RELATIVE_PATH")
 const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH")
 const GRAFANA_HTTP_RELATIVE_PATH = config.require("GRAFANA_HTTP_RELATIVE_PATH")
+const SSLH_TAG = config.require("SSLH_TAG");
 
 /* --------------------------------- secrets -------------------------------- */
 
@@ -108,7 +109,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
 
     const keycloakChart = new k8s.helm.v3.Chart("keycloak", {
         namespace: NS,
-        version: KEYCLOAK_IMAGE_VERSION, // ? Fixed version because because 24.03 is not depoyable without realm migration        
+        version: KEYCLOAK_VERSION, // ? Fixed version because because 24.03 is not depoyable without realm migration        
         chart: "keycloak",
         fetchOpts: {
             repo: "https://charts.bitnami.com/bitnami",
@@ -174,7 +175,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
             },
             keycloakConfigCli: {
                 enabled: true,
-                backoffLimit: 4, // try 5 times (default is 1)
+                backoffLimit: 10, // try 11 times (default is 1)
                 configuration: {
                     "ctfd.json": realmConfiguration
                 },
@@ -210,10 +211,12 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
     });
 
     // Reinitialize Step Certificate due to circular dependency
-    // Manual wait condition because dependsOn does not "work" on Helm chart!?
+    // Wait until Step has started again
+    // * Only one replica is supported at this time.
     const stepRestartCommand = `
         kubectl rollout restart -n ${NS} statefulset step-step-certificates && \
-        sleep 30
+        sleep 20 && \
+        kubectl wait -n ${NS} --for=condition=Ready pod/step-step-certificates-0 --timeout=600s
     `;
 
     new command.local.Command("restart-step-certificate", {
@@ -239,7 +242,7 @@ new k8s.apps.v1.Deployment("sslh-domain-shadow-deployment", {
                 containers: [
                     {
                         name: "sslh",
-                        image: "ghcr.io/yrutschle/sslh:latest",
+                        image: `ghcr.io/yrutschle/sslh:${SSLH_TAG}`,
                         args: [
                             "--foreground",
                             "--listen=0.0.0.0:443",

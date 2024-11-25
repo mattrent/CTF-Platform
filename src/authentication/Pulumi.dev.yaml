@@ -6,9 +6,10 @@ config:
   authentication:GRAFANA_HTTP_RELATIVE_PATH: /grafana/
   authentication:KEYCLOAK_HOST: myhost
   authentication:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
-  authentication:KEYCLOAK_IMAGE_VERSION: 24.0.2
+  authentication:KEYCLOAK_VERSION: 24.0.2
   authentication:KEYCLOAK_PWD:
     secure: v1:HZdv3X3TXdxCwkbx:k46VYAGmi9yMBUsE2oXxmrJzD9Wf
   authentication:KEYCLOAK_USER:
     secure: v1:PtP60UJfQo/3NOfl:P44a+lpWgV732zNqhdfBc14p3pKQ
   authentication:REALM_CONFIGURATION_FILE: realm.json
+  authentication:SSLH_TAG: 2.1.2

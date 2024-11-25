@@ -223,7 +223,7 @@ This stack will then be the default context moving forward.
 **Important Tips:**
 
 1. **Infrastructure First:** 🏗️ Start with the infrastructure project as it sets up the basic cluster configuration and Kubernetes resources like namespaces.
-2. **Certificates Next:** 📜 Deploy the certificates project next. This is vital as it installs custom resource definitions (CRDs) needed by other projects.
+2. **Certificates Next:** 📜 Deploy the certificates project next; otherwise, the services using certificates won't work.
 3. **Order Flexibility:** 🔄 After setting up infrastructure and certificates, feel free to deploy the remaining projects in any order. Once deployed, they can be updated independently.
 
 🛠️ By following this structured approach, you'll ensure a smooth and efficient deployment process. Pulumi not only creates Kubernetes resources but also executes bash commands to handle procedures that would otherwise require manual intervention. This approach solves issues like the circular dependency between certificates and authentication. For example, the CA performs some initialization (only once) of its specified providers, necessitating a restart of the CA pod after Keycloak is deployed. Pulumi also builds and pushes Docker images to the self-hosted Docker registry as part of the deployment. These examples highlight why using Pulumi makes our lives simpler.

@@ -6,4 +6,8 @@ config:
   application:CTFD_OIDC_PLUGIN_PATH: ctfd/oidc
   application:HENRIK_BACKEND_HOST: deployer.local.lan
   application:IMAGE_REGISTRY_HOST: localregistry
+  application:POSTGRESQL_VERSION: 16.2.2
   application:SSLH_NODEPORT: "30443"
+  application:SSLH_TAG: 2.1.2
+  application:HTTPD_TAG: alpine3.20
+  application:REGISTRY_TAG: 2.8.3

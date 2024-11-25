@@ -7,9 +7,11 @@ import * as crypto from "crypto";
 /* --------------------------------- config --------------------------------- */
 
 const config = new pulumi.Config();
-const KUBEVIRT_VERSION = config.require("KUBEVIRT_VERSION")
-const PROVISIONER_PATH = config.require("PROVISIONER_PATH")
+const KUBEVIRT_VERSION = config.require("KUBEVIRT_VERSION");
+const PROVISIONER_PATH = config.require("PROVISIONER_PATH");
 const PROVISIONER_VOLUME_TYPE = config.require("PROVISIONER_VOLUME_TYPE");
+const NGINX_VERSION = config.require("NGINX_VERSION");
+const KUBE_PROMETHEUS_STACK_VERSION = config.require("KUBE-PROMETHEUS-STACK_VERSION");
 
 /* -------------------------------- namespace ------------------------------- */
 
@@ -53,10 +55,11 @@ if (stack === Stack.DEV) {
     });
 
     // ? Use cert-manager to create root certificate
-    new k8s.helm.v4.Chart("nginx-ingress", {
+    new k8s.helm.v3.Chart("nginx-ingress", {
         namespace: NGINX_NS,
+        version: NGINX_VERSION,
         chart: "ingress-nginx",
-        repositoryOpts: {
+        fetchOpts: {
             repo: "https://kubernetes.github.io/ingress-nginx",
         },
         values: {
@@ -124,6 +127,51 @@ const kubeVirtCr = new k8s.yaml.ConfigFile("kubevirt-cr", {
 //         }
 //     }'`
 // }, {dependsOn: installKubeVirt});
+
+/* ----------------------------- CRDs monitoring ---------------------------- */
+
+// For flexibility
+new k8s.helm.v4.Chart("monitoring-crds", {
+    namespace: NS,
+    version: KUBE_PROMETHEUS_STACK_VERSION,
+    chart: "kube-prometheus-stack",
+    repositoryOpts: {
+        repo: "https://prometheus-community.github.io/helm-charts",
+    },
+    values: {
+        // Only need crds (explicit)
+        crds: {
+            enabled: true
+        },
+        prometheus: {
+            enabled: false
+        },
+        alertmanager: {
+            enabled: false
+        },
+        grafana: {
+            enabled: false
+        },
+        kubeStateMetrics: {
+            enabled: false
+        },
+        nodeExporter: {
+            enabled: false
+        },
+        windowsMonitoring: {
+            enabled: false
+        },
+        kubernetesServiceMonitors: {
+            enabled: false
+        },
+        defaultRules: {
+            create: false
+        },
+        prometheusOperator: {
+            enabled: false
+        }
+    },
+});
 
 /* --------------------------------- Henrik --------------------------------- */
 

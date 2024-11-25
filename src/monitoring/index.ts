@@ -18,6 +18,10 @@ const GRAFANA_HOST = config.require("GRAFANA_HOST");
 const KEYCLOAK_HOST = config.require("KEYCLOAK_HOST");
 const KEYCLOAK_HTTP_RELATIVE_PATH = config.require("KEYCLOAK_HTTP_RELATIVE_PATH");
 const GRAFANA_HTTP_RELATIVE_PATH = config.require("GRAFANA_HTTP_RELATIVE_PATH");
+const PROMTAIL_VERSION = config.require("PROMTAIL_VERSION");
+const LOKI_VERSION = config.require("LOKI_VERSION");
+const GRAFANA_VERSION = config.require("GRAFANA_VERSION");
+const KUBE_PROMETHEUS_STACK_VERSION = config.require("KUBE-PROMETHEUS-STACK_VERSION");
 const kubePrometheusStackRelaseName = "kube-prometheus-stack"
 
 // Remove trailing slash if it exists, but keep the root '/' intact
@@ -45,6 +49,7 @@ if (GRAFANA_HTTP_RELATIVE_PATH !== "/") {
 // TODO add keycloak dashboard
 new k8s.helm.v3.Chart("grafana", {
     namespace: NS,
+    version: GRAFANA_VERSION,
     chart: "grafana",
     fetchOpts: {
         repo: "https://grafana.github.io/helm-charts",
@@ -314,6 +319,7 @@ const nodeExporterCert = new k8s.apiextensions.CustomResource("node-exporter-inb
 // TODO configure TLS for kube-state-metrics
 new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
     namespace: NS,
+    version: KUBE_PROMETHEUS_STACK_VERSION,
     chart: "kube-prometheus-stack",
     repositoryOpts: {
         repo: "https://prometheus-community.github.io/helm-charts",
@@ -321,7 +327,7 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
     // Includes scraping for cAdvisor
     values: {
         crds: {
-            enabled: true
+            enabled: false
         },
         alertmanager: {
             enabled: false
@@ -446,6 +452,7 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
 // https://grafana.com/docs/loki/latest/setup/install/helm/install-monolithic/
 new k8s.helm.v4.Chart("loki", {
     namespace: NS,
+    version: LOKI_VERSION,
     chart: "loki",
     repositoryOpts: {
         repo: "https://grafana.github.io/helm-charts",
@@ -548,6 +555,7 @@ new k8s.helm.v4.Chart("loki", {
 
 new k8s.helm.v3.Chart("promtail", {
     namespace: NS,
+    version: PROMTAIL_VERSION,
     chart: "promtail",
     fetchOpts: {
         repo: "https://grafana.github.io/helm-charts",

@@ -1,9 +1,9 @@
-FROM alpine:latest
+FROM alpine:3.20.3
 
 # Install necessary packages
 RUN apk add --update dumb-init openssh shadow
 
-# Create initial user
+# Create initial user and disable password
 RUN useradd -m -p '*' bastion
 
 # Ensure SSH configuration directory exists

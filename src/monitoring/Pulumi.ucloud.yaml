@@ -2,5 +2,9 @@ encryptionsalt: v1:8a5zUYFTTR8=:v1:xj5R/1k4yZObszgn:JyiE8GUHGbnbjePOl95WFKRd1O54
 config:
   monitoring:GRAFANA_HOST: ctf-platform
   monitoring:GRAFANA_HTTP_RELATIVE_PATH: /grafana/
+  monitoring:GRAFANA_VERSION: 8.6.1
   monitoring:KEYCLOAK_HOST: ctf-platform
   monitoring:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
+  monitoring:KUBE-PROMETHEUS-STACK_VERSION: 66.2.2
+  monitoring:LOKI_VERSION: 6.21.0
+  monitoring:PROMTAIL_VERSION: 6.16.6

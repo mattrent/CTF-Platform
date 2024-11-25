@@ -15,6 +15,9 @@ const NS = stack;
 const STEP_CA_HOST = config.require("STEP_CA_HOST");
 const KEYCLOAK_HOST = config.require("KEYCLOAK_HOST");
 const KEYCLOAK_HTTP_RELATIVE_PATH = config.require("KEYCLOAK_HTTP_RELATIVE_PATH");
+const CERT_MANAGER_VERSION = config.require("CERT-MANAGER_VERSION");
+const STEP_ISSUER_VERSION = config.require("STEP_ISSUER_VERSION");
+const STEP_AUTOCERT_VERSION = config.require("STEP_AUTOCERT_VERSION");
 
 const CA_URL = `step-step-certificates.${NS}.svc.cluster.local`;
 
@@ -28,6 +31,7 @@ const STEP_CA_ADMIN_PROVISIONER_PASSWORD = stackReference.requireOutput("stepCaA
 pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply(([stepCaClientSecret, stepCaAdminProvisionerPassword]) => {
     const stepChart = new k8s.helm.v4.Chart("step", {
         namespace: NS,
+        version: STEP_AUTOCERT_VERSION,
         chart: "autocert",
         repositoryOpts: {
             repo: "https://smallstep.github.io/helm-charts/",
@@ -100,8 +104,8 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
 
     /* ------------------------------- step issuer ------------------------------ */
 
-    let CA_ROOT_B64: pulumi.Output<string>;
-    let CA_PROVISIONER_KID: pulumi.Output<any>;
+    let CA_ROOT_B64: pulumi.Output<string> = pulumi.output(""); 
+    let CA_PROVISIONER_KID: pulumi.Output<any> = pulumi.output(null);
 
     if (!pulumi.runtime.isDryRun()) {
         const caCert = k8s.core.v1.ConfigMap.get("step-certificates-certs", `${NS}/step-step-certificates-certs`, {dependsOn: stepChart});
@@ -113,6 +117,7 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
 
     new k8s.helm.v4.Chart("step-issuer", {
         chart: "step-issuer",
+        version: STEP_ISSUER_VERSION,
         repositoryOpts: {
             repo: "https://smallstep.github.io/helm-charts/",
         },
@@ -142,10 +147,11 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
 
 /* ------------------------------- certmanager ------------------------------ */
 
-new k8s.helm.v4.Chart("cert-manager", {
+new k8s.helm.v3.Chart("cert-manager", {
     namespace: NS,
+    version: CERT_MANAGER_VERSION,
     chart: "cert-manager",
-    repositoryOpts: {
+    fetchOpts: {
         repo: "https://charts.jetstack.io",
     },
     values: {

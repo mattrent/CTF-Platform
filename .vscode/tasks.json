@@ -70,13 +70,13 @@
         {
             "label": "Deploy everything",
             "group": "build",
-            "dependsOn": ["Deploy infrastructure", "sleep 10", "Deploy certificates", "Deploy authentication", "Deploy application", "Deploy monitoring"],
+            "dependsOn": ["Deploy infrastructure", "sleep 10", "Deploy certificates", "Deploy monitoring", "Deploy authentication", "Deploy application"],
             "dependsOrder": "sequence"
         },
         {
             "label": "Destroy everything",
             "group": "build",
-            "dependsOn": ["Destroy monitoring", "Destroy application", "Destroy authentication", "Destroy certificates", "Destroy infrastructure"],
+            "dependsOn": ["Destroy application", "Destroy authentication", "Destroy monitoring", "Destroy certificates", "Destroy infrastructure"],
             "dependsOrder": "sequence"
         },
     ]

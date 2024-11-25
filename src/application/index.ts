@@ -36,13 +36,16 @@ const CTFD_OIDC_PLUGIN_PATH = config.require("CTFD_OIDC_PLUGIN_PATH");
 const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH");
 const SSLH_NODEPORT = config.require("SSLH_NODEPORT");
 const CTFD_DATABASE_NAME = config.require("CTFD_DATABASE_NAME");
+const POSTGRESQL_VERSION = config.require("POSTGRESQL_VERSION");
 const HENRIK_BACKEND_HOST = config.require("HENRIK_BACKEND_HOST");
+const REGISTRY_TAG = config.require("REGISTRY_TAG");
+const HTTPD_TAG = config.require("HTTPD_TAG");
+const SSLH_TAG = config.require("SSLH_TAG");
 
 // Remove trailing slash if it exists, but keep the root '/' intact
 const cleanedCtfdPath = (CTFD_HTTP_RELATIVE_PATH !== '/' && CTFD_HTTP_RELATIVE_PATH.endsWith('/'))
     ? CTFD_HTTP_RELATIVE_PATH.slice(0, -1)
     : CTFD_HTTP_RELATIVE_PATH;
-
 
 /* --------------------------------- secret --------------------------------- */
 
@@ -77,8 +80,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 spec: {
                     initContainers: [{
                         name: "init-htpasswd",
-                        image: "httpd:2",
-                        command: ["bash", "-c"],
+                        image: `httpd:${HTTPD_TAG}`,
+                        command: ["sh", "-c"],
                         args: [`htpasswd -Bbn ${dockerUsername} ${dockerPassword} > /auth/htpasswd`],
                         volumeMounts: [
                             { name: "auth-volume", mountPath: "/auth" },
@@ -86,7 +89,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                     }],
                     containers: [{
                         name: "docker-registry",
-                        image: "registry:2",
+                        image: `registry:${REGISTRY_TAG}`,
                         env: [
                             { name: "REGISTRY_AUTH", value: "htpasswd" },
                             { name: "REGISTRY_AUTH_HTPASSWD_REALM", value: "Registry Realm" },
@@ -219,6 +222,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     new k8s.helm.v4.Chart("postgresql-ctfd", {
         namespace: NS,
+        version: POSTGRESQL_VERSION,
         chart: "oci://registry-1.docker.io/bitnamicharts/postgresql",
         values: {
             tls: {
@@ -510,7 +514,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                     containers: [
                         {
                             name: "sslh",
-                            image: "ghcr.io/yrutschle/sslh:latest",
+                            image: `ghcr.io/yrutschle/sslh:${SSLH_TAG}`,
                             args: [
                                 "--foreground",
                                 "--listen=0.0.0.0:3443",
