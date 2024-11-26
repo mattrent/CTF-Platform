@@ -11,26 +11,16 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "pip"
-    directory: "/src/application/ctfd"
-    schedule:
-      interval: "weekly"
-
-  - package-ecosystem: "pip"
-    directory: "/src/application/ctfd/oidc"
-    schedule:
-      interval: "weekly"
-
-  - package-ecosystem: "docker"
-    directory: "/src/application/bastion"
+    directories: 
+      - "/src/application/ctfd"
+      - "/src/application/ctfd/oidc"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "docker"
-    directory: "/src/application/ctfd"
-    schedule:
-      interval: "weekly"
-
-  - package-ecosystem: "docker"
-    directory: "/src/application/nginx"
+    directories: 
+      - "/src/application/bastion"
+      - "/src/application/ctfd"
+      - "/src/application/nginx"
     schedule:
       interval: "weekly"
