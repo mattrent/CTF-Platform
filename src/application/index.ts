@@ -1,4 +1,4 @@
-import { envSubst, serviceTemplate } from "@ctf/utilities";
+import { envSubst, serviceTemplate, Stack } from "@ctf/utilities";
 import * as docker from "@pulumi/docker";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
@@ -140,9 +140,11 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         metadata: { namespace: NS, name: IMAGE_REGISTRY_HOST },
         spec: {
             selector: appLabels.registry,
+            type: stack === Stack.DEV ? "ClusterIP" : "NodePort",
             ports: [{
                 port: REGISTRY_EXPOSED_PORT,
-                targetPort: REGISTRY_PORT
+                targetPort: REGISTRY_PORT,
+                nodePort: stack === Stack.DEV ? undefined : REGISTRY_EXPOSED_PORT 
             }],
         }
     });
@@ -315,6 +317,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                         }
                     },
                     spec: {
+                        dnsPolicy: "ClusterFirst",
                         containers: [
                             {
                                 name: "ctfd",
@@ -429,6 +432,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             template: {
                 metadata: { labels: appLabels.bastion },
                 spec: {
+                    dnsPolicy: "ClusterFirst",
                     containers: [
                         {
                             name: "ssh-bastion",
@@ -467,21 +471,21 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
-    new k8s.helm.v4.Chart("deployer", {
-        namespace: NS,
-        chart: HENRIK_BACKEND_CHART,
-        dependencyUpdate: true,
-        values: {
-            ingress: {
-                host: HENRIK_BACKEND_HOST
-            },
-            env: {
-                CTFDAPITOKEN: CTFD_API_TOKEN,
-                BACKENDURL: `http://deployer.${NS}.svc.cluster.local:8080`,
-                JWKSURL: "https://keycloak/keycloak/realms/ctf/protocol/openid-connect/certs"
-            }
-        }
-    });
+    // new k8s.helm.v4.Chart("deployer", {
+    //     namespace: NS,
+    //     chart: HENRIK_BACKEND_CHART,
+    //     dependencyUpdate: true,
+    //     values: {
+    //         ingress: {
+    //             host: HENRIK_BACKEND_HOST
+    //         },
+    //         env: {
+    //             CTFDAPITOKEN: CTFD_API_TOKEN,
+    //             BACKENDURL: `http://deployer.${NS}.svc.cluster.local:8080`,
+    //             JWKSURL: "https://keycloak/keycloak/realms/ctf/protocol/openid-connect/certs"
+    //         }
+    //     }
+    // });
 
     /* ------------------------------- Multiplexer ------------------------------ */
 
@@ -511,6 +515,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             template: {
                 metadata: { labels: appLabels.sshl },
                 spec: {
+                    dnsPolicy: "ClusterFirst",
                     containers: [
                         {
                             name: "sslh",

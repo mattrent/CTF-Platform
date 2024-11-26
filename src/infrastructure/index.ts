@@ -67,10 +67,7 @@ if (stack === Stack.DEV) {
             fullnameOverride: "ingress-nginx",
             controller: {
                 service: {
-                    type: "NodePort",
-                    nodePorts: {
-                        https: parseInt(REGISTRY_EXPOSED_PORT)
-                    }
+                    type: "ClusterIP"
                 },
             },
         },
