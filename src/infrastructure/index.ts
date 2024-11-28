@@ -12,7 +12,6 @@ const PROVISIONER_PATH = config.require("PROVISIONER_PATH");
 const PROVISIONER_VOLUME_TYPE = config.require("PROVISIONER_VOLUME_TYPE");
 const NGINX_VERSION = config.require("NGINX_VERSION");
 const KUBE_PROMETHEUS_STACK_VERSION = config.require("KUBE-PROMETHEUS-STACK_VERSION");
-const REGISTRY_EXPOSED_PORT = config.require("REGISTRY_EXPOSED_PORT")
 
 /* -------------------------------- namespace ------------------------------- */
 
