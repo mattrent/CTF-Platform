@@ -2,7 +2,7 @@ import * as command from "@pulumi/command";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import * as fs from 'fs';
-import { envSubst } from "@ctf/utilities";
+import { envSubst, Stack } from "@ctf/utilities";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -228,41 +228,43 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
 
 /* ---------------- well-known configuration indirection hack --------------- */
 
-const appLabels = {
-    sslh: {app: "sslh-authentication"}
-}
+if (stack === Stack.DEV) {
+    const appLabels = {
+        sslh: {app: "sslh-authentication"}
+    }
 
-new k8s.apps.v1.Deployment("sslh-domain-shadow-deployment", {
-    metadata: { namespace: stack },
-    spec: {
-        selector: { matchLabels: appLabels.sslh },
-        template: {
-            metadata: { labels: appLabels.sslh },
-            spec: {
-                containers: [
-                    {
-                        name: "sslh",
-                        image: `ghcr.io/yrutschle/sslh:${SSLH_TAG}`,
-                        args: [
-                            "--foreground",
-                            "--listen=0.0.0.0:443",
-                            "--tls=ingress-nginx-controller.ingress-nginx:443"
-                        ]
-                    }
-                ],
+    new k8s.apps.v1.Deployment("sslh-domain-shadow-deployment", {
+        metadata: { namespace: stack },
+        spec: {
+            selector: { matchLabels: appLabels.sslh },
+            template: {
+                metadata: { labels: appLabels.sslh },
+                spec: {
+                    containers: [
+                        {
+                            name: "sslh",
+                            image: `ghcr.io/yrutschle/sslh:${SSLH_TAG}`,
+                            args: [
+                                "--foreground",
+                                "--listen=0.0.0.0:443",
+                                "--tls=ingress-nginx-controller.ingress-nginx:443"
+                            ]
+                        }
+                    ],
+                }
             }
         }
-    }
-});
+    });
 
-new k8s.core.v1.Service(KEYCLOAK_HOST, {
-    metadata: { namespace: stack, name: KEYCLOAK_HOST },
-    spec: {
-        selector: appLabels.sslh,
-        ports: [
-            {
-                port: 443
-            },
-        ]
-    }
-});
+    new k8s.core.v1.Service(KEYCLOAK_HOST, {
+        metadata: { namespace: stack, name: KEYCLOAK_HOST },
+        spec: {
+            selector: appLabels.sslh,
+            ports: [
+                {
+                    port: 443
+                },
+            ]
+        }
+    });
+}
