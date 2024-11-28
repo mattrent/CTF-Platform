@@ -31,7 +31,7 @@ const REGISTRY_PORT = 5000;
 const REGISTRY_EXPOSED_PORT = parseInt(config.require("REGISTRY_EXPOSED_PORT"));
 const CTFD_HOST = config.require("CTFD_HOST");
 const IMAGE_REGISTRY_HOST = config.require("IMAGE_REGISTRY_HOST");
-const IMAGE_REGISTRY_SERVER = IMAGE_REGISTRY_HOST.includes(".") ? IMAGE_REGISTRY_HOST : `${IMAGE_REGISTRY_HOST}:${REGISTRY_EXPOSED_PORT}`
+const IMAGE_REGISTRY_SERVER = `${IMAGE_REGISTRY_HOST}:${REGISTRY_EXPOSED_PORT}`
 const CTFD_OIDC_PLUGIN_PATH = config.require("CTFD_OIDC_PLUGIN_PATH");
 const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH");
 const SSLH_NODEPORT = config.require("SSLH_NODEPORT");
@@ -137,7 +137,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
     });
 
     const dockerImageRegistryService = new k8s.core.v1.Service(`image-registry-service`, {
-        metadata: { namespace: NS, name: IMAGE_REGISTRY_HOST },
+        metadata: { namespace: NS, name: "cluster-registry" },
         spec: {
             selector: appLabels.registry,
             type: stack === Stack.DEV ? "ClusterIP" : "NodePort",
@@ -149,6 +149,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         }
     });
 
+    //TODO Do not deploy in production
     const registryIngress = new k8s.networking.v1.Ingress("registry-ingress", {
         metadata: {
             namespace: NS,
