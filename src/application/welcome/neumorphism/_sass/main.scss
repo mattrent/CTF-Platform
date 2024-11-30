@@ -30,6 +30,7 @@ html {
     font-weight: normal;
     height: 100%;
     overflow: hidden;
+    scroll-behavior: smooth;
 }
 
 body {
@@ -995,8 +996,4 @@ a {
             color: $sec;
         }
     }
-}
-
-html {
-    scroll-behavior: smooth;
 }

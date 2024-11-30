@@ -1,2 +1,51 @@
-<h1 class="title">{{site.ssh_title}}</h1>
-<p class="description" data-aos="fade-down">{{site.ssh_description}}</p>
+<h1 class="title">Connect to challenges using SSH</h1>
+
+<div class="description" data-aos="fade-down">
+<p>To participate in the CTF challenges, you might need to securely connect to the challenge environments using SSH. This process involves installing the <code>step</code> tool, bootstrapping the Certificate Authority (CA), and issuing an ephemeral SSH certificate. Follow the steps below to get started:</p>
+
+<ol>
+    <li>
+        <strong>Install <code>step</code></strong>: Begin by installing the <code>step</code> tool:
+<pre data-aos="zoom-in-right">
+<code class="language-bash">wget https://dl.smallstep.com/cli/docs-cli-install/latest/step-cli_amd64.deb
+sudo dpkg -i step-cli_amd64.deb
+</code>
+</pre>
+    </li>
+    <li>
+        <strong>Bootstrap the CA</strong>: Once <code>step</code> is installed, bootstrap the Certificate Authority (CA) by running the following command:
+<pre data-aos="zoom-in-left">
+<code class="language-bash">step ca bootstrap \
+  --ca-url https://{{site.ssh_step_ca_host}} \
+  --fingerprint {{site.ssh_step_ca_fingerprint}} \
+  --force \
+  --install
+eval $(ssh-agent)
+</code>
+</pre>
+    </li>
+    <li>
+        <strong>Issue an SSH Certificate</strong>: After bootstrapping the CA, you can issue an ephemeral SSH certificate by executing the command:
+        <pre data-aos="zoom-in-right"><code class="language-bash">step ssh login</code></pre>
+        Use the issued SSH certificate to connect to the challenge environment. The certificate will be valid for 24 hours. After 24 hours, your certificate will expire. To continue accessing the challenges, simply log in again to renew your certificate.
+    </li>
+    <li>
+        <strong>Accessing Challenge Environments</strong>: To access the challenge environments, the virtual machines (VMs) running the challenges are hidden behind an SSH bastion host. Users must perform an SSH proxy jump through the bastion to reach their specific challenge environments. This adds a layer of security by ensuring that all connections pass through a secure intermediary. Below is an example of an SSH configuration to achieve this:
+<pre data-aos="zoom-in-left">
+<code class="language-bash">Host bastion
+    HostName bastion.example.com
+    User your_username
+
+Host challenge
+    HostName challenge.internal
+    ProxyJump bastion
+    User your_username
+    IdentityFile ~/.ssh/id_ecdsa_cert.pub  
+</code>
+</pre>
+        Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum.
+    </li>
+</ol>
+
+<p>By following these steps, you will securely connect to the challenge environment and be able to participate in the CTF challenges.</p>
+</div>

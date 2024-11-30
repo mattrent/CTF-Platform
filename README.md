@@ -118,6 +118,11 @@ CTF-Platform/
     │   │   ├── entrypoint.sh
     │   │   ├── nginx-http.conf
     │   │   └── nginx-https.conf
+    │   ├── welcome/
+    │   │   ├── neumorphism/    
+    │   │   ├── Dockerfile
+    │   │   ├── entrypoint.sh
+    │   │   └── nginx.conf
     │   └── index.ts
     ├── authentication/
     │   ├── index.ts

@@ -10,7 +10,7 @@
   <meta name="description" content="{{ site.description }}">
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-  <link href="/assets/css/prism.css" rel="stylesheet" />
+  <link href="{{ "/assets/css/prism.css" | prepend: site.baseurl }}" rel="stylesheet" />
   <link rel="apple-touch-icon" sizes="180x180" href="{{ "/assets/favicon/apple-touch-icon.png" | prepend: site.baseurl }}">
   <link rel="icon" type="image/png" sizes="32x32" href="{{ "/assets/favicon/favicon-32x32.png" | prepend: site.baseurl }}">
   <link rel="icon" type="image/png" sizes="16x16" href="{{ "/assets/favicon/favicon-16x16.png" | prepend: site.baseurl }}">
@@ -35,23 +35,23 @@
   {% include landing-page.html %}
   <div class="layout">
     <a name="content"></a>
-    {%if site.show_introduction_card %}
+    {%if site.introduction_show_card %}
       <section class="card neumorphism-card-big">
         {% include section-introduction.html %}
       </section>
     {% endif %}
-    {%if site.show_api_card %}
+    {%if site.api_show_card %}
       <section class="card neumorphism-card-big">
         {% include section-using-api.html %}
       </section>
     {% endif %}
-    {%if site.show_ssh_card %}
+    {%if site.ssh_show_card %}
       <section class="card neumorphism-card-big">
         {% include section-connect-ssh.html %}
       </section>
     {% endif %}
   </div>
   {% include footer.html %}
-  <script src="/assets/js/prism.js"></script>
+  <script src="{{ "/assets/js/prism.js" | prepend: site.baseurl }}"></script>
 </body>
 </html>
