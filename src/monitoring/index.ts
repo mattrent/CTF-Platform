@@ -1,3 +1,4 @@
+import { Volume } from "@pulumi/docker";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 
@@ -315,8 +316,32 @@ const nodeExporterCert = new k8s.apiextensions.CustomResource("node-exporter-inb
     },
 });
 
+const kubeStateMetrics = new k8s.apiextensions.CustomResource("kube-state-metrics-inbound-tls", {
+    apiVersion: "cert-manager.io/v1",
+    kind: "Certificate",
+    metadata: {
+        name: "kube-state-metrics-inbound-tls",
+        namespace: NS,
+    },
+    spec: {
+        secretName: "kube-state-metrics-inbound-tls",
+        commonName: "kube-prometheus-stack-kube-state-metrics",
+        dnsNames: [
+            `kube-prometheus-stack-kube-state-metrics.${NS}.svc.cluster.local`,
+            "kube-prometheus-stack-kube-state-metrics"
+        ],
+        duration: "24h",
+        renewBefore: "8h",
+        issuerRef: {
+            group: "certmanager.step.sm",
+            kind: "StepIssuer",
+            name: "step-issuer",
+        },
+    },
+});
+
+
 // TODO check default insecureSkipVerify
-// TODO configure TLS for kube-state-metrics
 new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
     namespace: NS,
     version: KUBE_PROMETHEUS_STACK_VERSION,
@@ -404,9 +429,53 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
                 }
             }
         },
+        "kube-state-metrics": {
+            kubeRBACProxy: {
+                enabled: true,
+                extraArgs: [
+                    "--tls-cert-file=/var/run/step/tls.crt",
+                    "--tls-private-key-file=/var/run/step/tls.key",
+                    "--client-ca-file=/var/run/step/ca.crt"
+                ],
+                volumeMounts: [
+                    {
+                        name: kubeStateMetrics.metadata.name,
+                        mountPath: "/var/run/step"
+                    }
+                ]
+            },
+            prometheus: {
+                monitor: {
+                    enabled: true,
+                    http: {
+                        scheme: "https",
+                        bearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
+                        tlsConfig: {
+                            caFile: "/var/run/step/ca.crt",
+                            // certFile: "/var/run/step/tls.crt",
+                            // keyFile: "/var/run/step/tls.key",
+                            serverName: `kube-prometheus-stack-kube-state-metrics.${NS}.svc.cluster.local`,
+                            insecureSkipVerify: false
+                        }
+                    }
+                }
+            },
+            //! Isolation risk... Badly configured readinessprobe... internal ip loopback requires network host!?
+            //? Might do PR... https://github.com/prometheus-community/helm-charts/tree/kube-prometheus-stack-66.2.2/charts/kube-state-metrics
+            hostNetwork: true,
+            volumes: [
+                {
+                    name: kubeStateMetrics.metadata.name,
+                    secret: {
+                        secretName: kubeStateMetrics.metadata.name
+                    }
+                }
+            ],
+        },
         // https://github.com/dotdc/grafana-dashboards-kubernetes?tab=readme-ov-file#known-issues
         "prometheus-node-exporter": {
             kubeRBACProxy: {
+                proxyEndpointsPort: 8887, //* Just because kube-state-metrics is a bad chart
                 enabled: true,
                 tls: {
                     enabled: true,
