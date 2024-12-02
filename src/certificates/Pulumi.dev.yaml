@@ -4,5 +4,5 @@ config:
   certificates:KEYCLOAK_HOST: myhost
   certificates:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
   certificates:STEP_AUTOCERT_VERSION: 1.20.0
-  certificates:STEP_CA_HOST: myhost
+  certificates:STEP_CA_HOST: ca.myhost
   certificates:STEP_ISSUER_VERSION: 1.9.6

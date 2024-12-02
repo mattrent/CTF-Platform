@@ -14,7 +14,8 @@ const appLabels = {
     ctfd_db: { app: "ctfd-db" },
     bastion: { app: "bastion" },
     sshl: { app: "sshl-multiplexer" },
-    registry: { app: "image-registry" }
+    registry: { app: "image-registry" },
+    welcome: { app: "welcome" }
 }
 
 const stack = pulumi.getStack();
@@ -28,6 +29,7 @@ const NS = stack;
 const CTFD_PORT = 8000
 const CTFD_PROXY_PORT = 3080;
 const REGISTRY_PORT = 5000;
+const WELCOME_IMAGE_PORT = 3080;
 const REGISTRY_EXPOSED_PORT = parseInt(config.require("REGISTRY_EXPOSED_PORT"));
 const CTFD_HOST = config.require("CTFD_HOST");
 const IMAGE_REGISTRY_HOST = config.require("IMAGE_REGISTRY_HOST");
@@ -37,7 +39,9 @@ const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH");
 const SSLH_NODEPORT = config.require("SSLH_NODEPORT");
 const CTFD_DATABASE_NAME = config.require("CTFD_DATABASE_NAME");
 const POSTGRESQL_VERSION = config.require("POSTGRESQL_VERSION");
+const STEP_CA_HOST = config.require("STEP_CA_HOST");
 const HENRIK_BACKEND_HOST = config.require("HENRIK_BACKEND_HOST");
+const WELCOME_HOST = config.require("WELCOME_HOST");
 const REGISTRY_TAG = config.require("REGISTRY_TAG");
 const HTTPD_TAG = config.require("HTTPD_TAG");
 const SSLH_TAG = config.require("SSLH_TAG");
@@ -552,5 +556,111 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 },
             ]
         }
+    });
+
+    /* --------------------------------- Welcome -------------------------------- */
+
+    const welcomeImage = new docker.Image("welcome-image", {
+        build: {
+            context: "./welcome",
+            dockerfile: "./welcome/Dockerfile",
+            platform: "linux/amd64",
+            builderVersion: docker.BuilderVersion.BuilderV1,
+        },
+        registry: {
+            server: IMAGE_REGISTRY_SERVER,
+            username: dockerUsername,
+            password: dockerPassword
+        },
+        imageName: `${IMAGE_REGISTRY_SERVER}/welcome:latest`,
+        skipPush: false,
+    }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
+
+    nginxImageHttp.repoDigest.apply(digest => console.log("welcome image digest:", digest))
+
+    const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", `${NS}/step-step-certificates-config`);
+    const fingerprint = caConfig.data.apply(data => JSON.parse(data['defaults.json']).fingerprint);
+
+    new k8s.apps.v1.Deployment("welcome-deployment", {
+        metadata: { namespace: stack },
+        spec: {
+            selector: { matchLabels: appLabels.welcome },
+            template: {
+                metadata: { 
+                    labels: appLabels.welcome, 
+                    annotations: {
+                        "autocert.step.sm/name": `welcome.${NS}.svc.cluster.local`
+                    } 
+                },
+                spec: {
+                    containers: [
+                        {
+                            name: "welcome",
+                            image: welcomeImage.repoDigest,
+                            env: [
+                                {
+                                    name: "STEP_CA_HOST",
+                                    value: STEP_CA_HOST
+                                },
+                                {
+                                    name: "CA_FINGERPRINT",
+                                    value: fingerprint
+                                }
+                            ]
+                        },
+                    ],
+                    imagePullSecrets: [{ name: imagePullSecret.metadata.name }]
+                }
+            }
+        }
+    }, { dependsOn: [welcomeImage] });
+
+    const welcomeService = new k8s.core.v1.Service("welcome-service", {
+        metadata: { namespace: stack },
+        spec: {
+            selector: appLabels.welcome,
+            ports: [
+                {
+                    port: WELCOME_IMAGE_PORT
+                }
+            ]
+        }
+    });
+
+    new k8s.networking.v1.Ingress("welcome-ingress", {
+        metadata: {
+            namespace: NS,
+            annotations: {
+                "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
+                "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
+                "cert-manager.io/issuer": "step-issuer",
+                "cert-manager.io/issuer-kind": "StepIssuer",
+                "cert-manager.io/issuer-group": "certmanager.step.sm"
+            },
+        },
+        spec: {
+            ingressClassName: "nginx",
+            rules: [{
+                host: WELCOME_HOST,
+                http: {
+                    paths: [{
+                        path: "/",
+                        pathType: "Prefix",
+                        backend: {
+                            service: {
+                                name: welcomeService.metadata.name,
+                                port: {
+                                    number: WELCOME_IMAGE_PORT,
+                                },
+                            },
+                        },
+                    }],
+                },
+            }],
+            tls: [{
+                hosts: [WELCOME_HOST],
+                secretName: "welcome-registry-tls"
+            }]
+        },
     });
 });

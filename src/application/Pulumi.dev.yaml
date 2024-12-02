@@ -8,7 +8,9 @@ config:
   application:HTTPD_TAG: alpine3.20
   application:IMAGE_REGISTRY_HOST: localregistry
   application:POSTGRESQL_VERSION: 16.2.2
-  application:REGISTRY_EXPOSED_PORT: 443
+  application:REGISTRY_EXPOSED_PORT: "443"
   application:REGISTRY_TAG: 2.8.3
-  application:SSLH_NODEPORT: 30443
+  application:SSLH_NODEPORT: "30443"
   application:SSLH_TAG: 2.1.2
+  application:STEP_CA_HOST: ca.myhost
+  application:WELCOME_HOST: myhost
