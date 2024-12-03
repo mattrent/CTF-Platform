@@ -1,4 +1,3 @@
-import { Volume } from "@pulumi/docker";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 
@@ -133,7 +132,7 @@ new k8s.helm.v3.Chart("grafana", {
                     {
                         name: "Loki",
                         type: "loki",
-                        url: "http://loki-gateway",
+                        url: "https://loki:3100",
                         access: "proxy",
                         jsonData: {
                             tlsAuthWithCACert: true,
@@ -452,8 +451,6 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
                         bearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
                         tlsConfig: {
                             caFile: "/var/run/step/ca.crt",
-                            // certFile: "/var/run/step/tls.crt",
-                            // keyFile: "/var/run/step/tls.key",
                             serverName: `kube-prometheus-stack-kube-state-metrics.${NS}.svc.cluster.local`,
                             insecureSkipVerify: false
                         }
@@ -495,8 +492,6 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
                     bearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
                     tlsConfig: {
                         caFile: "/var/run/step/ca.crt",
-                        // certFile: "/var/run/step/tls.crt",
-                        // keyFile: "/var/run/step/tls.key",
                         serverName: `kube-prometheus-stack-prometheus-node-exporter.${NS}.svc.cluster.local`,
                         insecureSkipVerify: false
                     },
@@ -517,7 +512,6 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
 
 /* ---------------------------------- Loki ---------------------------------- */
 
-// TODO Configure TLS... tried but failed
 // https://grafana.com/docs/loki/latest/setup/install/helm/install-monolithic/
 new k8s.helm.v4.Chart("loki", {
     namespace: NS,
@@ -527,12 +521,6 @@ new k8s.helm.v4.Chart("loki", {
         repo: "https://grafana.github.io/helm-charts",
     },
     values: {
-        // // ? Added after tls config... sceptical.
-        // memberlist: {
-        //     service: {
-        //         publishNotReadyAddresses: true
-        //     }
-        // },
         deploymentMode: "SingleBinary",
         loki: {
             auth_enabled: false,
@@ -556,28 +544,27 @@ new k8s.helm.v4.Chart("loki", {
                     }
                 ]
             },
-            // server: {
-            //     http_tls_config: {
-            //         // ! should have been RequireAndVerifyClientCert
-            //         client_auth_type: "VerifyClientCertIfGiven",
-            //         client_ca_file:"/var/run/autocert.step.sm/root.crt",
-            //         cert_file: "/var/run/autocert.step.sm/site.crt",
-            //         key_file: "/var/run/autocert.step.sm/site.key"
-            //     }
-            // },
-            // readinessProbe: {
-            //     httpGet: {
-            //         path: "/ready",
-            //         port: "http-metrics",
-            //         scheme: "HTTPS",
-            //     },
-            //     initialDelaySeconds: 30,
-            //     timeoutSeconds: 1
-            // },
-            // podAnnotations: {
-            //     "autocert.step.sm/name": `loki-gateway.${NS}.svc.cluster.local`,
-            //     "autocert.step.sm/sans": `loki-gateway.${NS}.svc.cluster.local,loki-gateway,loki-canary`
-            // },
+            server: {
+                http_tls_config: {
+                    client_auth_type: "VerifyClientCertIfGiven",
+                    client_ca_file:"/var/run/autocert.step.sm/root.crt",
+                    cert_file: "/var/run/autocert.step.sm/site.crt",
+                    key_file: "/var/run/autocert.step.sm/site.key"
+                }
+            },
+            readinessProbe: {
+                httpGet: {
+                    path: "/ready",
+                    port: "http-metrics",
+                    scheme: "HTTPS",
+                },
+                initialDelaySeconds: 30,
+                timeoutSeconds: 1
+            },
+            podAnnotations: {
+                "autocert.step.sm/name": `loki.${NS}.svc.cluster.local`,
+                "autocert.step.sm/sans": `loki.${NS}.svc.cluster.local,loki`
+            },
         },
         singleBinary: {
             replicas: 1
@@ -600,21 +587,47 @@ new k8s.helm.v4.Chart("loki", {
                 labels: {
                     release: kubePrometheusStackRelaseName
                 },
-                // scheme: "https",
-                // tlsConfig: {
-                //     caFile: "/var/run/step/ca.crt",
-                //     certFile: "/var/run/step/tls.crt",
-                //     keyFile: "/var/run/step/tls.key",
-                //     serverName: `loki-gateway.${NS}.svc.cluster.local`,
-                //     insecureSkipVerify: false
-                // }
+                scheme: "https",
+                tlsConfig: {
+                    caFile: "/var/run/step/ca.crt",
+                    certFile: "/var/run/step/tls.crt",
+                    keyFile: "/var/run/step/tls.key",
+                    serverName: `loki.${NS}.svc.cluster.local`,
+                    insecureSkipVerify: false
+                }
             }
         },
+        lokiCanary: {
+            enabled: false
+        },
+        test: {
+            enabled: false
+        },
         gateway: {
-            service: {
-                labels: {
-                    "prometheus.io/service-monitor": "false"
-                }
+            enabled: false
+        },
+        // TODO why is TLS not picked up?
+        memcachedExporter: {
+            enabled: false,
+            extraArgs: {
+                "memcached.tls.enable":null,
+                //"memcached.tls.insecure-skip-verify":null,
+                "memcached.tls.cert-file": "/var/run/autocert.step.sm/site.crt",
+                "memcached.tls.key-file": "/var/run/autocert.step.sm/site.key",
+                "memcached.tls.ca-file": "/var/run/autocert.step.sm/root.crt",
+                //"memcached.tls.server-name": `loki.${NS}.svc.cluster.local`
+            }
+        },
+        resultsCache: {
+            podAnnotations: {
+                // "autocert.step.sm/name": `loki-results-cache.${NS}.svc.cluster.local`,
+                // "autocert.step.sm/sans": `loki-results-cache.${NS}.svc.cluster.local,loki.${NS}.svc.cluster.local`
+            }
+        },
+        chunksCache: {
+            podAnnotations: {
+                // "autocert.step.sm/name": `loki-chunks-cache.${NS}.svc.cluster.local`,
+                // "autocert.step.sm/sans": `loki-chunks-cache.${NS}.svc.cluster.local,loki.${NS}.svc.cluster.local`
             }
         }
     },
@@ -632,7 +645,7 @@ new k8s.helm.v3.Chart("promtail", {
     values: {
         config: {
             clients: [{
-                url: "http://loki-gateway/loki/api/v1/push",        
+                url: "https://loki:3100/loki/api/v1/push",        
                 tls_config: {        
                     ca_file:"/var/run/autocert.step.sm/root.crt",
                     cert_file: "/var/run/autocert.step.sm/site.crt",
