@@ -514,7 +514,14 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
 
 /* ---------------------------------- Loki ---------------------------------- */
 
-const webConfig = fs.readFileSync(WEBCONFIGFILE, { encoding: "utf-8" });
+const webConfig = `
+tls_server_config:
+  cert_file: /var/run/autocert.step.sm/site.crt
+  key_file: /var/run/autocert.step.sm/site.key
+  client_ca_file: /var/run/autocert.step.sm/root.crt
+  client_auth_type: VerifyClientCertIfGiven
+`
+
 const mountPath = "/var/run/webconfig";
 const webConfigConfigmap = new k8s.core.v1.ConfigMap("webconfig", {
     metadata: {
@@ -659,6 +666,15 @@ new k8s.helm.v4.Chart("loki", {
 
 /* -------------------------------- Promtail -------------------------------- */
 
+// https://github.com/grafana/loki/issues/8965
+
+const serverConfig =
+`http_tls_config:
+    cert_file: /var/run/autocert.step.sm/site.crt
+    key_file: /var/run/autocert.step.sm/site.key
+    client_ca_file: /var/run/autocert.step.sm/root.crt
+    client_auth_type: VerifyClientCertIfGiven`
+
 new k8s.helm.v3.Chart("promtail", {
     namespace: NS,
     version: PROMTAIL_VERSION,
@@ -676,14 +692,28 @@ new k8s.helm.v3.Chart("promtail", {
                     key_file: "/var/run/autocert.step.sm/site.key"
                 }
             }],
+            snippets: {
+                extraServerConfigs: serverConfig
+            }
         },
         podAnnotations: {
             "autocert.step.sm/name": `promtail-metrics.${NS}.svc.cluster.local`
+        },
+        readinessProbe: {
+            httpGet: {
+                scheme: "HTTPS",
+            }
         },
         serviceMonitor: {
             enabled: true,
             labels: {
                 release: kubePrometheusStackRelaseName
+            },
+            scheme: "https",
+            tlsConfig: {
+                caFile: "/var/run/step/ca.crt",
+                serverName: `promtail-metrics.${NS}.svc.cluster.local`,
+                insecureSkipVerify: false
             }
         }
     }
