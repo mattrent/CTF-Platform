@@ -1,5 +1,6 @@
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
+import * as fs from "fs";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -21,6 +22,7 @@ const GRAFANA_HTTP_RELATIVE_PATH = config.require("GRAFANA_HTTP_RELATIVE_PATH");
 const PROMTAIL_VERSION = config.require("PROMTAIL_VERSION");
 const LOKI_VERSION = config.require("LOKI_VERSION");
 const GRAFANA_VERSION = config.require("GRAFANA_VERSION");
+const WEBCONFIGFILE = config.require("WEBCONFIGFILE");
 const KUBE_PROMETHEUS_STACK_VERSION = config.require("KUBE-PROMETHEUS-STACK_VERSION");
 const kubePrometheusStackRelaseName = "kube-prometheus-stack"
 
@@ -512,6 +514,39 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
 
 /* ---------------------------------- Loki ---------------------------------- */
 
+const webConfig = fs.readFileSync(WEBCONFIGFILE, { encoding: "utf-8" });
+const mountPath = "/var/run/webconfig";
+const webConfigConfigmap = new k8s.core.v1.ConfigMap("webconfig", {
+    metadata: {
+        namespace: NS
+    },
+    data: {
+        [WEBCONFIGFILE]: webConfig
+    }
+});
+
+const mounts =  {
+    extraVolumeMounts: [
+        {
+            name: webConfigConfigmap.metadata.name,
+            mountPath: mountPath
+        }
+    ],
+    extraVolumes: [
+        {
+            name: webConfigConfigmap.metadata.name,
+            configMap: {
+                name: webConfigConfigmap.metadata.name
+            }
+        }
+    ],
+}
+
+const podAnnotationsExporters = {
+    "autocert.step.sm/name": `loki-chunks-cache.${NS}.svc.cluster.local`,
+    "autocert.step.sm/sans": `loki-chunks-cache.${NS}.svc.cluster.local,loki.${NS}.svc.cluster.local`
+}
+
 // https://grafana.com/docs/loki/latest/setup/install/helm/install-monolithic/
 new k8s.helm.v4.Chart("loki", {
     namespace: NS,
@@ -606,29 +641,18 @@ new k8s.helm.v4.Chart("loki", {
         gateway: {
             enabled: false
         },
-        // TODO why is TLS not picked up?
         memcachedExporter: {
-            enabled: false,
             extraArgs: {
-                "memcached.tls.enable":null,
-                //"memcached.tls.insecure-skip-verify":null,
-                "memcached.tls.cert-file": "/var/run/autocert.step.sm/site.crt",
-                "memcached.tls.key-file": "/var/run/autocert.step.sm/site.key",
-                "memcached.tls.ca-file": "/var/run/autocert.step.sm/root.crt",
-                //"memcached.tls.server-name": `loki.${NS}.svc.cluster.local`
+                "web.config.file": `${mountPath}/${WEBCONFIGFILE}`
             }
         },
         resultsCache: {
-            podAnnotations: {
-                // "autocert.step.sm/name": `loki-results-cache.${NS}.svc.cluster.local`,
-                // "autocert.step.sm/sans": `loki-results-cache.${NS}.svc.cluster.local,loki.${NS}.svc.cluster.local`
-            }
+            podAnnotations: podAnnotationsExporters,
+            ...mounts
         },
         chunksCache: {
-            podAnnotations: {
-                // "autocert.step.sm/name": `loki-chunks-cache.${NS}.svc.cluster.local`,
-                // "autocert.step.sm/sans": `loki-chunks-cache.${NS}.svc.cluster.local,loki.${NS}.svc.cluster.local`
-            }
+            podAnnotations: podAnnotationsExporters,
+            ...mounts
         }
     },
 });
