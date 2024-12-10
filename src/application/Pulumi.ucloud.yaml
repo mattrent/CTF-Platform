@@ -1,7 +1,7 @@
 encryptionsalt: v1:kwJXUuFUtJw=:v1:XcAKEpGkBi0eLJzZ:EG+LZd0hkcKbsDvU55P9Lo6YPwLsbA==
 config:
   application:CTFD_DATABASE_NAME: ctfd
-  application:CTFD_HOST: ctf.tail2c4c2a.ts.net
+  application:CTFD_HOST: ctf.sdu.dk
   application:CTFD_HTTP_RELATIVE_PATH: /ctfd/
   application:CTFD_OIDC_PLUGIN_PATH: ctfd/oidc
   application:HENRIK_BACKEND_HOST: deployer.tail2c4c2a.ts.net
@@ -12,5 +12,5 @@ config:
   application:REGISTRY_TAG: 2.8.3
   application:SSLH_NODEPORT: "30443"
   application:SSLH_TAG: 2.1.2
-  application:STEP_CA_HOST: ca.ctf.tail2c4c2a.ts.net
-  application:WELCOME_HOST: ctf.tail2c4c2a.ts.net
+  application:STEP_CA_HOST: ca.ctf.sdu.dk
+  application:WELCOME_HOST: ctf.sdu.dk
