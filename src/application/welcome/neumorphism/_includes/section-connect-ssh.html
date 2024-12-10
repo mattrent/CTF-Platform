@@ -15,14 +15,12 @@ sudo dpkg -i step-cli_amd64.deb</code></pre>
 <pre data-aos="zoom-in-left">
 <code class="language-bash">step ca bootstrap \
   --ca-url https://{{site.ssh_step_ca_host}} \
-  --fingerprint {{site.ssh_step_ca_fingerprint}} \
-  --force \
-  --install
+  --fingerprint {{site.ssh_step_ca_fingerprint}}
 eval $(ssh-agent)</code></pre>
     </li>
     <li>
         <strong>Issue an SSH Certificate</strong>: After bootstrapping the CA, you can issue an ephemeral SSH certificate by executing the command:
-        <pre data-aos="zoom-in-right"><code class="language-bash">step ssh login</code></pre>
+        <pre data-aos="zoom-in-right"><code class="language-bash">step ssh login --issuer keycloak</code></pre>
         Use the issued SSH certificate to connect to the challenge environment. The certificate will be valid for 24 hours. After 24 hours, your certificate will expire. To continue accessing the challenges, simply log in again to renew your certificate.
     </li>
     <li>
