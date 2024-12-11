@@ -145,6 +145,7 @@ CTF-Platform/
 Our project consists of five Pulumi projects, each with a specific role to play:
 
 * **application:** 🖥️ Home to CTF platform/cloud-specific functionality.
+  * **Homepage**: A user guide for navigating and utilizing the platform.
   * **SSHD Alpine bastion:** A secure SSHD server based on Alpine Linux, serving as a bastion host for your cloud environment.
   * **CTFd:** A CTF platform for hosting cybersecurity challenges and competitions.
   * **Henrik Backend:** The backend service providing core functionality and APIs for the platform.

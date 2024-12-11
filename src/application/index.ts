@@ -1,4 +1,4 @@
-import { envSubst, serviceTemplate, Stack } from "@ctf/utilities";
+import { envSubst, restartStep, serviceTemplate, Stack } from "@ctf/utilities";
 import * as docker from "@pulumi/docker";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
@@ -471,6 +471,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             ports: [{ port: 22 }]
         }
     });
+
+    if (stack === Stack.UCLOUD) {
+        restartStep(NS, bastion)
+    }
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 

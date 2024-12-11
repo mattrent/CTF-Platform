@@ -1,8 +1,7 @@
-import * as command from "@pulumi/command";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import * as fs from 'fs';
-import { envSubst, Stack } from "@ctf/utilities";
+import { envSubst, restartStep, Stack } from "@ctf/utilities";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -210,60 +209,53 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
         }
     });
 
-    // Reinitialize Step Certificate due to circular dependency
-    // Wait until Step has started again
-    // * Only one replica is supported at this time.
-    const stepRestartCommand = `
-        kubectl rollout restart -n ${NS} statefulset step-step-certificates && \
-        sleep 20 && \
-        kubectl wait -n ${NS} --for=condition=Ready pod/step-step-certificates-0 --timeout=600s
-    `;
-
-    new command.local.Command("restart-step-certificate", {
-        create: stepRestartCommand,
-        update: stepRestartCommand
-    }, {dependsOn: keycloakChart.ready});
+    if (stack === Stack.DEV) {
+        // Assuming that SSLH is faster deployed than Keycloak
+        // Might change dependency list
+        restartStep(NS, keycloakChart.ready)
+    }
 
 });
 
 /* ---------------- well-known configuration indirection hack --------------- */
 
+if (stack === Stack.DEV) {
+    const appLabels = {
+        sslh: {app: "sslh-authentication"}
+    }
 
-const appLabels = {
-    sslh: {app: "sslh-authentication"}
-}
-
-new k8s.apps.v1.Deployment("sslh-domain-shadow-deployment", {
-    metadata: { namespace: stack },
-    spec: {
-        selector: { matchLabels: appLabels.sslh },
-        template: {
-            metadata: { labels: appLabels.sslh },
-            spec: {
-                containers: [
-                    {
-                        name: "sslh",
-                        image: `ghcr.io/yrutschle/sslh:${SSLH_TAG}`,
-                        args: [
-                            "--foreground",
-                            "--listen=0.0.0.0:443",
-                            "--tls=ingress-nginx-controller.ingress-nginx:443"
-                        ]
-                    }
-                ],
+    new k8s.apps.v1.Deployment("sslh-domain-shadow-deployment", {
+        metadata: { namespace: stack },
+        spec: {
+            selector: { matchLabels: appLabels.sslh },
+            template: {
+                metadata: { labels: appLabels.sslh },
+                spec: {
+                    containers: [
+                        {
+                            name: "sslh",
+                            image: `ghcr.io/yrutschle/sslh:${SSLH_TAG}`,
+                            args: [
+                                "--foreground",
+                                "--listen=0.0.0.0:443",
+                                "--tls=ingress-nginx-controller.ingress-nginx:443"
+                            ]
+                        }
+                    ],
+                }
             }
         }
-    }
-});
+    });
 
-new k8s.core.v1.Service(KEYCLOAK_HOST, {
-    metadata: { namespace: stack, name: KEYCLOAK_HOST },
-    spec: {
-        selector: appLabels.sslh,
-        ports: [
-            {
-                port: 443
-            },
-        ]
-    }
-});
+    new k8s.core.v1.Service(KEYCLOAK_HOST, {
+        metadata: { namespace: stack, name: KEYCLOAK_HOST },
+        spec: {
+            selector: appLabels.sslh,
+            ports: [
+                {
+                    port: 443
+                },
+            ]
+        }
+    });
+}
