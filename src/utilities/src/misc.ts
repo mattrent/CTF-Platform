@@ -1,6 +1,6 @@
 import * as command from "@pulumi/command";
-import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import * as pulumi from "@pulumi/pulumi";
 
 export function envSubst(content: string, envVariable: string, replaceValue: string): string {
     const regex = new RegExp(`\\$\\{${envVariable}\\}`, 'g');
@@ -16,7 +16,11 @@ export function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function restartStep(NS: string, waitCondition: pulumi.Output<pulumi.CustomResource[]> | k8s.apps.v1.Deployment ) {
+export function restartStep(
+    NS: string,
+    waitCondition: pulumi.Output<pulumi.CustomResource[]>
+        | k8s.apps.v1.Deployment
+) {
     // Reinitialize Step Certificate due to circular dependency
     // Wait until Step has started again
     // * Only one replica is supported at this time.
@@ -30,5 +34,5 @@ export function restartStep(NS: string, waitCondition: pulumi.Output<pulumi.Cust
     new command.local.Command("restart-step-certificate", {
         create: stepRestartCommand,
         update: stepRestartCommand
-    }, {dependsOn: waitCondition});
+    }, { dependsOn: waitCondition });
 }

@@ -148,7 +148,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             ports: [{
                 port: REGISTRY_EXPOSED_PORT,
                 targetPort: REGISTRY_PORT,
-                nodePort: stack === Stack.DEV ? undefined : REGISTRY_EXPOSED_PORT 
+                nodePort: stack === Stack.DEV ? undefined : REGISTRY_EXPOSED_PORT
             }],
         }
     });
@@ -239,7 +239,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 certFilename: "tls.crt",
                 certKeyFilename: "tls.key",
                 // certCAFilename: "ca.crt" // disable mTLS... "could not accept SSL connection: EOF detected"
-            }, 
+            },
             auth: {
                 database: ctfdDbName,
                 existingSecret: ctfdPostgresqlSecret.metadata.name,
@@ -337,10 +337,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     { name: "JWTSECRET", value: CTFD_JWT_SECRET },
                                     { name: "BACKENDURL", value: "http://deployer" },
                                     { name: "API_TOKEN", value: CTFD_API_TOKEN },
-                                    { 
-                                        name: "DATABASE_URL", 
+                                    {
+                                        name: "DATABASE_URL",
                                         value: `postgresql+psycopg2://postgres:${postgresCtfdAdminPassword}@postgresql-ctfd:5432/${ctfdDbName}`
-                                        + `?sslmode=verify-full&sslrootcert=/var/run/autocert.step.sm/root.crt`
+                                            + `?sslmode=verify-full&sslrootcert=/var/run/autocert.step.sm/root.crt`
                                     }
                                 ]
                             },
@@ -472,10 +472,6 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         }
     });
 
-    if (stack === Stack.UCLOUD) {
-        restartStep(NS, bastion)
-    }
-
     /* ----------------------------- Henrik Backend ----------------------------- */
 
     new k8s.helm.v4.Chart("deployer", {
@@ -515,7 +511,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     nginxImageHttp.repoDigest.apply(digest => console.log("nginx-http image digest:", digest))
 
-    new k8s.apps.v1.Deployment("sslh-deployment", {
+    const sslh = new k8s.apps.v1.Deployment("sslh-deployment", {
         metadata: { namespace: stack },
         spec: {
             selector: { matchLabels: appLabels.sshl },
@@ -562,6 +558,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         }
     });
 
+    if (stack === Stack.UCLOUD) {
+        restartStep(NS, sslh)
+    }
+
     /* --------------------------------- Welcome -------------------------------- */
 
     const welcomeImage = new docker.Image("welcome-image", {
@@ -590,11 +590,11 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         spec: {
             selector: { matchLabels: appLabels.welcome },
             template: {
-                metadata: { 
-                    labels: appLabels.welcome, 
+                metadata: {
+                    labels: appLabels.welcome,
                     annotations: {
                         "autocert.step.sm/name": `welcome.${NS}.svc.cluster.local`
-                    } 
+                    }
                 },
                 spec: {
                     containers: [
