@@ -228,43 +228,42 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
 
 /* ---------------- well-known configuration indirection hack --------------- */
 
-if (stack === Stack.DEV) {
-    const appLabels = {
-        sslh: {app: "sslh-authentication"}
-    }
 
-    new k8s.apps.v1.Deployment("sslh-domain-shadow-deployment", {
-        metadata: { namespace: stack },
-        spec: {
-            selector: { matchLabels: appLabels.sslh },
-            template: {
-                metadata: { labels: appLabels.sslh },
-                spec: {
-                    containers: [
-                        {
-                            name: "sslh",
-                            image: `ghcr.io/yrutschle/sslh:${SSLH_TAG}`,
-                            args: [
-                                "--foreground",
-                                "--listen=0.0.0.0:443",
-                                "--tls=ingress-nginx-controller.ingress-nginx:443"
-                            ]
-                        }
-                    ],
-                }
+const appLabels = {
+    sslh: {app: "sslh-authentication"}
+}
+
+new k8s.apps.v1.Deployment("sslh-domain-shadow-deployment", {
+    metadata: { namespace: stack },
+    spec: {
+        selector: { matchLabels: appLabels.sslh },
+        template: {
+            metadata: { labels: appLabels.sslh },
+            spec: {
+                containers: [
+                    {
+                        name: "sslh",
+                        image: `ghcr.io/yrutschle/sslh:${SSLH_TAG}`,
+                        args: [
+                            "--foreground",
+                            "--listen=0.0.0.0:443",
+                            "--tls=ingress-nginx-controller.ingress-nginx:443"
+                        ]
+                    }
+                ],
             }
         }
-    });
+    }
+});
 
-    new k8s.core.v1.Service(KEYCLOAK_HOST, {
-        metadata: { namespace: stack, name: KEYCLOAK_HOST },
-        spec: {
-            selector: appLabels.sslh,
-            ports: [
-                {
-                    port: 443
-                },
-            ]
-        }
-    });
-}
+new k8s.core.v1.Service(KEYCLOAK_HOST, {
+    metadata: { namespace: stack, name: KEYCLOAK_HOST },
+    spec: {
+        selector: appLabels.sslh,
+        ports: [
+            {
+                port: 443
+            },
+        ]
+    }
+});
