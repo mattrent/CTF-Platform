@@ -353,6 +353,26 @@
             "security-admin-console": [],
             "admin-cli": [],
             "account-console": [],
+            "deployer": [
+                {
+                    "id": "cba14d5e-b212-4dce-adc2-f750a6b37629",
+                    "name": "developer",
+                    "description": "",
+                    "composite": false,
+                    "clientRole": true,
+                    "containerId": "da4b2e7e-5b74-42da-8c4d-30623a17a7c7",
+                    "attributes": {}
+                },
+                {
+                    "id": "eef28c4f-cc93-4a19-9af8-648bff9bffbd",
+                    "name": "admin",
+                    "description": "",
+                    "composite": false,
+                    "clientRole": true,
+                    "containerId": "da4b2e7e-5b74-42da-8c4d-30623a17a7c7",
+                    "attributes": {}
+                }
+            ],
             "broker": [
                 {
                     "id": "c35f83c5-a150-4393-b52f-2b6a1f863360",
@@ -838,6 +858,59 @@
                     }
                 }
             ],
+            "defaultClientScopes": [
+                "web-origins",
+                "acr",
+                "profile",
+                "roles",
+                "basic",
+                "email"
+            ],
+            "optionalClientScopes": [
+                "address",
+                "phone",
+                "offline_access",
+                "microprofile-jwt"
+            ]
+        },
+        {
+            "id": "da4b2e7e-5b74-42da-8c4d-30623a17a7c7",
+            "clientId": "deployer",
+            "name": "Deployer",
+            "description": "",
+            "rootUrl": "",
+            "adminUrl": "",
+            "baseUrl": "",
+            "surrogateAuthRequired": false,
+            "enabled": true,
+            "alwaysDisplayInConsole": false,
+            "clientAuthenticatorType": "client-secret",
+            "redirectUris": [
+                "https://${DEPLOYER_HOST}/*"
+            ],
+            "webOrigins": [
+                "https://${DEPLOYER_HOST}"
+            ],
+            "notBefore": 0,
+            "bearerOnly": false,
+            "consentRequired": false,
+            "standardFlowEnabled": true,
+            "implicitFlowEnabled": false,
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": false,
+            "publicClient": true,
+            "frontchannelLogout": true,
+            "protocol": "openid-connect",
+            "attributes": {
+                "realm_client": "false",
+                "oidc.ciba.grant.enabled": "false",
+                "backchannel.logout.session.required": "true",
+                "oauth2.device.authorization.grant.enabled": "false",
+                "backchannel.logout.revoke.offline.tokens": "false"
+            },
+            "authenticationFlowBindingOverrides": {},
+            "fullScopeAllowed": true,
+            "nodeReRegistrationTimeout": -1,
             "defaultClientScopes": [
                 "web-origins",
                 "acr",

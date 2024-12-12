@@ -19,7 +19,8 @@ export function sleep(ms: number): Promise<void> {
 export function restartStep(
     NS: string,
     waitCondition: pulumi.Output<pulumi.CustomResource[]>
-        | k8s.apps.v1.Deployment
+        | k8s.apps.v1.Deployment,
+    restartOnUpdate: boolean
 ) {
     // Reinitialize Step Certificate due to circular dependency
     // Wait until Step has started again
@@ -33,6 +34,6 @@ export function restartStep(
 
     new command.local.Command("restart-step-certificate", {
         create: stepRestartCommand,
-        update: stepRestartCommand
+        update: restartOnUpdate ? stepRestartCommand : undefined
     }, { dependsOn: waitCondition });
 }

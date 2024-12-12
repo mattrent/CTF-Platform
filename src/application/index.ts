@@ -153,44 +153,52 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         }
     });
 
-    //TODO Do not deploy in production
-    const registryIngress = new k8s.networking.v1.Ingress("registry-ingress", {
-        metadata: {
-            namespace: NS,
-            annotations: {
-                "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
-                "nginx.ingress.kubernetes.io/proxy-body-size": "0", // disable package size
-                "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
-                "cert-manager.io/issuer": "step-issuer",
-                "cert-manager.io/issuer-kind": "StepIssuer",
-                "cert-manager.io/issuer-group": "certmanager.step.sm"
+
+    let registryDependencyList = []
+    let registryIngress: k8s.networking.v1.Ingress;
+
+    if (stack === Stack.DEV) {
+        registryIngress = new k8s.networking.v1.Ingress("registry-ingress", {
+            metadata: {
+                namespace: NS,
+                annotations: {
+                    "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
+                    "nginx.ingress.kubernetes.io/proxy-body-size": "0", // disable package size
+                    "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
+                    "cert-manager.io/issuer": "step-issuer",
+                    "cert-manager.io/issuer-kind": "StepIssuer",
+                    "cert-manager.io/issuer-group": "certmanager.step.sm"
+                },
             },
-        },
-        spec: {
-            ingressClassName: "nginx",
-            rules: [{
-                host: IMAGE_REGISTRY_HOST,
-                http: {
-                    paths: [{
-                        path: "/",
-                        pathType: "Prefix",
-                        backend: {
-                            service: {
-                                name: dockerImageRegistryService.metadata.name,
-                                port: {
-                                    number: REGISTRY_EXPOSED_PORT,
+            spec: {
+                ingressClassName: "nginx",
+                rules: [{
+                    host: IMAGE_REGISTRY_HOST,
+                    http: {
+                        paths: [{
+                            path: "/",
+                            pathType: "Prefix",
+                            backend: {
+                                service: {
+                                    name: dockerImageRegistryService.metadata.name,
+                                    port: {
+                                        number: REGISTRY_EXPOSED_PORT,
+                                    },
                                 },
                             },
-                        },
-                    }],
-                },
-            }],
-            tls: [{
-                hosts: [IMAGE_REGISTRY_HOST],
-                secretName: "image-registry-tls"
-            }]
-        },
-    });
+                        }],
+                    },
+                }],
+                tls: [{
+                    hosts: [IMAGE_REGISTRY_HOST],
+                    secretName: "image-registry-tls"
+                }]
+            },
+        });
+        registryDependencyList = [imageRegistryDeployment, registryIngress, dockerImageRegistryService]
+    } else {
+        registryDependencyList = [imageRegistryDeployment, dockerImageRegistryService]
+    }
 
     /* ---------------------------------- CTFD ---------------------------------- */
 
@@ -265,7 +273,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         },
         imageName: `${IMAGE_REGISTRY_SERVER}/nginx:https-latest`,
         skipPush: false,
-    }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
+    }, { dependsOn: registryDependencyList });
 
     nginxImageHttps.repoDigest.apply(digest => console.log("nginx-https image digest:", digest))
 
@@ -285,7 +293,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         },
         imageName: `${IMAGE_REGISTRY_SERVER}/ctfd:latest`,
         skipPush: false,
-    }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
+    }, { dependsOn: registryDependencyList });
 
     ctfdImage.repoDigest.apply(digest => console.log("CTFd image digest:", digest))
 
@@ -424,7 +432,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         },
         imageName: `${IMAGE_REGISTRY_SERVER}/bastion:latest`,
         skipPush: false,
-    }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
+    }, { dependsOn: registryDependencyList });
 
     bastionImage.repoDigest.apply(digest => console.log("Bastion image digest:", digest))
 
@@ -507,7 +515,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         },
         imageName: `${IMAGE_REGISTRY_SERVER}/nginx:http-latest`,
         skipPush: false,
-    }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
+    }, { dependsOn: registryDependencyList });
 
     nginxImageHttp.repoDigest.apply(digest => console.log("nginx-http image digest:", digest))
 
@@ -559,7 +567,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
     });
 
     if (stack === Stack.UCLOUD) {
-        restartStep(NS, sslh)
+        restartStep(NS, sslh, false)
     }
 
     /* --------------------------------- Welcome -------------------------------- */

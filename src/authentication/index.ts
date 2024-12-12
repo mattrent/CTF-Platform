@@ -20,6 +20,7 @@ const GRAFANA_HOST = config.require("GRAFANA_HOST");
 const KEYCLOAK_VERSION = config.require("KEYCLOAK_VERSION")
 const KEYCLOAK_HTTP_RELATIVE_PATH = config.require("KEYCLOAK_HTTP_RELATIVE_PATH")
 const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH")
+const DEPLOYER_HOST = config.require("DEPLOYER_HOST")
 const GRAFANA_HTTP_RELATIVE_PATH = config.require("GRAFANA_HTTP_RELATIVE_PATH")
 const SSLH_TAG = config.require("SSLH_TAG");
 
@@ -99,6 +100,7 @@ const keycloakPostgresqlSecret = new k8s.core.v1.Secret("keycloak-postgresql-sec
 let realmConfiguration = fs.readFileSync(REALM_CONFIGURATION_FILE, "utf-8");
 pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaSecret, ctfdSecret, stepSecret]) => {
     realmConfiguration = envSubst(realmConfiguration, "GRAFANA_HOST", GRAFANA_HOST);
+    realmConfiguration = envSubst(realmConfiguration, "DEPLOYER_HOST", DEPLOYER_HOST);
     realmConfiguration = envSubst(realmConfiguration, "GRAFANA_HTTP_RELATIVE_PATH", GRAFANA_HTTP_RELATIVE_PATH);
     realmConfiguration = envSubst(realmConfiguration, "CTFD_HOST", CTFD_HOST);
     realmConfiguration = envSubst(realmConfiguration, "CTFD_HTTP_RELATIVE_PATH", CTFD_HTTP_RELATIVE_PATH);
@@ -209,11 +211,9 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
         }
     });
 
-    if (stack === Stack.DEV) {
-        // Assuming that SSLH is faster deployed than Keycloak
-        // Might change dependency list
-        restartStep(NS, keycloakChart.ready)
-    }
+    // Assuming that SSLH is faster deployed than Keycloak
+    // Might change dependency list
+    restartStep(NS, keycloakChart.ready, true)
 
 });
 

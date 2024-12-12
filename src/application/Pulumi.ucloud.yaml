@@ -4,7 +4,7 @@ config:
   application:CTFD_HOST: ctf.sdu.dk
   application:CTFD_HTTP_RELATIVE_PATH: /ctfd/
   application:CTFD_OIDC_PLUGIN_PATH: ctfd/oidc
-  application:HENRIK_BACKEND_HOST: deployer.tail2c4c2a.ts.net
+  application:HENRIK_BACKEND_HOST: deployer.ctf.sdu.dk
   application:HTTPD_TAG: alpine3.20
   application:IMAGE_REGISTRY_HOST: localregistry
   application:POSTGRESQL_VERSION: 16.2.2
