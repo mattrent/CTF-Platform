@@ -886,10 +886,10 @@
             "alwaysDisplayInConsole": false,
             "clientAuthenticatorType": "client-secret",
             "redirectUris": [
-                "https://${DEPLOYER_HOST}/*"
+                ""
             ],
             "webOrigins": [
-                "https://${DEPLOYER_HOST}"
+                ""
             ],
             "notBefore": 0,
             "bearerOnly": false,

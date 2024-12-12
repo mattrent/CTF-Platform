@@ -586,7 +586,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         },
         imageName: `${IMAGE_REGISTRY_SERVER}/welcome:latest`,
         skipPush: false,
-    }, { dependsOn: [imageRegistryDeployment, registryIngress, dockerImageRegistryService] });
+    }, { dependsOn: registryDependencyList });
 
     nginxImageHttp.repoDigest.apply(digest => console.log("welcome image digest:", digest))
 
