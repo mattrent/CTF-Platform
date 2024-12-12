@@ -566,9 +566,9 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         }
     });
 
-    if (stack === Stack.UCLOUD) {
-        restartStep(NS, sslh, false)
-    }
+    // if (stack === Stack.UCLOUD) {
+    //     restartStep(NS, sslh, false)
+    // }
 
     /* --------------------------------- Welcome -------------------------------- */
 
