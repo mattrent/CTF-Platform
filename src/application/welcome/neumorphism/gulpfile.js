@@ -1,7 +1,7 @@
 import gulp from 'gulp';
 import browserSync from 'browser-sync';
 import gulpSass from 'gulp-sass';
-import sass from 'sass';
+import * as sass from 'sass';
 import cssnano from 'gulp-cssnano';
 import autoprefixer from 'gulp-autoprefixer';
 import concat from 'gulp-concat';
@@ -119,4 +119,4 @@ const watchTask = gulp.parallel(watchData, watchMarkup, watchScripts, watchStyle
  * compile the Jekyll site, launch BrowserSync & watch files.
  */
 gulp.task('default', gulp.parallel(serve, watchTask));
-gulp.task('compile', gulp.parallel(compile, jekyll));
+gulp.task('compile', gulp.series(compile, jekyll));
