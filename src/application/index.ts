@@ -436,6 +436,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     bastionImage.repoDigest.apply(digest => console.log("Bastion image digest:", digest))
 
+    const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", `${NS}/step-step-certificates-config`);
+    const fingerprint = caConfig.data.apply(data => JSON.parse(data['defaults.json']).fingerprint);
 
     const bastion = new k8s.apps.v1.Deployment("bastion-deployment", {
         metadata: { namespace: NS },
@@ -449,24 +451,53 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                             name: "ssh-bastion",
                             image: bastionImage.repoDigest,
                             ports: [{ containerPort: 22 }],
-                            volumeMounts: [{
-                                name: "ca-user-key",
-                                mountPath: "/etc/ssh/ca_user_key.pub",
-                                subPath: "ca_user_key.pub"
-                            }]
-                        }
+                            env: [
+                                {
+                                    name: "KEY_ID",
+                                    value: "myhost"
+                                },
+                                {
+                                    name: "CA_FINGERPRINT",
+                                    value: fingerprint
+                                }
+                            ],
+                            volumeMounts: [
+                                {
+                                    name: "ca-user-key",
+                                    mountPath: "/etc/ssh/ca_user_key.pub",
+                                    subPath: "ca_user_key.pub"
+                                }, 
+                                { 
+                                    name: "provisioner-password", 
+                                    mountPath: "/etc/ssh/provisioner_password", 
+                                    subPath: "provisioner_password"
+                                }
+                            ]
+                        },
                     ],
                     imagePullSecrets: [{ name: imagePullSecret.metadata.name }],
-                    volumes: [{
-                        name: "ca-user-key",
-                        configMap: {
-                            name: "step-step-certificates-certs",
-                            items: [{
-                                key: "ssh_user_ca_key.pub",
-                                path: "ca_user_key.pub"
-                            }]
+                    volumes: [
+                        {
+                            name: "ca-user-key",
+                            configMap: {
+                                name: "step-step-certificates-certs",
+                                items: [{
+                                    key: "ssh_user_ca_key.pub",
+                                    path: "ca_user_key.pub"
+                                }]
+                            }
+                        },
+                        { 
+                            name: "provisioner-password", 
+                            secret: { 
+                                secretName: "step-step-certificates-provisioner-password", 
+                                items: [{ 
+                                    key: "password", 
+                                    path: "provisioner_password" 
+                                }] 
+                            }
                         }
-                    }]
+                    ]
                 }
             }
         }
@@ -585,9 +616,6 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
     }, { dependsOn: registryDependencyList });
 
     nginxImageHttp.repoDigest.apply(digest => console.log("welcome image digest:", digest))
-
-    const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", `${NS}/step-step-certificates-config`);
-    const fingerprint = caConfig.data.apply(data => JSON.parse(data['defaults.json']).fingerprint);
 
     new k8s.apps.v1.Deployment("welcome-deployment", {
         metadata: { namespace: stack },
