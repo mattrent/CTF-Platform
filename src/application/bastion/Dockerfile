@@ -10,7 +10,7 @@ RUN useradd -m -p '*' bastion
 RUN mkdir -p /etc/ssh/sshd_config.d/
 
 # add cronjob to renew cert
-COPY renew-cert.sh /etc/periodic/weekly/renew-cert.sh
+COPY renew-cert.sh /etc/periodic/weekly/renewcert.sh
 RUN chmod +x /etc/periodic/weekly/renewcert.sh
 
 # Copy init script and SSH bastion config
