@@ -1,3 +1,3 @@
 #!/bin/sh
-
-step ssh renew ssh_host_ecdsa_key-cert.pub ssh_host_ecdsa_key --force
+step ssh renew /etc/ssh/ssh_host_ecdsa_key-cert.pub /etc/ssh/ssh_host_ecdsa_key --force
+kill -HUP $(ps | grep '[s]shd' | awk '{print $1}')
