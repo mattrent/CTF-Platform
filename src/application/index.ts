@@ -42,6 +42,7 @@ const POSTGRESQL_VERSION = config.require("POSTGRESQL_VERSION");
 const STEP_CA_HOST = config.require("STEP_CA_HOST");
 const HENRIK_BACKEND_HOST = config.require("HENRIK_BACKEND_HOST");
 const WELCOME_HOST = config.require("WELCOME_HOST");
+const BASTION_HOST = config.require("BASTION_HOST");
 const REGISTRY_TAG = config.require("REGISTRY_TAG");
 const HTTPD_TAG = config.require("HTTPD_TAG");
 const SSLH_TAG = config.require("SSLH_TAG");
@@ -69,6 +70,9 @@ const POSTGRES_CTFD_ADMIN_PASSWORD =
 /* -------------------------------- Regsitry -------------------------------- */
 
 pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD_DATABASE_NAME]).apply(([dockerUsername, dockerPassword, postgresCtfdAdminPassword, ctfdDbName]) => {
+    const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", `${NS}/step-step-certificates-config`);
+    const caCert = k8s.core.v1.ConfigMap.get("step-certificates-certs", `${NS}/step-step-certificates-certs`);
+
     const imageRegistryDeployment = new k8s.apps.v1.Deployment("docker-registry-deployment", {
         metadata: { namespace: NS },
         spec: {
@@ -436,7 +440,6 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     bastionImage.repoDigest.apply(digest => console.log("Bastion image digest:", digest))
 
-    const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", `${NS}/step-step-certificates-config`);
     const fingerprint = caConfig.data.apply(data => JSON.parse(data['defaults.json']).fingerprint);
 
     const bastion = new k8s.apps.v1.Deployment("bastion-deployment", {
@@ -550,7 +553,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     nginxImageHttp.repoDigest.apply(digest => console.log("nginx-http image digest:", digest))
 
-    const sslh = new k8s.apps.v1.Deployment("sslh-deployment", {
+    new k8s.apps.v1.Deployment("sslh-deployment", {
         metadata: { namespace: stack },
         spec: {
             selector: { matchLabels: appLabels.sshl },
@@ -617,6 +620,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     nginxImageHttp.repoDigest.apply(digest => console.log("welcome image digest:", digest))
 
+    const SSH_PUB_CERT = caCert.data.apply(data => data['ssh_host_ca_key.pub']);
+
     new k8s.apps.v1.Deployment("welcome-deployment", {
         metadata: { namespace: stack },
         spec: {
@@ -641,6 +646,14 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 {
                                     name: "CA_FINGERPRINT",
                                     value: fingerprint
+                                },
+                                {
+                                    name: "BASTION_HOST",
+                                    value: BASTION_HOST
+                                },
+                                {
+                                    name: "SSH_PUB_CERT",
+                                    value: SSH_PUB_CERT
                                 }
                             ]
                         },

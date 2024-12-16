@@ -11,32 +11,28 @@
 sudo dpkg -i step-cli_amd64.deb</code></pre>
     </li>
     <li>
-        <strong>Bootstrap the CA</strong>: Once <code>step</code> is installed, bootstrap the Certificate Authority (CA) by running the following command:
+        <strong>Bootstrap the CA</strong>: Once <code>step</code> is installed, bootstrap the CA by running the following command:
 <pre data-aos="zoom-in-left">
 <code class="language-bash">step ca bootstrap \
   --ca-url https://{{site.ssh_step_ca_host}} \
   --fingerprint {{site.ssh_step_ca_fingerprint}}
+
+# Refresh ssh agent 
 eval $(ssh-agent)</code></pre>
     </li>
     <li>
-        <strong>Issue an SSH Certificate</strong>: After bootstrapping the CA, you can issue an ephemeral SSH certificate by executing the command:
+        <strong>Issue an SSH Certificate</strong>: After bootstrapping the CA, you can issue an ephemeral SSH certificate by logging in. Use the issued SSH certificate to connect to the challenge environment. The certificate will be valid for 24 hours. After 24 hours, your certificate will expire. To continue accessing the challenges, simply log in again to renew your certificate:
         <pre data-aos="zoom-in-right"><code class="language-bash">step ssh login --issuer keycloak</code></pre>
-        Use the issued SSH certificate to connect to the challenge environment. The certificate will be valid for 24 hours. After 24 hours, your certificate will expire. To continue accessing the challenges, simply log in again to renew your certificate.
     </li>
     <li>
-        <strong>Accessing Challenge Environments</strong>: To access the challenge environments, the virtual machines (VMs) running the challenges are hidden behind an SSH bastion host. Users must perform an SSH proxy jump through the bastion to reach their specific challenge environments. This adds a layer of security by ensuring that all connections pass through a secure intermediary. Below is an example of an SSH configuration to achieve this:
+        <strong>Accessing Challenge Environments</strong>: To access the challenge environments, the virtual machines (VMs) running the challenges are hidden behind an SSH bastion host. Users must perform an SSH proxy jump through the bastion to reach their specific challenge environments. The command you will need to use is given below:
 <pre data-aos="zoom-in-left">
-<code class="language-bash">Host bastion
-    HostName bastion.example.com
-    User your_username
-
-Host challenge
-    HostName challenge.internal
-    ProxyJump bastion
-    User your_username
-    IdentityFile ~/.ssh/id_ecdsa_cert.pub</code></pre>
-        Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum.
+<code class="language-bash">ssh -p 443 bastion@{{ site.bastion_host }} -J &lt;user&gt;@&lt;your-vm&gt;</code></pre>
     </li>
+    <li>
+        <strong>Establish trust to SSH host</strong>: This is an optional step, but you can decide to do it if you want to establish trust with the host you are connecting to. Please add the following line to your <code>~/.ssh/known_hosts</code> file:
+        <pre data-aos="zoom-in-right"><code class="language-bash">@cert-authority * {{site.ssh_ca-pub-cert}}</code></pre>
+    </li>    
 </ol>
 
 <p>By following these steps, you will securely connect to the challenge environment and be able to participate in the CTF challenges.</p>
