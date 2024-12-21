@@ -26,4 +26,3 @@ jobs:
           args:
             -Dsonar.projectKey=KianBankeLarsen_CTF-Platform
             -Dsonar.organization=kianbankelarsen
-            -Dsonar.scm.exclusions.disabled sonar:sonar
