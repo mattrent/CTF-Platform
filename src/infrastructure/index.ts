@@ -37,6 +37,7 @@ export const postgresUserPassword = pulumi.secret(crypto.randomBytes(32).toStrin
 export const postgresCtfdAdminPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const stepCaAdminProvisionerPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const ctfdApiToken = pulumi.secret(crypto.randomBytes(32).toString("hex"));
+export const backendApiPostgresql = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 
 /* ------------------------ NGINX ingress controller ------------------------ */
 
@@ -171,13 +172,4 @@ new k8s.helm.v4.Chart("monitoring-crds", {
             enabled: false
         }
     },
-});
-
-/* --------------------------------- Henrik --------------------------------- */
-
-const dirOffset = "../application/ctf"
-
-new command.local.Command("clone-repo-henrik", {
-    create: `git clone https://gitlab.com/ctf9215737/ctf.git ${dirOffset}`,
-    delete: `rm -rf ${dirOffset}`
 });

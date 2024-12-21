@@ -1,4 +1,4 @@
-import { envSubst, restartStep, serviceTemplate, Stack } from "@ctf/utilities";
+import { envSubst, serviceTemplate, Stack } from "@ctf/utilities";
 import * as docker from "@pulumi/docker";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
@@ -24,7 +24,7 @@ const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}
 
 /* --------------------------------- config --------------------------------- */
 
-const HENRIK_BACKEND_CHART = "./ctf/backend/deployment/helm"
+const HENRIK_BACKEND_CHART = "./challenges/backend/deployment/helm"
 const NS = stack;
 const CTFD_PORT = 8000
 const CTFD_PROXY_PORT = 3080;
@@ -46,7 +46,6 @@ const BASTION_HOST = config.require("BASTION_HOST");
 const REGISTRY_TAG = config.require("REGISTRY_TAG");
 const HTTPD_TAG = config.require("HTTPD_TAG");
 const SSLH_TAG = config.require("SSLH_TAG");
-
 // Remove trailing slash if it exists, but keep the root '/' intact
 const cleanedCtfdPath = (CTFD_HTTP_RELATIVE_PATH !== '/' && CTFD_HTTP_RELATIVE_PATH.endsWith('/'))
     ? CTFD_HTTP_RELATIVE_PATH.slice(0, -1)
@@ -66,6 +65,8 @@ const CTFD_API_TOKEN =
     stackReference.requireOutput("ctfdApiToken") as pulumi.Output<string>;
 const POSTGRES_CTFD_ADMIN_PASSWORD =
     stackReference.requireOutput("postgresCtfdAdminPassword") as pulumi.Output<string>;
+const BACKEND_API_POSTGRESQL =
+    stackReference.requireOutput("backendApiPostgresql") as pulumi.Output<string>;
 
 /* -------------------------------- Regsitry -------------------------------- */
 
@@ -516,6 +517,15 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
+    const postgresqlBackendAPI = new k8s.core.v1.Secret("backend-api-postgresql-secret", {
+        metadata: {
+            namespace: NS,
+        },
+        stringData: {
+            "postgres-password": BACKEND_API_POSTGRESQL
+        }
+    });
+
     new k8s.helm.v4.Chart("deployer", {
         namespace: NS,
         chart: HENRIK_BACKEND_CHART,
@@ -523,6 +533,14 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         values: {
             ingress: {
                 host: HENRIK_BACKEND_HOST
+            },
+            postgresql: {
+                auth: {
+                    existingSecret: postgresqlBackendAPI.metadata.name,
+                    secretKeys: {
+                        adminPasswordKey: "postgres-password",
+                    }
+                }
             },
             env: {
                 CTFDAPITOKEN: CTFD_API_TOKEN,
