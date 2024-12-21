@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: 'true'
+          submodules: true
       - name: Analyze with SonarCloud
         uses: SonarSource/sonarcloud-github-action@v4.0.0
         env:
@@ -26,3 +26,4 @@ jobs:
           args:
             -Dsonar.projectKey=KianBankeLarsen_CTF-Platform
             -Dsonar.organization=kianbankelarsen
+            -Dsonar.scm.exclusions.disabled
