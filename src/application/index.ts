@@ -517,6 +517,24 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
+    const backendAPI = new docker.Image("backend-image", {
+        build: {
+            context: "./challenges/backend",
+            dockerfile: "./challenges/backend/Dockerfile",
+            platform: "linux/amd64",
+            builderVersion: docker.BuilderVersion.BuilderV1,
+        },
+        registry: {
+            server: IMAGE_REGISTRY_SERVER,
+            username: dockerUsername,
+            password: dockerPassword
+        },
+        imageName: `${IMAGE_REGISTRY_SERVER}/backend:latest`,
+        skipPush: false,
+    }, { dependsOn: registryDependencyList });
+
+    backendAPI.repoDigest.apply(digest => console.log("Backend API image digest:", digest))
+
     const postgresqlBackendAPI = new k8s.core.v1.Secret("backend-api-postgresql-secret", {
         metadata: {
             namespace: NS,
@@ -534,6 +552,12 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             ingress: {
                 host: HENRIK_BACKEND_HOST
             },
+            image: {
+                repository: `${IMAGE_REGISTRY_SERVER}/backend`,
+                pullPolicy: "Always",
+                tag: "latest"
+            },
+            imagePullSecrets: [{ name: imagePullSecret.metadata.name }],
             postgresql: {
                 auth: {
                     existingSecret: postgresqlBackendAPI.metadata.name,
@@ -548,7 +572,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 JWKSURL: "https://keycloak/keycloak/realms/ctf/protocol/openid-connect/certs"
             }
         }
-    });
+    }, {dependsOn: backendAPI});
 
     /* ------------------------------- Multiplexer ------------------------------ */
 
