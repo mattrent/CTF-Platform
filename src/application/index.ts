@@ -552,6 +552,9 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             ingress: {
                 host: HENRIK_BACKEND_HOST
             },
+            podAnnotations: {
+                "autocert.step.sm/name": `deployer.${NS}.svc.cluster.local`
+            },
             image: {
                 repository: `${IMAGE_REGISTRY_SERVER}/backend`,
                 pullPolicy: "Always",
@@ -568,8 +571,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             },
             env: {
                 CTFDAPITOKEN: CTFD_API_TOKEN,
+                CTFDURL: "https://ctfd",
                 BACKENDURL: `http://deployer.${NS}.svc.cluster.local:8080`,
-                JWKSURL: "https://keycloak/keycloak/realms/ctf/protocol/openid-connect/certs"
+                JWKSURL: "https://keycloak/keycloak/realms/ctf/protocol/openid-connect/certs",
+                ROOTCERT: "/var/run/autocert.step.sm/root.crt"
             }
         }
     }, {dependsOn: backendAPI});
