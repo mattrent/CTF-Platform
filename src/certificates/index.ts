@@ -47,6 +47,8 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
                         password: stepCaAdminProvisionerPassword
                     },
                     bootstrap: {
+                        // ? add using keycloak using jq because of circular dependency
+                        // ? acme does, thus step cli can be used
                         postInitHook: `wget https://github.com/stedolan/jq/releases/download/jq-1.7/jq-linux64 && \
                         chmod +x jq-linux64 && \
                         ./jq-linux64 '.authority.provisioners += [{
@@ -72,10 +74,13 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
                             "principals": {{ toJson ((concat .Principals .Token.resource_access.step.roles) | uniq) }},
                             "criticalOptions": {{ toJson .CriticalOptions }},
                             "extensions": {{ toJson .Extensions }}
-                          }' > $(step path)/templates/ssh/keycloak.tpl`
+                          }' > $(step path)/templates/ssh/keycloak. && \
+                        step ca provisioner add acme --type ACME`
                     },
                     dns: `${STEP_CA_HOST},${CA_URL},127.0.0.1`,
                 },
+                //! disable vulnerable paths
+                // TODO https://smallstep.com/docs/step-ca/certificate-authority-server-production/
                 ingress: {
                     enabled: true,
                     ingressClassName: "nginx",
