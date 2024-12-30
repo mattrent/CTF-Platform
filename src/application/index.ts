@@ -586,7 +586,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             context: "./nginx",
             dockerfile: "./nginx/Dockerfile",
             platform: "linux/amd64",
-            args: { NGINX_CONF: "nginx-http.conf" },
+            args: { 
+                NGINX_CONF: "nginx-certbot.conf",
+                ENABLE_CERTBOT: "true"
+            },
             builderVersion: docker.BuilderVersion.BuilderV1,
         },
         registry: {
@@ -614,16 +617,31 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                             args: [
                                 "--foreground",
                                 "--listen=0.0.0.0:3443",
-                                "--tls=ingress-nginx-controller.ingress-nginx:443",
-                                "--http=localhost:3080", // use IPv6 // upgrade connection to https
+                                "--tls=localhost:443",
+                                "--http=ingress-nginx-controller.ingress-nginx:80", // use IPv6 // upgrade connection to https
                                 "--ssh=bastion:22"
-                            ]
+                            ],
+                            ports: [{ containerPort: 3443 }]
                         },
+                        // TODO REQUESTS_CA_BUNDLE 
                         {
                             name: "sslh-proxy",
-                            image: nginxImageHttp.repoDigest,
-                            env: [{ name: "PROXY_PASS_URL", value: "https://ingress-nginx-controller.ingress-nginx" }],
-                            ports: [{ containerPort: 3080 }]
+                            image: nginxImageHttp.repoDigest,               
+                            env: [
+                                { 
+                                    name: "PROXY_PASS_URL", 
+                                    value: "https://ingress-nginx-controller.ingress-nginx" 
+                                },
+                                {
+                                    name: "SERVER_NAME",
+                                    value: "acme-proxy"
+                                },
+                                {
+                                    name: "ACME_SERVER",
+                                    value: "https://step-step-certificates/acme/acme/directory"
+                                }
+                            ],
+                            ports: [{ containerPort: 443 }, {containerPort: 80 }]
                         }
                     ],
                     imagePullSecrets: [{ name: imagePullSecret.metadata.name }]
@@ -632,6 +650,22 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         }
     }, { dependsOn: [bastion, nginxImageHttp] });
 
+    if (stack == Stack.DEV) {
+        new k8s.core.v1.Service("acme-proxy", {
+            metadata: { namespace: stack, name: "acme-proxy" },
+            spec: {
+                selector: appLabels.sshl,
+                ports: [
+                    {
+                        name: "http",
+                        port: 80,
+                        targetPort: 80
+                    }
+                ]
+            }
+        });
+    }
+    
     new k8s.core.v1.Service("sslh-service", {
         metadata: { namespace: stack, name: "sslh-service" },
         spec: {
