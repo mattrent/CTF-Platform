@@ -33,7 +33,7 @@ const WELCOME_IMAGE_PORT = 3080;
 const REGISTRY_EXPOSED_PORT = parseInt(config.require("REGISTRY_EXPOSED_PORT"));
 const CTFD_HOST = config.require("CTFD_HOST");
 const IMAGE_REGISTRY_HOST = config.require("IMAGE_REGISTRY_HOST");
-const IMAGE_REGISTRY_SERVER = `${IMAGE_REGISTRY_HOST}:${REGISTRY_EXPOSED_PORT}`
+const IMAGE_REGISTRY_SERVER = `${IMAGE_REGISTRY_HOST}:${REGISTRY_EXPOSED_PORT}`;
 const CTFD_OIDC_PLUGIN_PATH = config.require("CTFD_OIDC_PLUGIN_PATH");
 const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH");
 const SSLH_NODEPORT = config.require("SSLH_NODEPORT");
@@ -46,6 +46,9 @@ const BASTION_HOST = config.require("BASTION_HOST");
 const REGISTRY_TAG = config.require("REGISTRY_TAG");
 const HTTPD_TAG = config.require("HTTPD_TAG");
 const SSLH_TAG = config.require("SSLH_TAG");
+const SERVER_NAME = config.require("SERVER_NAME");
+const ACME_DIRECTORY = config.require("ACME_DIRECTORY");
+const ACME_EMAIL = config.require("ACME_EMAIL");
 // Remove trailing slash if it exists, but keep the root '/' intact
 const cleanedCtfdPath = (CTFD_HTTP_RELATIVE_PATH !== '/' && CTFD_HTTP_RELATIVE_PATH.endsWith('/'))
     ? CTFD_HTTP_RELATIVE_PATH.slice(0, -1)
@@ -470,10 +473,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     name: "ca-user-key",
                                     mountPath: "/etc/ssh/ca_user_key.pub",
                                     subPath: "ca_user_key.pub"
-                                }, 
-                                { 
-                                    name: "provisioner-password", 
-                                    mountPath: "/etc/ssh/provisioner_password", 
+                                },
+                                {
+                                    name: "provisioner-password",
+                                    mountPath: "/etc/ssh/provisioner_password",
                                     subPath: "provisioner_password"
                                 }
                             ]
@@ -491,14 +494,14 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 }]
                             }
                         },
-                        { 
-                            name: "provisioner-password", 
-                            secret: { 
-                                secretName: "step-step-certificates-provisioner-password", 
-                                items: [{ 
-                                    key: "password", 
-                                    path: "provisioner_password" 
-                                }] 
+                        {
+                            name: "provisioner-password",
+                            secret: {
+                                secretName: "step-step-certificates-provisioner-password",
+                                items: [{
+                                    key: "password",
+                                    path: "provisioner_password"
+                                }]
                             }
                         }
                     ]
@@ -577,18 +580,21 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 ROOTCERT: "/var/run/autocert.step.sm/root.crt"
             }
         }
-    }, {dependsOn: backendAPI});
+    }, { dependsOn: backendAPI });
 
     /* ------------------------------- Multiplexer ------------------------------ */
+
+    const CERTBOT_OPTIONS = stack === Stack.DEV ? "--no-verify-ssl" : ""
 
     const nginxImageHttp = new docker.Image("nginx-http-image", {
         build: {
             context: "./nginx",
             dockerfile: "./nginx/Dockerfile",
             platform: "linux/amd64",
-            args: { 
+            args: {
                 NGINX_CONF: "nginx-certbot.conf",
-                ENABLE_CERTBOT: "true"
+                ENABLE_CERTBOT: "true",
+                CERTBOT_OPTIONS: CERTBOT_OPTIONS
             },
             builderVersion: docker.BuilderVersion.BuilderV1,
         },
@@ -618,30 +624,37 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 "--foreground",
                                 "--listen=0.0.0.0:3443",
                                 "--tls=localhost:443",
-                                "--http=ingress-nginx-controller.ingress-nginx:80", // use IPv6 // upgrade connection to https
+                                "--http=localhost:80", // use IPv6 // upgrade connection to https
                                 "--ssh=bastion:22"
                             ],
                             ports: [{ containerPort: 3443 }]
                         },
-                        // TODO REQUESTS_CA_BUNDLE 
                         {
                             name: "sslh-proxy",
-                            image: nginxImageHttp.repoDigest,               
+                            image: nginxImageHttp.repoDigest,
                             env: [
-                                { 
-                                    name: "PROXY_PASS_URL", 
-                                    value: "https://ingress-nginx-controller.ingress-nginx" 
+                                {
+                                    name: "PROXY_PASS_URL",
+                                    value: "https://ingress-nginx-controller.ingress-nginx"
                                 },
                                 {
                                     name: "SERVER_NAME",
-                                    value: "acme-proxy"
+                                    value: SERVER_NAME
                                 },
                                 {
-                                    name: "ACME_SERVER",
-                                    value: "https://step-step-certificates/acme/acme/directory"
-                                }
+                                    name: "ACME_DIRECTORY",
+                                    value: ACME_DIRECTORY
+                                },
+                                {
+                                    name: "ACME_EMAIL",
+                                    value: ACME_EMAIL
+                                },
+                                {
+                                    name: "CERTBOT_OPTIONS",
+                                    value: CERTBOT_OPTIONS
+                                },
                             ],
-                            ports: [{ containerPort: 443 }, {containerPort: 80 }]
+                            ports: [{ containerPort: 443 }, { containerPort: 80 }]
                         }
                     ],
                     imagePullSecrets: [{ name: imagePullSecret.metadata.name }]
@@ -665,7 +678,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             }
         });
     }
-    
+
     new k8s.core.v1.Service("sslh-service", {
         metadata: { namespace: stack, name: "sslh-service" },
         spec: {
