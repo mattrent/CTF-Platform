@@ -623,7 +623,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                             args: [
                                 "--foreground",
                                 "--listen=0.0.0.0:3443",
-                                "--tls=localhost:443",
+                                "--tls=localhost:3080",
                                 "--http=localhost:80", // use IPv6 // upgrade connection to https
                                 "--ssh=bastion:22"
                             ],
@@ -635,7 +635,11 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                             env: [
                                 {
                                     name: "PROXY_PASS_URL",
-                                    value: "https://ingress-nginx-controller.ingress-nginx"
+                                    value: "ingress-nginx-controller.ingress-nginx"
+                                },
+                                {
+                                    name: "STEP_CA_HOST",
+                                    value: STEP_CA_HOST
                                 },
                                 {
                                     name: "SERVER_NAME",
@@ -665,7 +669,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     if (stack == Stack.DEV) {
         new k8s.core.v1.Service("acme-proxy", {
-            metadata: { namespace: stack, name: "acme-proxy" },
+            metadata: { namespace: stack, name: SERVER_NAME },
             spec: {
                 selector: appLabels.sshl,
                 ports: [
