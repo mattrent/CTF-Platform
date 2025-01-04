@@ -71,13 +71,13 @@
     </script>
     <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
     <script>
-    $(document).ready(function () {
+    window.onload = () => {
         mermaid.initialize({
         startOnLoad:true,
         theme: "default",
         });
         window.mermaid.init(undefined, document.querySelectorAll('.language-mermaid'));
-    });
+    }
     </script>
 </body>
 
