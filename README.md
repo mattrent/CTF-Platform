@@ -72,11 +72,10 @@ end
 subgraph UCloud Kubernetes
     C -->|TCP streaming| J{SSLH}
     J -->|SSH| K{Bastion}
-    J -->|TLS| L[NGINX:443]
-    J -->|HTTP ACME| M[NGINX:80]
+    J -->|TLS| L[NGINX]
+    J -->|HTTP| L
     K -->|SSH| E[Challenges]
     L -->|HTTPS & SSL passthrough on ca.ctf.jacopomauro.com| G[Ingress Controller]
-    M -->| HTTPS redirect | L
 subgraph Services
     G -->|HTTPS| H[Authentication]
     G -->|HTTPS| I[CA]
