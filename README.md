@@ -65,6 +65,7 @@ title: Platform Architecture
 ---
 graph TD
     A[User] -->|Send request| B(Loadbalancer)
+subgraph Headscale Overlay Network
 subgraph GCP
     B -->|Listen 80, 443| C[NGINX]
 end
@@ -83,6 +84,7 @@ subgraph Services
     G -->|HTTPS| F[Monitoring]
     G -->|HTTPS| O[Website]
     G -->|HTTP| P[API]
+end
 end
 end
 ```
