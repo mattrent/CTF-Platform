@@ -64,7 +64,7 @@ To give you a comprehensive view of our system’s architecture, here is a high-
 title: Platform Architecture
 ---
 graph TD
-    A(User) -->|Send request| B(Loadbalancer)
+    A(User) -->|Send request| B[Loadbalancer]
 subgraph Headscale Overlay Network
 subgraph GCP
     B -->|Listen 80, 443| C[NGINX]
