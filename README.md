@@ -82,7 +82,7 @@ subgraph Services
     G -->|HTTP| E
     G -->|HTTPS| F[Monitoring]
     G -->|HTTPS| O[Website]
-    G -->|HTTP| O[API]
+    G -->|HTTP| P[API]
 end
 end
 ```
