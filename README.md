@@ -61,18 +61,32 @@ To give you a comprehensive view of our system’s architecture, here is a high-
 
 ```mermaid
 ---
-title: Simple Approach to Cause and Effect Diagrams (Flowchart)
+title: Platform Architecture
 ---
-flowchart TD
-    a[Cause A]
-    b[Cause B]
-    c[Cause C]
-    d[Cause D]
-    e[Cause E]
-    problem --> a & b
-    a --> c
-    b --> d & e
+graph TD
+    A[User] -->|Send request| B(Loadbalancer)
+subgraph GCP
+    B -->|Listen 80, 443| C[NGINX]
+end
+subgraph UCloud Kubernetes
+    C -->|TCP streaming| J{SSLH}
+    J -->|SSH| K{Bastion}
+    J -->|TLS| L[NGINX:443]
+    J -->|HTTP ACME| M[NGINX:80]
+    K -->|SSH| E[Challenges]
+    L -->|HTTPS & SSL passthrough on ca.ctf.jacopomauro.com| G[Ingress Controller]
+    M -->| HTTPS redirect | L
+subgraph Services
+    G -->|HTTPS| H[Authentication]
+    G -->|HTTPS| I[CA]
+    G -->|HTTP| E
+    G -->|HTTPS| F[Monitoring]
+    G -->|HTTPS| O[Website]
+end
+end
 ```
+
+
 
 This figure showcases the interconnectedness and complexity of our platform, highlighting how each part plays a vital role. From infrastructure setup and application management to monitoring and authentication, the diagram encapsulates the multifaceted nature of the system. Each component is designed to ensure modularity, scalability, and efficiency, forming a cohesive and robust deployment ecosystem.
 
