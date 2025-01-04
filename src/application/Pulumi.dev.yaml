@@ -1,5 +1,8 @@
 encryptionsalt: v1:cmBhEiLHsIc=:v1:dJnXvH6dgqk0iNJF:9EltKb6YQw6aIy8dIGxPwUhJ6aWjkQ==
 config:
+  application:ACME_DIRECTORY: https://step-step-certificates/acme/acme/directory
+  application:ACME_EMAIL: kilar20@student.sdu.dk
+  application:BASTION_HOST: myhost
   application:CTFD_DATABASE_NAME: ctfd
   application:CTFD_HOST: myhost
   application:CTFD_HTTP_RELATIVE_PATH: /ctfd/
@@ -8,7 +11,10 @@ config:
   application:HTTPD_TAG: alpine3.20
   application:IMAGE_REGISTRY_HOST: localregistry
   application:POSTGRESQL_VERSION: 16.2.2
-  application:REGISTRY_EXPOSED_PORT: 443
+  application:REGISTRY_EXPOSED_PORT: "443"
   application:REGISTRY_TAG: 2.8.3
-  application:SSLH_NODEPORT: 30443
+  application:SERVER_NAME: acme-proxy
+  application:SSLH_NODEPORT: "30443"
   application:SSLH_TAG: 2.1.2
+  application:STEP_CA_HOST: ca.myhost
+  application:WELCOME_HOST: myhost

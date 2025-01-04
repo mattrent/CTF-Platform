@@ -1,8 +1,8 @@
 encryptionsalt: v1:hDuZoHuW94o=:v1:DgxM34RVvo/YtlLS:qogNFqUOPyR4lrawSbPqCQP0AHx5Ww==
 config:
   certificates:CERT-MANAGER_VERSION: 1.16.2
-  certificates:KEYCLOAK_HOST: ctf.tail2c4c2a.ts.net
+  certificates:KEYCLOAK_HOST: ctf.sdu.dk
   certificates:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
   certificates:STEP_AUTOCERT_VERSION: 1.20.0
-  certificates:STEP_CA_HOST: ctf.tail2c4c2a.ts.net
+  certificates:STEP_CA_HOST: ca.ctf.sdu.dk
   certificates:STEP_ISSUER_VERSION: 1.9.6

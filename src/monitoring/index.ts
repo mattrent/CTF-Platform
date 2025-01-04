@@ -1,5 +1,6 @@
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
+import * as fs from "fs";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -21,6 +22,7 @@ const GRAFANA_HTTP_RELATIVE_PATH = config.require("GRAFANA_HTTP_RELATIVE_PATH");
 const PROMTAIL_VERSION = config.require("PROMTAIL_VERSION");
 const LOKI_VERSION = config.require("LOKI_VERSION");
 const GRAFANA_VERSION = config.require("GRAFANA_VERSION");
+const WEBCONFIGFILE = config.require("WEBCONFIGFILE");
 const KUBE_PROMETHEUS_STACK_VERSION = config.require("KUBE-PROMETHEUS-STACK_VERSION");
 const kubePrometheusStackRelaseName = "kube-prometheus-stack"
 
@@ -132,7 +134,7 @@ new k8s.helm.v3.Chart("grafana", {
                     {
                         name: "Loki",
                         type: "loki",
-                        url: "http://loki-gateway",
+                        url: "https://loki:3100",
                         access: "proxy",
                         jsonData: {
                             tlsAuthWithCACert: true,
@@ -315,8 +317,32 @@ const nodeExporterCert = new k8s.apiextensions.CustomResource("node-exporter-inb
     },
 });
 
+const kubeStateMetrics = new k8s.apiextensions.CustomResource("kube-state-metrics-inbound-tls", {
+    apiVersion: "cert-manager.io/v1",
+    kind: "Certificate",
+    metadata: {
+        name: "kube-state-metrics-inbound-tls",
+        namespace: NS,
+    },
+    spec: {
+        secretName: "kube-state-metrics-inbound-tls",
+        commonName: "kube-prometheus-stack-kube-state-metrics",
+        dnsNames: [
+            `kube-prometheus-stack-kube-state-metrics.${NS}.svc.cluster.local`,
+            "kube-prometheus-stack-kube-state-metrics"
+        ],
+        duration: "24h",
+        renewBefore: "8h",
+        issuerRef: {
+            group: "certmanager.step.sm",
+            kind: "StepIssuer",
+            name: "step-issuer",
+        },
+    },
+});
+
+
 // TODO check default insecureSkipVerify
-// TODO configure TLS for kube-state-metrics
 new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
     namespace: NS,
     version: KUBE_PROMETHEUS_STACK_VERSION,
@@ -404,9 +430,51 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
                 }
             }
         },
+        "kube-state-metrics": {
+            kubeRBACProxy: {
+                enabled: true,
+                extraArgs: [
+                    "--tls-cert-file=/var/run/step/tls.crt",
+                    "--tls-private-key-file=/var/run/step/tls.key",
+                    "--client-ca-file=/var/run/step/ca.crt"
+                ],
+                volumeMounts: [
+                    {
+                        name: kubeStateMetrics.metadata.name,
+                        mountPath: "/var/run/step"
+                    }
+                ]
+            },
+            prometheus: {
+                monitor: {
+                    enabled: true,
+                    http: {
+                        scheme: "https",
+                        bearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
+                        tlsConfig: {
+                            caFile: "/var/run/step/ca.crt",
+                            serverName: `kube-prometheus-stack-kube-state-metrics.${NS}.svc.cluster.local`,
+                            insecureSkipVerify: false
+                        }
+                    }
+                }
+            },
+            //! Isolation risk... Badly configured readinessprobe... internal ip loopback requires network host!?
+            //? Might do PR... https://github.com/prometheus-community/helm-charts/tree/kube-prometheus-stack-66.2.2/charts/kube-state-metrics
+            hostNetwork: true,
+            volumes: [
+                {
+                    name: kubeStateMetrics.metadata.name,
+                    secret: {
+                        secretName: kubeStateMetrics.metadata.name
+                    }
+                }
+            ],
+        },
         // https://github.com/dotdc/grafana-dashboards-kubernetes?tab=readme-ov-file#known-issues
         "prometheus-node-exporter": {
             kubeRBACProxy: {
+                proxyEndpointsPort: 8887, //* Just because kube-state-metrics is a bad chart
                 enabled: true,
                 tls: {
                     enabled: true,
@@ -426,8 +494,6 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
                     bearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
                     tlsConfig: {
                         caFile: "/var/run/step/ca.crt",
-                        // certFile: "/var/run/step/tls.crt",
-                        // keyFile: "/var/run/step/tls.key",
                         serverName: `kube-prometheus-stack-prometheus-node-exporter.${NS}.svc.cluster.local`,
                         insecureSkipVerify: false
                     },
@@ -448,7 +514,46 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
 
 /* ---------------------------------- Loki ---------------------------------- */
 
-// TODO Configure TLS... tried but failed
+const webConfig = `
+tls_server_config:
+  cert_file: /var/run/autocert.step.sm/site.crt
+  key_file: /var/run/autocert.step.sm/site.key
+  client_ca_file: /var/run/autocert.step.sm/root.crt
+  client_auth_type: VerifyClientCertIfGiven
+`
+
+const mountPath = "/var/run/webconfig";
+const webConfigConfigmap = new k8s.core.v1.ConfigMap("webconfig", {
+    metadata: {
+        namespace: NS
+    },
+    data: {
+        [WEBCONFIGFILE]: webConfig
+    }
+});
+
+const mounts =  {
+    extraVolumeMounts: [
+        {
+            name: webConfigConfigmap.metadata.name,
+            mountPath: mountPath
+        }
+    ],
+    extraVolumes: [
+        {
+            name: webConfigConfigmap.metadata.name,
+            configMap: {
+                name: webConfigConfigmap.metadata.name
+            }
+        }
+    ],
+}
+
+const podAnnotationsExporters = {
+    "autocert.step.sm/name": `loki-chunks-cache.${NS}.svc.cluster.local`,
+    "autocert.step.sm/sans": `loki-chunks-cache.${NS}.svc.cluster.local,loki.${NS}.svc.cluster.local`
+}
+
 // https://grafana.com/docs/loki/latest/setup/install/helm/install-monolithic/
 new k8s.helm.v4.Chart("loki", {
     namespace: NS,
@@ -458,12 +563,6 @@ new k8s.helm.v4.Chart("loki", {
         repo: "https://grafana.github.io/helm-charts",
     },
     values: {
-        // // ? Added after tls config... sceptical.
-        // memberlist: {
-        //     service: {
-        //         publishNotReadyAddresses: true
-        //     }
-        // },
         deploymentMode: "SingleBinary",
         loki: {
             auth_enabled: false,
@@ -487,28 +586,27 @@ new k8s.helm.v4.Chart("loki", {
                     }
                 ]
             },
-            // server: {
-            //     http_tls_config: {
-            //         // ! should have been RequireAndVerifyClientCert
-            //         client_auth_type: "VerifyClientCertIfGiven",
-            //         client_ca_file:"/var/run/autocert.step.sm/root.crt",
-            //         cert_file: "/var/run/autocert.step.sm/site.crt",
-            //         key_file: "/var/run/autocert.step.sm/site.key"
-            //     }
-            // },
-            // readinessProbe: {
-            //     httpGet: {
-            //         path: "/ready",
-            //         port: "http-metrics",
-            //         scheme: "HTTPS",
-            //     },
-            //     initialDelaySeconds: 30,
-            //     timeoutSeconds: 1
-            // },
-            // podAnnotations: {
-            //     "autocert.step.sm/name": `loki-gateway.${NS}.svc.cluster.local`,
-            //     "autocert.step.sm/sans": `loki-gateway.${NS}.svc.cluster.local,loki-gateway,loki-canary`
-            // },
+            server: {
+                http_tls_config: {
+                    client_auth_type: "VerifyClientCertIfGiven",
+                    client_ca_file:"/var/run/autocert.step.sm/root.crt",
+                    cert_file: "/var/run/autocert.step.sm/site.crt",
+                    key_file: "/var/run/autocert.step.sm/site.key"
+                }
+            },
+            readinessProbe: {
+                httpGet: {
+                    path: "/ready",
+                    port: "http-metrics",
+                    scheme: "HTTPS",
+                },
+                initialDelaySeconds: 30,
+                timeoutSeconds: 1
+            },
+            podAnnotations: {
+                "autocert.step.sm/name": `loki.${NS}.svc.cluster.local`,
+                "autocert.step.sm/sans": `loki.${NS}.svc.cluster.local,loki`
+            },
         },
         singleBinary: {
             replicas: 1
@@ -531,27 +629,51 @@ new k8s.helm.v4.Chart("loki", {
                 labels: {
                     release: kubePrometheusStackRelaseName
                 },
-                // scheme: "https",
-                // tlsConfig: {
-                //     caFile: "/var/run/step/ca.crt",
-                //     certFile: "/var/run/step/tls.crt",
-                //     keyFile: "/var/run/step/tls.key",
-                //     serverName: `loki-gateway.${NS}.svc.cluster.local`,
-                //     insecureSkipVerify: false
-                // }
-            }
-        },
-        gateway: {
-            service: {
-                labels: {
-                    "prometheus.io/service-monitor": "false"
+                scheme: "https",
+                tlsConfig: {
+                    caFile: "/var/run/step/ca.crt",
+                    certFile: "/var/run/step/tls.crt",
+                    keyFile: "/var/run/step/tls.key",
+                    serverName: `loki.${NS}.svc.cluster.local`,
+                    insecureSkipVerify: false
                 }
             }
+        },
+        lokiCanary: {
+            enabled: false
+        },
+        test: {
+            enabled: false
+        },
+        gateway: {
+            enabled: false
+        },
+        memcachedExporter: {
+            extraArgs: {
+                "web.config.file": `${mountPath}/${WEBCONFIGFILE}`
+            }
+        },
+        resultsCache: {
+            podAnnotations: podAnnotationsExporters,
+            ...mounts
+        },
+        chunksCache: {
+            podAnnotations: podAnnotationsExporters,
+            ...mounts
         }
     },
 });
 
 /* -------------------------------- Promtail -------------------------------- */
+
+// https://github.com/grafana/loki/issues/8965
+
+const serverConfig =
+`http_tls_config:
+    cert_file: /var/run/autocert.step.sm/site.crt
+    key_file: /var/run/autocert.step.sm/site.key
+    client_ca_file: /var/run/autocert.step.sm/root.crt
+    client_auth_type: VerifyClientCertIfGiven`
 
 new k8s.helm.v3.Chart("promtail", {
     namespace: NS,
@@ -563,21 +685,35 @@ new k8s.helm.v3.Chart("promtail", {
     values: {
         config: {
             clients: [{
-                url: "http://loki-gateway/loki/api/v1/push",        
+                url: "https://loki:3100/loki/api/v1/push",        
                 tls_config: {        
                     ca_file:"/var/run/autocert.step.sm/root.crt",
                     cert_file: "/var/run/autocert.step.sm/site.crt",
                     key_file: "/var/run/autocert.step.sm/site.key"
                 }
             }],
+            snippets: {
+                extraServerConfigs: serverConfig
+            }
         },
         podAnnotations: {
             "autocert.step.sm/name": `promtail-metrics.${NS}.svc.cluster.local`
+        },
+        readinessProbe: {
+            httpGet: {
+                scheme: "HTTPS",
+            }
         },
         serviceMonitor: {
             enabled: true,
             labels: {
                 release: kubePrometheusStackRelaseName
+            },
+            scheme: "https",
+            tlsConfig: {
+                caFile: "/var/run/step/ca.crt",
+                serverName: `promtail-metrics.${NS}.svc.cluster.local`,
+                insecureSkipVerify: false
             }
         }
     }

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 fingerprint=$(
-    curl -k https://myhost/roots.pem | 
+    curl -k https://ca.ctf.sdu.dk/roots.pem | 
     openssl x509 -noout -sha256 -fingerprint | 
     sed 's/://g' | 
     tr 'A-F' 'a-f' | 
@@ -10,7 +10,7 @@ fingerprint=$(
 
 echo Root certificate fingerprint: $fingerprint
 
-step ca bootstrap --ca-url https://myhost \
+step ca bootstrap --ca-url https://ca.ctf.sdu.dk \
     --fingerprint $fingerprint \
     --force \
     --install

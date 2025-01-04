@@ -69,6 +69,15 @@
             sound.play();
         }
     </script>
+    <script>
+    window.onload = () => {
+        mermaid.initialize({
+        startOnLoad:true,
+        theme: "default",
+        });
+        window.mermaid.init(undefined, document.querySelectorAll('.language-mermaid'));
+    }
+    </script>
 </body>
 
 </html>

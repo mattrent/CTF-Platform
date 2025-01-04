@@ -59,7 +59,20 @@ The driving force behind this Master's Thesis is the urgent need for a robust an
 
 To give you a comprehensive view of our system’s architecture, here is a high-level diagram illustrating the various components and their interactions:
 
-> insert figure here
+```mermaid
+---
+title: Simple Approach to Cause and Effect Diagrams (Flowchart)
+---
+flowchart TD
+    a[Cause A]
+    b[Cause B]
+    c[Cause C]
+    d[Cause D]
+    e[Cause E]
+    problem --> a & b
+    a --> c
+    b --> d & e
+```
 
 This figure showcases the interconnectedness and complexity of our platform, highlighting how each part plays a vital role. From infrastructure setup and application management to monitoring and authentication, the diagram encapsulates the multifaceted nature of the system. Each component is designed to ensure modularity, scalability, and efficiency, forming a cohesive and robust deployment ecosystem.
 
@@ -145,6 +158,7 @@ CTF-Platform/
 Our project consists of five Pulumi projects, each with a specific role to play:
 
 * **application:** 🖥️ Home to CTF platform/cloud-specific functionality.
+  * **Homepage**: A user guide for navigating and utilizing the platform.
   * **SSHD Alpine bastion:** A secure SSHD server based on Alpine Linux, serving as a bastion host for your cloud environment.
   * **CTFd:** A CTF platform for hosting cybersecurity challenges and competitions.
   * **Henrik Backend:** The backend service providing core functionality and APIs for the platform.

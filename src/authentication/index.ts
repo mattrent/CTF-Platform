@@ -1,8 +1,7 @@
-import * as command from "@pulumi/command";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import * as fs from 'fs';
-import { envSubst, Stack } from "@ctf/utilities";
+import { envSubst, restartStep, Stack } from "@ctf/utilities";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -21,6 +20,7 @@ const GRAFANA_HOST = config.require("GRAFANA_HOST");
 const KEYCLOAK_VERSION = config.require("KEYCLOAK_VERSION")
 const KEYCLOAK_HTTP_RELATIVE_PATH = config.require("KEYCLOAK_HTTP_RELATIVE_PATH")
 const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH")
+const DEPLOYER_HOST = config.require("DEPLOYER_HOST")
 const GRAFANA_HTTP_RELATIVE_PATH = config.require("GRAFANA_HTTP_RELATIVE_PATH")
 const SSLH_TAG = config.require("SSLH_TAG");
 
@@ -100,6 +100,7 @@ const keycloakPostgresqlSecret = new k8s.core.v1.Secret("keycloak-postgresql-sec
 let realmConfiguration = fs.readFileSync(REALM_CONFIGURATION_FILE, "utf-8");
 pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaSecret, ctfdSecret, stepSecret]) => {
     realmConfiguration = envSubst(realmConfiguration, "GRAFANA_HOST", GRAFANA_HOST);
+    //realmConfiguration = envSubst(realmConfiguration, "DEPLOYER_HOST", DEPLOYER_HOST);
     realmConfiguration = envSubst(realmConfiguration, "GRAFANA_HTTP_RELATIVE_PATH", GRAFANA_HTTP_RELATIVE_PATH);
     realmConfiguration = envSubst(realmConfiguration, "CTFD_HOST", CTFD_HOST);
     realmConfiguration = envSubst(realmConfiguration, "CTFD_HTTP_RELATIVE_PATH", CTFD_HTTP_RELATIVE_PATH);
@@ -210,19 +211,9 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
         }
     });
 
-    // Reinitialize Step Certificate due to circular dependency
-    // Wait until Step has started again
-    // * Only one replica is supported at this time.
-    const stepRestartCommand = `
-        kubectl rollout restart -n ${NS} statefulset step-step-certificates && \
-        sleep 20 && \
-        kubectl wait -n ${NS} --for=condition=Ready pod/step-step-certificates-0 --timeout=600s
-    `;
-
-    new command.local.Command("restart-step-certificate", {
-        create: stepRestartCommand,
-        update: stepRestartCommand
-    }, {dependsOn: keycloakChart.ready});
+    // Assuming that SSLH is faster deployed than Keycloak
+    // Might change dependency list
+    restartStep(NS, keycloakChart.ready, true)
 
 });
 

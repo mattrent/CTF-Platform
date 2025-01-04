@@ -231,8 +231,9 @@ a {
     color: $text-color;
     display: flex;
     height: 100%;
-    margin: 0.5rem;
-    padding: 0.5rem;
+    // Keep to maintain template integrity
+    // margin: 0.5rem;
+    // padding: 0.5rem;
     text-align: center;
 }
 

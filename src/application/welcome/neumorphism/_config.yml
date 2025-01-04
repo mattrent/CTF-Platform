@@ -23,6 +23,8 @@ api_show_card: true
 ssh_show_card: true
 ssh_step_ca_host: $STEP_CA_HOST
 ssh_step_ca_fingerprint: $CA_FINGERPRINT
+bastion_host: $BASTION_HOST
+ssh_ca-pub-cert: $SSH_PUB_CERT
 
 exclude:
   [
