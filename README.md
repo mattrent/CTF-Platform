@@ -72,7 +72,7 @@ end
 subgraph UCloud Kubernetes
     C -->|TCP streaming| J{SSLH}
     J -->|SSH| K{Bastion}
-    J -->|TLS| L[NGINX]
+    J -->|TLS| L[NGINX & Certbot]
     J -->|HTTP| L
     K -->|SSH| E[Challenges]
     L -->|HTTPS & SSL passthrough on ca.ctf.jacopomauro.com| G[Ingress Controller]
