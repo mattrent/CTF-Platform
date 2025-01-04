@@ -6,4 +6,5 @@ node_modules
 .env
 .prettierignore
 .jekyll-metadata
-assets/css/main.min.css
+assets/css/*
+assets/js/*
