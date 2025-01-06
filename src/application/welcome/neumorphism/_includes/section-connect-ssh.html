@@ -15,7 +15,8 @@ sudo dpkg -i step-cli_amd64.deb</code></pre>
 <pre data-aos="zoom-in-left">
 <code class="language-bash">step ca bootstrap \
   --ca-url https://{{site.ssh_step_ca_host}} \
-  --fingerprint {{site.ssh_step_ca_fingerprint}}
+  --fingerprint {{site.ssh_step_ca_fingerprint}} \
+  --install
 
 # Refresh ssh agent 
 eval $(ssh-agent)</code></pre>

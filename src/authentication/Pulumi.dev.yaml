@@ -2,7 +2,6 @@ encryptionsalt: v1:YMYAEkyvB5o=:v1:XCJkE4ADyAs1PoPk:zetPZSUI6YrenfBfwr8DKFwxwzAy
 config:
   authentication:CTFD_HOST: myhost
   authentication:CTFD_HTTP_RELATIVE_PATH: /ctfd/
-  authentication:DEPLOYER_HOST: deployer.local.lan
   authentication:GRAFANA_HOST: myhost
   authentication:GRAFANA_HTTP_RELATIVE_PATH: /grafana/
   authentication:KEYCLOAK_HOST: myhost

@@ -74,7 +74,7 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
                             "principals": {{ toJson ((concat .Principals .Token.resource_access.step.roles) | uniq) }},
                             "criticalOptions": {{ toJson .CriticalOptions }},
                             "extensions": {{ toJson .Extensions }}
-                          }' > $(step path)/templates/ssh/keycloak. && \
+                          }' > $(step path)/templates/ssh/keycloak.tpl && \
                         step ca provisioner add acme --type ACME`
                     },
                     dns: `${STEP_CA_HOST},${CA_URL},127.0.0.1`,

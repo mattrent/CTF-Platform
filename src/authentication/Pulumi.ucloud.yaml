@@ -2,7 +2,6 @@ encryptionsalt: v1:zPoG23l2tQM=:v1:236kCqA5fFQjjva8:FbxN1M34v0e+4jZPdbie3UU/pJVW
 config:
   authentication:CTFD_HOST: ctf.sdu.dk
   authentication:CTFD_HTTP_RELATIVE_PATH: /ctfd/
-  authentication:DEPLOYER_HOST: deployer.ctf.sdu.dk
   authentication:GRAFANA_HOST: ctf.sdu.dk
   authentication:GRAFANA_HTTP_RELATIVE_PATH: /grafana/
   authentication:KEYCLOAK_HOST: ctf.sdu.dk
