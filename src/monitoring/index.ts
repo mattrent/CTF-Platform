@@ -25,6 +25,7 @@ const GRAFANA_VERSION = config.require("GRAFANA_VERSION");
 const WEBCONFIGFILE = config.require("WEBCONFIGFILE");
 const KUBE_PROMETHEUS_STACK_VERSION = config.require("KUBE-PROMETHEUS-STACK_VERSION");
 const kubePrometheusStackRelaseName = "kube-prometheus-stack"
+const TLS_DURATION = config.require("TLS_DURATION");
 
 // Remove trailing slash if it exists, but keep the root '/' intact
 const cleanedGrafanaPath = (GRAFANA_HTTP_RELATIVE_PATH !== '/' && GRAFANA_HTTP_RELATIVE_PATH.endsWith('/')) 
@@ -283,8 +284,6 @@ const prometheusCert = new k8s.apiextensions.CustomResource("prometheus-inbound-
             `kube-prometheus-stack-prometheus.${NS}.svc.cluster.local`,
             "kube-prometheus-stack-prometheus"
         ],
-        duration: "24h",
-        renewBefore: "8h",
         issuerRef: {
             group: "certmanager.step.sm",
             kind: "StepIssuer",
@@ -307,8 +306,6 @@ const nodeExporterCert = new k8s.apiextensions.CustomResource("node-exporter-inb
             `kube-prometheus-stack-prometheus-node-exporter.${NS}.svc.cluster.local`,
             "kube-prometheus-stack-prometheus-node-exporter"
         ],
-        duration: "24h",
-        renewBefore: "8h",
         issuerRef: {
             group: "certmanager.step.sm",
             kind: "StepIssuer",
@@ -331,8 +328,6 @@ const kubeStateMetrics = new k8s.apiextensions.CustomResource("kube-state-metric
             `kube-prometheus-stack-kube-state-metrics.${NS}.svc.cluster.local`,
             "kube-prometheus-stack-kube-state-metrics"
         ],
-        duration: "24h",
-        renewBefore: "8h",
         issuerRef: {
             group: "certmanager.step.sm",
             kind: "StepIssuer",
@@ -420,7 +415,7 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
                 certManager: {
                     enabled: true,
                     admissionCert: {
-                        duration: "24h"
+                        duration: TLS_DURATION
                     },
                     issuerRef: {
                         group: "certmanager.step.sm",

@@ -18,6 +18,7 @@ const KEYCLOAK_HTTP_RELATIVE_PATH = config.require("KEYCLOAK_HTTP_RELATIVE_PATH"
 const CERT_MANAGER_VERSION = config.require("CERT-MANAGER_VERSION");
 const STEP_ISSUER_VERSION = config.require("STEP_ISSUER_VERSION");
 const STEP_AUTOCERT_VERSION = config.require("STEP_AUTOCERT_VERSION");
+const TLS_DURATION = config.require("TLS_DURATION");
 
 const CA_URL = `step-step-certificates.${NS}.svc.cluster.local`;
 
@@ -37,6 +38,9 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
             repo: "https://smallstep.github.io/helm-charts/",
         },
         values: {
+            autocert: {
+                certLifetime: TLS_DURATION
+            },
             "step-certificates": {
                 ca: {
                     ssh: {
@@ -75,7 +79,8 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
                             "criticalOptions": {{ toJson .CriticalOptions }},
                             "extensions": {{ toJson .Extensions }}
                           }' > $(step path)/templates/ssh/keycloak.tpl && \
-                        step ca provisioner add acme --type ACME`
+                        step ca provisioner add acme --type ACME && \
+                        step ca provisioner update admin --x509-max-dur=${TLS_DURATION} --x509-default-dur=${TLS_DURATION}`
                     },
                     dns: `${STEP_CA_HOST},${CA_URL},127.0.0.1`,
                 },
@@ -109,6 +114,7 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
 
     /* ------------------------------- step issuer ------------------------------ */
 
+    // To support Pulumi preview
     let CA_ROOT_B64: pulumi.Output<string> = pulumi.output(""); 
     let CA_PROVISIONER_KID: pulumi.Output<any> = pulumi.output(null);
 
@@ -117,7 +123,7 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
         const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", `${NS}/step-step-certificates-config`, {dependsOn: stepChart});
 
         CA_ROOT_B64 = caCert.data.apply(data => Buffer.from(data['root_ca.crt']).toString('base64'));
-        CA_PROVISIONER_KID = caConfig.data.apply(data => JSON.parse(data['ca.json']).authority.provisioners[0].key.kid);
+        CA_PROVISIONER_KID = caConfig.data.apply(data => JSON.parse(data['ca.json']).authority.provisioners[2].key.kid);
     }
 
     new k8s.helm.v4.Chart("step-issuer", {

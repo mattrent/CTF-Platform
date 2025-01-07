@@ -2,19 +2,19 @@ encryptionsalt: v1:kwJXUuFUtJw=:v1:XcAKEpGkBi0eLJzZ:EG+LZd0hkcKbsDvU55P9Lo6YPwLs
 config:
   application:ACME_DIRECTORY: https://acme-v02.api.letsencrypt.org/directory
   application:ACME_EMAIL: kilar20@student.sdu.dk
-  application:BASTION_HOST: ctf.sdu.dk
+  application:BASTION_HOST: ctf.jacopomauro.com
   application:CTFD_DATABASE_NAME: ctfd
-  application:CTFD_HOST: ctf.sdu.dk
+  application:CTFD_HOST: ctf.jacopomauro.com
   application:CTFD_HTTP_RELATIVE_PATH: /ctfd/
   application:CTFD_OIDC_PLUGIN_PATH: ctfd/oidc
-  application:HENRIK_BACKEND_HOST: deployer.ctf.sdu.dk
+  application:HENRIK_BACKEND_HOST: deployer.ctf.jacopomauro.com
   application:HTTPD_TAG: alpine3.20
   application:IMAGE_REGISTRY_HOST: localregistry
   application:POSTGRESQL_VERSION: 16.2.2
   application:REGISTRY_EXPOSED_PORT: "30444"
   application:REGISTRY_TAG: 2.8.3
-  application:SERVER_NAME: ctf.sdu.dk
+  application:SERVER_NAME: ctf.jacopomauro.com *.ctf.jacopomauro.com
   application:SSLH_NODEPORT: "30443"
   application:SSLH_TAG: 2.1.2
-  application:STEP_CA_HOST: ca.ctf.sdu.dk
-  application:WELCOME_HOST: ctf.sdu.dk
+  application:STEP_CA_HOST: ca.ctf.jacopomauro.com
+  application:WELCOME_HOST: ctf.jacopomauro.com

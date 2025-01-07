@@ -51,8 +51,6 @@ const keycloakCert = new k8s.apiextensions.CustomResource("keycloak-inbound-tls"
             "keycloak",
             `keycloak.${NS}.svc.cluster.local`,
         ],
-        duration: "24h",
-        renewBefore: "8h",
         issuerRef: {
             group: "certmanager.step.sm",
             kind: "StepIssuer",
@@ -75,8 +73,6 @@ const postgresCert = new k8s.apiextensions.CustomResource("postgres-inbound-tls"
             "keycloak-postgresql",
             `keycloak-postgresql.${NS}.svc.cluster.local`,
         ],
-        duration: "24h",
-        renewBefore: "8h",
         issuerRef: {
             group: "certmanager.step.sm",
             kind: "StepIssuer",

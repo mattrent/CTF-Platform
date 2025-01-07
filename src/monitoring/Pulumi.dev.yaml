@@ -8,4 +8,5 @@ config:
   monitoring:KUBE-PROMETHEUS-STACK_VERSION: 66.2.2
   monitoring:LOKI_VERSION: 6.21.0
   monitoring:PROMTAIL_VERSION: 6.16.6
+  monitoring:TLS_DURATION: 5760h
   monitoring:WEBCONFIGFILE: web-configuration.yml

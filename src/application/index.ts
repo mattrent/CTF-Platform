@@ -233,8 +233,6 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 "postgresql-ctfd",
                 `postgresql-ctfd.${NS}.svc.cluster.local`,
             ],
-            duration: "24h",
-            renewBefore: "8h",
             issuerRef: {
                 group: "certmanager.step.sm",
                 kind: "StepIssuer",
@@ -351,7 +349,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     { name: "APPLICATION_ROOT", value: cleanedCtfdPath },
                                     { name: "REVERSE_PROXY", value: "true" },
                                     { name: "JWTSECRET", value: CTFD_JWT_SECRET },
-                                    { name: "BACKENDURL", value: "http://deployer" },
+                                    { name: "BACKENDURL", value: `http://deployer.${NS}.svc.cluster.local:8080` },
                                     { name: "API_TOKEN", value: CTFD_API_TOKEN },
                                     {
                                         name: "DATABASE_URL",
@@ -574,10 +572,11 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             },
             env: {
                 CTFDAPITOKEN: CTFD_API_TOKEN,
-                CTFDURL: "https://ctfd",
+                CTFDURL: `https://ctfd:${CTFD_PROXY_PORT}/ctfd`,
                 BACKENDURL: `http://deployer.${NS}.svc.cluster.local:8080`,
                 JWKSURL: "https://keycloak/keycloak/realms/ctf/protocol/openid-connect/certs",
-                ROOTCERT: "/var/run/autocert.step.sm/root.crt"
+                ROOTCERT: "/var/run/autocert.step.sm/root.crt",
+                CHALLENGEDOMAIN: "." + HENRIK_BACKEND_HOST
             }
         }
     }, { dependsOn: backendAPI });
