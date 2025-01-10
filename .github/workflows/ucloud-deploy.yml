@@ -12,6 +12,10 @@ on:
       WORKER_1_IP:
         description: 'IP address of worker 1'
         required: true
+      LOGIN_SERVER_ADDRESS:
+        description: 'HTTP address of login server'
+        required: true
+        default: http://34.88.225.69:8080
 
 jobs:
   ucloud:
@@ -46,6 +50,7 @@ jobs:
             CONTROL_HOST_IP: ${{ github.event.inputs.CONTROL_HOST_IP }}
             WORKER_0_IP: ${{ github.event.inputs.WORKER_0_IP }}
             WORKER_1_IP: ${{ github.event.inputs.WORKER_1_IP }}
+            LOGIN_SERVER: ${{ github.event.inputs.LOGIN_SERVER_ADDRESS }}
         run: |
             cat hosts.ini.example | envsubst > hosts.ini
         working-directory: ucloud-k8s/ansible
