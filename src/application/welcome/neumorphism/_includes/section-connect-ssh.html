@@ -28,7 +28,7 @@ eval $(ssh-agent)</code></pre>
     <li>
         <strong>Accessing Challenge Environments</strong>: To access the challenge environments, the virtual machines (VMs) running the challenges are hidden behind an SSH bastion host. Users must perform an SSH proxy jump through the bastion to reach their specific challenge environments. The command you will need to use is given below:
 <pre data-aos="zoom-in-left">
-<code class="language-bash">ssh -p 443 bastion@{{ site.bastion_host }} -J &lt;user&gt;@&lt;your-vm&gt;</code></pre>
+<code class="language-bash">ssh -p 443 bastion@{{ site.bastion_host }} -J &lt;user&gt;@ssh.challenge-&lt;subdomain&gt;</code></pre>
     </li>
     <li>
         <strong>Establish trust to SSH host</strong>: This is an optional step, but you can decide to do it if you want to establish trust with the host you are connecting to. Please add the following line to your <code>~/.ssh/known_hosts</code> file:

@@ -751,6 +751,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 {
                                     name: "SSH_PUB_CERT",
                                     value: SSH_PUB_CERT
+                                },
+                                {
+                                    name: "DEPLOYER_HOST",
+                                    value: HENRIK_BACKEND_HOST
                                 }
                             ]
                         },

@@ -6,12 +6,15 @@ on:
       CONTROL_HOST_IP:
         description: 'IP address of the control host'
         required: true
+        default: 130.225.38.xxx
       WORKER_0_IP:
         description: 'IP address of worker 0'
         required: true
+        default: 130.225.38.xxx
       WORKER_1_IP:
         description: 'IP address of worker 1'
         required: true
+        default: 130.225.38.xxx
       LOGIN_SERVER_ADDRESS:
         description: 'HTTP address of login server'
         required: true

@@ -7,7 +7,7 @@ baseurl: ""
 
 # LANDING PAGE
 title: Launch Your <span class="highlight-title">CTF</span> Challenge
-typing_text: Welcome to the ultimate battleground of cybersecurity!
+typing_text: welcome to the ultimate battleground of cybersecurity!
 
 email: kilar20@student.sdu.dk
 github_username: KianBankeLarsen
@@ -17,6 +17,9 @@ twitter_username:
 linkedin_username: kilar
 
 introduction_show_card: true
+henrik_backend_host: $DEPLOYER_HOST
+
+building_show_card: true
 
 api_show_card: true
 

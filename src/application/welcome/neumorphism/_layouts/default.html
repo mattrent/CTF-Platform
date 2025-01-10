@@ -39,6 +39,11 @@
         {% include section-introduction.html %}
       </section>
     {% endif %}
+    {%if site.building_show_card %}
+      <section class="card neumorphism-card-big">
+        {% include section-building-challenges.html %}
+      </section>
+    {% endif %}
     {%if site.api_show_card %}
       <section class="card neumorphism-card-big">
         {% include section-using-api.html %}

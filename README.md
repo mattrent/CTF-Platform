@@ -133,42 +133,49 @@ Welcome to the heart of our platform! 💓 Understanding the project structure i
 CTF-Platform/
 ├── scripts/
 │   └── boostrap.sh
-└── src/
-    ├── application/
-    │   ├── bastion/
-    │   │   ├── Dockerfile
-    │   │   ├── init.sh
-    │   │   └── sshd_bastion.conf
-    │   ├── ctfd/
-    │   │   ├── oidc
-    │   │   └── Dockerfile
-    │   ├── nginx/
-    │   │   ├── Dockerfile
-    │   │   ├── entrypoint.sh
-    │   │   ├── nginx-http.conf
-    │   │   └── nginx-https.conf
-    │   ├── welcome/
-    │   │   ├── neumorphism/    
-    │   │   ├── Dockerfile
-    │   │   ├── entrypoint.sh
-    │   │   └── nginx.conf
-    │   └── index.ts
-    ├── authentication/
-    │   ├── index.ts
-    │   └── realm.json
-    ├── certificates/
-    │   └── index.ts
-    ├── infrastructure/
-    │   └── index.ts
-    ├── monitoring/
-    │   └── index.ts
-    └── utilities/
-        └── src/
-            ├── deployment.ts
-            ├── index.ts
-            ├── ingress.ts
-            ├── misc.ts
-            └── service.ts
+├── src/
+│   ├── application/
+│   │   ├── bastion/
+│   │   │   ├── Dockerfile
+│   │   │   ├── init.sh
+│   │   │   └── sshd_bastion.conf
+│   │   ├── challenges/
+│   │   │   ├── backend/
+│   │   │   └── frontend/
+│   │   ├── ctfd/
+│   │   │   ├── oidc
+│   │   │   └── Dockerfile
+│   │   ├── nginx/
+│   │   │   ├── Dockerfile
+│   │   │   ├── entrypoint.sh
+│   │   │   ├── nginx-http.conf
+│   │   │   └── nginx-https.conf
+│   │   ├── welcome/
+│   │   │   ├── neumorphism/    
+│   │   │   ├── Dockerfile
+│   │   │   ├── entrypoint.sh
+│   │   │   └── nginx.conf
+│   │   └── index.ts
+│   ├── authentication/
+│   │   ├── index.ts
+│   │   └── realm.json
+│   ├── certificates/
+│   │   └── index.ts
+│   ├── infrastructure/
+│   │   └── index.ts
+│   ├── monitoring/
+│   │   └── index.ts
+│   └── utilities/
+│       └── src/
+│           ├── deployment.ts
+│           ├── index.ts
+│           ├── ingress.ts
+│           ├── misc.ts
+│           └── service.ts
+└── ucloud-k8s/
+    ├── ansible/
+    ├── ansible-gcp/
+    └── terraform/
 ```
 
 Our project consists of five Pulumi projects, each with a specific role to play:
