@@ -5,8 +5,6 @@ import * as pulumi from "@pulumi/pulumi";
 import * as fs from "fs";
 import * as path from 'path';
 
-https://acme-v02.api.letsencrypt.org/directory
-
 /* ------------------------------ prerequisite ------------------------------ */
 
 const config = new pulumi.Config();
@@ -461,7 +459,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                             env: [
                                 {
                                     name: "KEY_ID",
-                                    value: "myhost"
+                                    value: WELCOME_HOST
                                 },
                                 {
                                     name: "CA_FINGERPRINT",

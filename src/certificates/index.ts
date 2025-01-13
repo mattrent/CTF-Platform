@@ -98,7 +98,7 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
                     },
                     tls: [{
                         hosts: [STEP_CA_HOST],
-                        secretName: "step-tls"
+                        secretName: "step-inbound-tls"
                     }],
                     hosts: [{
                         host: STEP_CA_HOST,
