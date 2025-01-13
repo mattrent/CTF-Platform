@@ -4,7 +4,7 @@
 cd /etc/ssh
 
 step ca bootstrap \
-    --ca-url step-step-certificates.dev.svc.cluster.local \
+    --ca-url ${INTERNAL_STEP_URL} \
     --fingerprint ${CA_FINGERPRINT}
 
 step ssh certificate ${KEY_ID} ssh_host_ecdsa_key \

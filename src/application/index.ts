@@ -462,6 +462,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     value: WELCOME_HOST
                                 },
                                 {
+                                    name: "INTERNAL_STEP_URL",
+                                    value: `step-step-certificates.${NS}.svc.cluster.local`
+                                },
+                                {
                                     name: "CA_FINGERPRINT",
                                     value: fingerprint
                                 }
