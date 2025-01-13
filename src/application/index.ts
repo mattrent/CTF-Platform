@@ -587,7 +587,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     /* ------------------------------- Multiplexer ------------------------------ */
 
-    const CERTBOT_OPTIONS = stack === Stack.DEV ? "--no-verify-ssl" : ""
+    const CERTBOT_OPTIONS = stack === Stack.DEV ? "--no-verify-ssl" : "--preferred-challenges dns"
 
     const nginxImageHttp = new docker.Image("nginx-http-image", {
         build: {
