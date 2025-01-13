@@ -5,6 +5,8 @@ import * as pulumi from "@pulumi/pulumi";
 import * as fs from "fs";
 import * as path from 'path';
 
+https://acme-v02.api.letsencrypt.org/directory
+
 /* ------------------------------ prerequisite ------------------------------ */
 
 const config = new pulumi.Config();

@@ -148,6 +148,7 @@ CTF-Platform/
 │   │   ├── nginx/
 │   │   │   ├── Dockerfile
 │   │   │   ├── entrypoint.sh
+│   │   │   ├── nginx-certbot.conf
 │   │   │   ├── nginx-http.conf
 │   │   │   └── nginx-https.conf
 │   │   ├── welcome/
