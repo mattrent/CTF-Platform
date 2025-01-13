@@ -587,7 +587,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     /* ------------------------------- Multiplexer ------------------------------ */
 
-    const CERTBOT_OPTIONS = stack === Stack.DEV ? "--no-verify-ssl" : "--preferred-challenges dns"
+    const CERTBOT_OPTIONS = stack === Stack.DEV ? "--no-verify-ssl" : ""
 
     const nginxImageHttp = new docker.Image("nginx-http-image", {
         build: {
@@ -627,7 +627,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 "--foreground",
                                 "--listen=0.0.0.0:3443",
                                 "--tls=localhost:3080",
-                                "--http=localhost:80", // use IPv6 // upgrade connection to https
+                                "--http=ingress-nginx-controller.ingress-nginx:80", // use IPv6 // upgrade connection to https
                                 "--ssh=bastion:22"
                             ],
                             ports: [{ containerPort: 3443 }]
