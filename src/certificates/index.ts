@@ -123,7 +123,14 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
         const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", `${NS}/step-step-certificates-config`, {dependsOn: stepChart});
 
         CA_ROOT_B64 = caCert.data.apply(data => Buffer.from(data['root_ca.crt']).toString('base64'));
-        CA_PROVISIONER_KID = caConfig.data.apply(data => JSON.parse(data['ca.json']).authority.provisioners[2].key.kid);
+        CA_PROVISIONER_KID = caConfig.data.apply(data => {
+            const jwkProvisioner = JSON.parse(data['ca.json']).authority.provisioners.find((provisioner: { [key: string]: string }) => provisioner.type === 'JWK');
+            if (jwkProvisioner) {
+                return jwkProvisioner.key.kid;
+            } else {
+                throw new Error('JWK provisioner with key.kid not found');
+            }
+        });
     }
 
     new k8s.helm.v4.Chart("step-issuer", {

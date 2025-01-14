@@ -127,7 +127,7 @@ const kubeVirtCr = new k8s.yaml.ConfigFile("kubevirt-cr", {
 //             }
 //         }
 //     }'`
-// }, {dependsOn: installKubeVirt});
+// }, {dependsOn: [kubeVirtOperator, kubeVirtCr]});
 
 /* ----------------------------- CRDs monitoring ---------------------------- */
 
