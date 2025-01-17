@@ -106,28 +106,29 @@ const deleteKubeVirt = new command.local.Command("delete-kubevirt", {
     `
 });
 
-// Apply the KubeVirt operator manifest
-const kubeVirtOperator = new k8s.yaml.ConfigFile("kubevirt-operator", {
-    file: `https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml`,
-}, { deletedWith: deleteKubeVirt });
-
 // Apply the KubeVirt CR manifest
 const kubeVirtCr = new k8s.yaml.ConfigFile("kubevirt-cr", {
     file: `https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml`
 }, { deletedWith: deleteKubeVirt });
 
-// ? Might be needed
-// new command.local.Command("software-emulation-fallback", {
-//     create: `kubectl patch kubevirt kubevirt -n kubevirt --type merge -p '{
-//         "spec": {
-//             "configuration": {
-//                 "developerConfiguration": {
-//                     "useEmulation": true
-//                 }
-//             }
-//         }
-//     }'`
-// }, {dependsOn: [kubeVirtOperator, kubeVirtCr]});
+
+// Apply the KubeVirt operator manifest
+const kubeVirtOperator = new k8s.yaml.v2.ConfigFile("kubevirt-operator", {
+    file: `https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml`,
+}, { deletedWith: deleteKubeVirt });
+
+// ? Needed on UCloud for some reason
+new command.local.Command("software-emulation-fallback", {
+    create: `kubectl patch kubevirt kubevirt -n kubevirt --type merge -p '{
+        "spec": {
+            "configuration": {
+                "developerConfiguration": {
+                    "useEmulation": true
+                }
+            }
+        }
+    }'`
+}, {dependsOn: [kubeVirtOperator]});
 
 /* ----------------------------- CRDs monitoring ---------------------------- */
 
