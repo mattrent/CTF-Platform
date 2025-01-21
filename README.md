@@ -12,9 +12,9 @@
 <a href="https://github.com/KianBankeLarsen/CTF-Platform/blob/main/LICENSE" style="text-decoration:none;">
   <img src="https://img.shields.io/github/license/KianBankeLarsen/CTF-Platform?style=for-the-badge" style="padding-bottom: 5px;/">
 </a>
-<!-- <a href="https://kianbankelarsen.github.io/CTF-Platform/" style="text-decoration:none;">
-  <img src="https://img.shields.io/website?url=https%3A%2F%2Fkianbankelarsen.github.io%2FCTF-Platform%2F&style=for-the-badge" style="padding-bottom: 5px;"/>
-</a> -->
+<a href="https://ctf.jacopomauro.com" style="text-decoration:none;">
+  <img src="https://img.shields.io/website?url=https%3A%2F%2Fctf.jacopomauro.com&style=for-the-badge" style="padding-bottom: 5px;"/>
+</a>
 </p>
 <p align="center">
 <a href="https://odin.sdu.dk/sitecore/index.php?a=fagbesk&id=83401&lang=en&listid=">
@@ -23,7 +23,7 @@
 <br />
 Revolutionize Your CTF Challenges with Our Easy Deployment Platform
 <br />
-<a href="https://github.com/KianBankeLarsen/CTF-Platform"><strong>Explore the code»</strong></a>
+<a href="https://ctf.jacopomauro.com"><strong>Explore the platform»</strong></a>
 </p>
 
 <details>
@@ -75,7 +75,7 @@ subgraph UCloud Kubernetes
     J -->|TLS| L[NGINX & Certbot]
     J -->|HTTP| L
     K -->|SSH| E[Challenges]
-    L -->|HTTPS & SSL passthrough on ca.ctf.jacopomauro.com| G[Ingress Controller]
+    L -->|HTTPS & SSL passthrough on ca.ctf.jacopomauro.com and *.deployer.ctf.jacopomauro| G[Ingress Controller]
 subgraph Services
     G -->|HTTPS| H[Authentication]
     G -->|HTTPS| I[CA]
@@ -209,6 +209,23 @@ Our project consists of five Pulumi projects, each with a specific role to play:
 
 Each project is a bundle of deployments, services, and even Helm charts. They are designed to group similar services that share characteristics, ensuring modularity and maintainability.
 
+The relationship between the stacks is illustrated below. An arrow pointing from a source to a target indicates that the source depends on the target. Since this is a layered approach, these relationships are also transitive (not drawn for simplicity).
+
+```mermaid
+---
+title: Pulumi Stacks Relationship
+---
+flowchart TD
+    B[Certificates] --> A[Infrastructure] 
+    C[Monitoring] --> B
+    D[Authentication] --> B
+    E[Application] --> B
+    E --> D
+    C --> D 
+```
+
+As a rule of thumb, whenever something towards the bottom is updated or modified, everything above should be restarted to cascade the changes or update dependencies. This means that performing tasks like password rotation in the infrastructure stack or updating the CA can become tedious.
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <a name="getting-started"></a>
@@ -240,7 +257,7 @@ Regardless, you'll need to initialize the stacks to ensure they are part of your
 pulumi stack init <stack>
 ```
 
-🤔 You might wonder, what is a stack? A stack is simply some state of resources. Stacks can also contain values similar to Helm chart values. There are two predefined stacks available: `dev` and `prod`. We use these stacks like environments, where `dev` is for development (specifically targeting Minikube), and `prod` is meant for any Kubernetes cluster, e.g., K3 or K8. If needed, you can create your own stack from scratch.
+🤔 You might wonder, what is a stack? A stack is simply some state of resources. Stacks can also contain values similar to Helm chart values. There are two predefined stacks available: `dev` and `ucloud`. We use these stacks like environments, where `dev` is for development (specifically targeting Minikube), and `ucloud` is meant for any Kubernetes cluster, e.g., K3 or K8. If needed, you can create your own stack from scratch.
 
 Before you start deploying, you'll need to install the Node modules. These modules can be specific for Pulumi, or any Node module you may want to use (e.g., axios). Install these modules by navigating to the `src` directory and running:
 
@@ -279,6 +296,14 @@ For even more advanced setups, if using a provider, the complete infrastructure 
 
 <a name="usage"></a>
 ## 🪁 How to Use the Platform
+
+Once the platform is deployed, the main guide will be available on the [homepage](https://ctf.jacopomauro.com). This comprehensive guide includes:
+
+- **Links to Different Services:** Easily navigate to various services provided by the platform.
+- **API Usage Guide:** Learn how to interact with the platform's API.
+- **SSH Connection Guide:** Detailed instructions on how to connect to challenges using SSH.
+
+For detailed information on how to deploy challenges, refer to the [Challenge Building Info](./challenge_building_info.md) document. This file contains all the necessary steps and best practices to create and deploy challenges effectively.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
