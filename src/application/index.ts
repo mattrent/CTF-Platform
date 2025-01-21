@@ -653,7 +653,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 {
                                     name: "DEPLOYER_HOST",
                                     value: HENRIK_BACKEND_HOST
-                                }
+                                },
                                 {
                                     name: "SERVER_NAME",
                                     value: SERVER_NAME
