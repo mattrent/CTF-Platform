@@ -5,11 +5,17 @@ config:
   application:BASTION_HOST: myhost
   application:CTFD_DATABASE_NAME: ctfd
   application:CTFD_HOST: myhost
+  application:CTFD_HOSTNAME: myhost
   application:CTFD_HTTP_RELATIVE_PATH: /ctfd/
   application:CTFD_OIDC_PLUGIN_PATH: ctfd/oidc
+  application:CTFD_RELATIVE_PATH: /ctfd/
+  application:GRAFANA_HOSTNAME: myhost
+  application:GRAFANA_RELATIVE_PATH: /grafana/
   application:HENRIK_BACKEND_HOST: deployer.local.lan
   application:HTTPD_TAG: alpine3.20
   application:IMAGE_REGISTRY_HOST: localregistry
+  application:KEYCLOAK_HOSTNAME: myhost
+  application:KEYCLOAK_RELATIVE_PATH: /keycloak/
   application:POSTGRESQL_VERSION: 16.2.2
   application:REGISTRY_EXPOSED_PORT: "443"
   application:REGISTRY_TAG: 2.8.3

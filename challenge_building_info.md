@@ -1,10 +1,20 @@
-# CTF Challenge Template
+# Guide to Create and Locally test the challenge
 
-This document provides a detailed explanation of the structure and purpose of the components in a CTF challenge template.
+This document aims at providing a detailed explanation of the structure and purpose of the components in a CTF challenge.
 
-Examples of challenges are available at [https://gitlab.sdu.dk/ctf/ctf_examples](https://gitlab.sdu.dk/ctf/ctf_examples)
+Examples of challenges are available at [https://gitlab.sdu.dk/ctf/ctf_examples](https://gitlab.sdu.dk/ctf/ctf_examples).
+In particular:
 
-## Template Structure
+* Challenge-Web provides a simple example of a web-based challenge where participants explore a website to find a hidden flag. This is usually a good example to start looking for the web-penetration challenge.
+* Challenge-Web-Links provides a more complex example providing two websites hosted on different subdomains.
+* Challenge-SSH provides an example of challenge in which participants gain entry to the challenge environment via an SSH server. Once connected, they can access two different websites hosted within the challenge environment that can be navigated by using for example port forwarding.
+* Challenge-Static provides an example of static challenge in which a file is provided to the players.
+* Challenge-Kali provides an example of a challenge in which players can access a Kali Linux distribution by using a virtual desktop environment.
+
+
+## CTF Template Structure
+
+The challenge is a collection of files with the following structure.
 
 ```
 challenge-name
@@ -23,50 +33,56 @@ challenge-name
 ### Root-Level Files
 
 The `README.md` contains a textual introduction to the challenge.
-Here you should summarize that is the challenge about.
+Here you should summarize what the challenge is about.
 
-The file `challenge.yml` specifies instead the metadata and configuration for the challenge.
+The file `challenge.yml` specifies instead the metadata and configuration for the challenge. If the challenge uses containers, its type should be set to `container`, otherwise it should set to `dynamic`.
 The important and necessary fields are the following ones.
 
-```
-name: <test>                    # Name of the challenge
-category: <category>           # Category to which the challenge belongs (e.g., web, crypto, pwn)
-description: <text>             # Description of the challenge shown to participants
+```yaml
+name: <test>                  # Name of the challenge
+category: <category>          # Category to which the challenge belongs (e.g., web, crypto, pwn, misc)
+description: <text>           # Description of the challenge shown to participants
 author: <test>                # Author of the challenge
-type: container                 # Type of challenge (e.g., standard, container, quiz, etc.)
+type: container               # Type of challenge (dynamic or container)
 
-solution:                       # How to solve the challenge (textual description for internal reference)
+solution:                     # How to solve the challenge (textual description for internal reference)
 
-flags:                          # The flag(s) that validate the challenge
+flags:                        # The flag that validate the challenge
   - flag{web-example}
 
+extra:                        # The number of points awarded when the challenge is solved. In the example, a function is used that decreases the number of awarded points as the number of solves increases (https://docs.ctfd.io/docs/custom-challenges/dynamic-value/).
+    function: linear
+    initial: 500
+    decay: 10
+    minimum: 50
+
 ```
 
-The format used is similar of the format used by CTFd (see, e.g., [Deploying Challenge Services in CTFd](https://docs.ctfd.io/tutorials/challenges/creating-challenges/?utm_source=chatgpt.com) )
+The format used is similar of the format used by CTFd (see, e.g., [Deploying Challenge Services in CTFd](https://docs.ctfd.io/tutorials/challenges/creating-challenges/)).
 
 
 ### Source Directory
 
 Contains the source code and configurations for the challenge.
 It should contain a docker compose and the required files to spawn all the needed containers to run the challenge.
-The docker-compose will be executed in an alpine VM having port 8080, 80433 and 8022.
+The docker-compose is meant to be executed in an Alpine VM having port 8080 and 8022 open for HTTP and SSH traffic.
 
 There are the following eternally set environment variables that docker-compose can use:
 * `HTTP_PORT` for the incoming port of HTTP connections
-* `HTTPS_PORT` for the incoming port of HTTPS connections
-* `DOMAIN` for the domain name of the challenge
+* `SSH_PORT` for the incoming port of SSH connections
+* `DOMAIN` for the domain name of the challenge. When deployed on the CTF platform, a random string like `6cf6f182-78e0-4c40` will be assigned to the deployed challenge that will be reachable using `6cf6f182-78e0-4c40.ctf.jacopomauro.com`.
 
-When submitted to the CTF platform, the docker-compose will deploy a challenge and generate a URL
-per challenge. A challenge receiving traffic on `HTTPS_PORT` will be accessible at https://$DOMAIN.ctf.jacopomauro.com
-**TODO Is domain the entire URL or only the string to add to ctf.jacopomauro.com?**
+When submitted to the CTF platform, the docker-compose will deploy a challenge and generate a URL per challenge. A challenge receiving traffic on `HTTP_PORT` will be accessible at https://$DOMAIN.ctf.jacopomauro.com
+The CTF platform will redirect the request and handle TLS termination.
 
-The platform expects the challenges to provide a health endpoint at `HTTP_PORT`, so it can check that the challenge is running. **TODO Conventions on health check. Code 200?**
-In case a
-health check fails, the challenge instance will be automatically restarted by Kubernetes.
+The platform expects the challenges to provide a health endpoint at `HTTP_PORT`, so it can check that the challenge is running. The endpoint should reply with a status code equal to or greater than 200 and less than 400.
+In case a health check fails, the challenge instance will be automatically restarted by the CTF platform.
+
+To ensure each container is restarted in case of an error, each services in the Docker Compose file should be configured with `restart: unless-stopped` or `restart: always`.
 
 ### Solution Directory
 
-Contains resources for testing and verifying the challenge. In particular, it should define a `Dockerfile` that builds an app to verify that the challenge is running as expected. The verifies should return in standard output the flag. **TODO Check with Henrik the convention. I guess it should have a run command and return a string?**
+Contains resources for testing and verifying the challenge. In particular, it should define a `Dockerfile` that contains an executable to verify that the challenge is working as expected and is solvable. The verifier should start automatically with the container (e.g., using the `CMD` or `ENTRYPOINT` instruction in the Dockerfile). If the verifier successfully solves the challenge, it should return status code 0 and write the found flag to standard output. If the verifier fails to solve the challenge it should return a status code different from 0.
 
 ### Handout Directory
 
@@ -76,7 +92,7 @@ Optional directory containing files for players.
 
 ## Testing challenges locally with QEMU
 
-The platform runs the challenges inside virtual machines, using QEMU as the hypervisor. Therefore, the easiest way to test if your challenge works is to run it locally through QEMU.
+The CTF platform runs the challenges inside virtual machines, using QEMU as the hypervisor. Therefore, the easiest way to test locally if your challenge would work is to run it locally through QEMU.
 
 ### Requirements
 
@@ -141,7 +157,7 @@ touch vendor-data
     - mkdir /run/challenge
     - wget --no-check-certificate -O "/run/challenge/challenge.zip" "http://10.0.2.2:8000/challenge.zip"
     - unzip -d "/run/challenge/challenge/" "/run/challenge/challenge.zip"
-    - HTTP_PORT="8080" HTTPS_PORT="8443" SSH_PORT="8022" DOMAIN="%s" docker compose -f "/run/challenge/challenge/compose.yaml" up -d
+    - HTTP_PORT="8080" HTTPS_PORT="8443" SSH_PORT="8022" DOMAIN="localhost" docker compose -f "/run/challenge/challenge/compose.yaml" up -d
     ```
 
   - `vendor-data`: empty.
@@ -157,7 +173,7 @@ This will have your `cloudinit` directory served on port 8000.
 
 ### Running the VM
 
-Now you simply have to run the VM using QEMU (with root permissions).
+Now you simply have to run the VM using QEMU.
 From the folder in which you have saved the alpine_VM.qcow2 image, run the startup command:
 
 ```console
@@ -166,7 +182,7 @@ qemu-system-x86_64  \
   -nographic \
   -snapshot \
   -net nic \
-  -netdev id=net00,type=user,hostfwd=tcp::2222-:2222,hostfwd=tcp::8080-:8080,hostfwd=tcp::8443-:8443 \
+  -netdev id=net00,type=user,hostfwd=tcp::8022-:8022,hostfwd=tcp::8080-:8080,hostfwd=tcp::8443-:8443 \
   -device virtio-net-pci,netdev=net00 \
   -drive if=virtio,format=qcow2,file=alpine_VM.qcow2 \
   -smbios type=1,serial=ds='nocloud;s=http://10.0.2.2:8000/'
@@ -237,22 +253,43 @@ If you encounter problems with the automated startup of the challenge using `doc
      docker compose down
      ```
 
+
+### Connecting to the challenge locally via SSH
+
+If the challenge is created to allow SSH connections via port 8022, it is possible to connect to it locally by running
+
+```bash
+ssh -D localhost:4000 -C -p 8022 <user>@localhost
+```
+
+where user is the username expected to be used and configured in the container running the SSH server.
+
+Note that it is also possible to use dynamic port forwarding to redirect traffic from a local port to a port in the container accessed using ssh.
+By configuring your browser or system to send traffic through the SOCKS proxy on port 8888, it is possible for example to navigate as accessing the web from the container hosting the SSH running the following command.
+
+```bash
+ssh -D localhost:8888 -C -p 8022 <username>@localhost
+```
+
+Then, 
 ---
 
 ## Remarks on Subdomain Challenges and Redirects
 
 If your challenge relies on subdomains, you need to handle redirection and domain configuration appropriately. The following points clarify how to set up challenges that depend on multiple subdomains or require specific domain behavior:
 
-* **Primary Access Point**:  
-   The primary access point for the challenge is `$DOMAIN.ctf.jacopomauro.com`. All HTTP and HTTPS traffic to the challenge must be routed through this domain.
+* **Primary Access Point**:
+   The primary access point for the challenge is `$DOMAIN.ctf.jacopomauro.com`. All HTTPS traffic to the challenge must be routed through this domain. The platform will perform TLS termination and redirect the traffic over HTTPS to the challenge VM.
 
-* **Handling Subdomains**:  
-   If your challenge requires multiple subdomains (e.g., `sub1.$DOMAIN.ctf.jacopomauro.com`, `sub2.$DOMAIN.ctf.jacopomauro.com`), you need to implement appropriate redirections within the challenge environment. The most common approach is to include an **nginx container** or similar reverse proxy in your `docker-compose` configuration. This container can route traffic to the correct subdomains internally.
+* **Handling Subdomains**:
+   If your challenge requires multiple subdomains (e.g., `sub1.$DOMAIN.ctf.jacopomauro.com`, `sub2.$DOMAIN.ctf.jacopomauro.com`), you need to implement appropriate redirections within the challenge environment. The most common approach is to include an **nginx container** or similar reverse proxy in your `docker-compose` configuration. This container can route traffic to the correct subdomains internally. Note that you are limited to have only one subdomain level (e.g., `sub1.$DOMAIN.ctf.jacopomauro.com` is OK but not `sub0.sub1.$DOMAIN.ctf.jacopomauro.com`).
 
-* **Challenges Needing Additional Domains**:  
+* **Challenges Needing Additional Domains**:
    If your challenge requires the use of multiple unique domains (beyond `$DOMAIN.ctf.jacopomauro.com`), consider allowing the player to use **SSH port forwarding**:
    - Provide an SSH service within a container, allowing the player to establish port-forwarding connections.
    - From the container, the player can navigate as if originating traffic from the internal environment, enabling access to any necessary domains or subdomains.
+
+  This is the most flexible solution since with port forwarding you allow the player to navigate as the player is navigating directly to the container accessed by SSH.
 
 
 ### Testing locally on challenges that rely on subdomains
@@ -273,7 +310,8 @@ If your example relies on subdomains, you might have to take some extra steps to
     -nographic \
     -snapshot \
     -net nic \
-    -netdev id=net00,type=user,hostfwd=tcp::2222-:2222,hostfwd=tcp::80-:8080,hostfwd=tcp::8443-:8443 \
+    -netdev id=net00,type=user,hostfwd=tcp::8022-:8022,hostfwd=tcp::80-:8080,\
+      hostfwd=tcp::8443-:8443 \
     -device virtio-net-pci,netdev=net00 \
     -drive if=virtio,format=qcow2,file=alpine_VM.qcow2 \
     -smbios type=1,serial=ds='nocloud;s=http://10.0.2.2:8000/'
@@ -281,12 +319,14 @@ If your example relies on subdomains, you might have to take some extra steps to
 
 Notice the difference in the second `hostfwd` option in the `-netdev` line.
 
-This will expose the 8080 port of the challenge on `http://localhost`, and in the `web-links` challenge this will enable the `http://web1.localhost` and `http://web2.localhost` endpoints to be reached correctly.  
+This will expose the 8080 port of the challenge on `http://localhost`, and in the `web-links` challenge this will enable the `http://web1.localhost` and `http://web2.localhost` endpoints to be reached correctly.
 
 ---
 ## Challenge Hardening
 
 To adhere to the principle of **defense in depth**, challenges should be hardened to minimize potential vulnerabilities. While the platform already isolates challenges from the host system, additional hardening should be applied to the container configuration itself.
+
+The hardening should be configured based on the features and requirements of the challenge.
 
 
 ### Key Hardening Strategies
@@ -303,16 +343,18 @@ To adhere to the principle of **defense in depth**, challenges should be hardene
 Below is an example of a hardened container configuration in Docker Compose:
 
 ```yaml
-user: 1001               # Run as a non-root user
+user: "1001"             # Run as a non-root user
 cap_drop:
-  - ALL                 # Drop all capabilities
+  - ALL                  # Drop all capabilities
+cap_add:                 # Add back needed capabilities
+  - CAP_CHOWN
 read_only: true          # Set filesystem to read-only
 security_opt:
   - no-new-privileges    # Prevent privilege escalation
 deploy:
   resources:             # Resource limits
     limits:
-      cpus: '0.50'       # Limit CPU usage to 50%
+      cpus: "0.50"       # Limit CPU usage to 50%
       memory: 50M        # Limit memory usage to 50 MB
 ```
 
@@ -320,6 +362,6 @@ deploy:
 ### Linting and Validation
 
 - Use tools to validate files:
-  - Docker Compose: `docker compose configure`
+  - Docker Compose: `docker compose config`
   - Dockerfiles: `hadolint`
   - Static analysis: `Trivy`

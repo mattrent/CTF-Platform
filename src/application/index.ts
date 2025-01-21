@@ -48,6 +48,12 @@ const HTTPD_TAG = config.require("HTTPD_TAG");
 const SSLH_TAG = config.require("SSLH_TAG");
 const SERVER_NAME = config.require("SERVER_NAME");
 const ACME_DIRECTORY = config.require("ACME_DIRECTORY");
+const GRAFANA_HOSTNAME = config.require("GRAFANA_HOSTNAME");
+const GRAFANA_RELATIVE_PATH = config.require("GRAFANA_RELATIVE_PATH");
+const KEYCLOAK_HOSTNAME = config.require("KEYCLOAK_HOSTNAME");
+const KEYCLOAK_RELATIVE_PATH = config.require("KEYCLOAK_RELATIVE_PATH");
+const CTFD_HOSTNAME = config.require("CTFD_HOSTNAME");
+const CTFD_RELATIVE_PATH = config.require("CTFD_RELATIVE_PATH");
 const ACME_EMAIL = config.require("ACME_EMAIL");
 // Remove trailing slash if it exists, but keep the root '/' intact
 const cleanedCtfdPath = (CTFD_HTTP_RELATIVE_PATH !== '/' && CTFD_HTTP_RELATIVE_PATH.endsWith('/'))
@@ -641,9 +647,13 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     value: "ingress-nginx-controller.ingress-nginx"
                                 },
                                 {
-                                    name: "STEP_CA_HOST",
-                                    value: STEP_CA_HOST
+                                    name: "WELCOME_HOST",
+                                    value: WELCOME_HOST
                                 },
+                                {
+                                    name: "DEPLOYER_HOST",
+                                    value: HENRIK_BACKEND_HOST
+                                }
                                 {
                                     name: "SERVER_NAME",
                                     value: SERVER_NAME
@@ -759,6 +769,18 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 {
                                     name: "DEPLOYER_HOST",
                                     value: HENRIK_BACKEND_HOST
+                                },
+                                {
+                                    name: "GRAFANA_URL",
+                                    value: GRAFANA_HOSTNAME+GRAFANA_RELATIVE_PATH
+                                },
+                                {
+                                    name: "KEYCLOAK_URL",
+                                    value: KEYCLOAK_HOSTNAME+KEYCLOAK_RELATIVE_PATH
+                                },
+                                {
+                                    name: "CTFD_URL",
+                                    value: CTFD_HOSTNAME+CTFD_RELATIVE_PATH
                                 }
                             ]
                         },
