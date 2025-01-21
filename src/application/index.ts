@@ -633,7 +633,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 "--foreground",
                                 "--listen=0.0.0.0:3443",
                                 "--tls=localhost:3080",
-                                "--http=ingress-nginx-controller.ingress-nginx:80", // use IPv6 // upgrade connection to https
+                                "--http=localhost:80", // use IPv6 // upgrade connection to https
                                 "--ssh=bastion:22"
                             ],
                             ports: [{ containerPort: 3443 }]
