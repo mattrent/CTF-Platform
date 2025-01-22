@@ -1,6 +1,6 @@
 encryptionsalt: v1:kwJXUuFUtJw=:v1:XcAKEpGkBi0eLJzZ:EG+LZd0hkcKbsDvU55P9Lo6YPwLsbA==
 config:
-  application:ACME_DIRECTORY: https://acme-staging-v02.api.letsencrypt.org/directory
+  application:ACME_DIRECTORY: https://acme-v02.api.letsencrypt.org/directory
   application:ACME_EMAIL: kilar20@student.sdu.dk
   application:BASTION_HOST: ctf.jacopomauro.com
   application:CTFD_DATABASE_NAME: ctfd

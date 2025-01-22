@@ -595,7 +595,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     const CERTBOT_OPTIONS = stack === Stack.DEV ? "--no-verify-ssl" : ""
 
-    const nginxImageHttp = new docker.Image("nginx-http-image", {
+    const nginxImageCertbot = new docker.Image("nginx-certbot-image", {
         build: {
             context: "./nginx",
             dockerfile: "./nginx/Dockerfile",
@@ -612,11 +612,11 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             username: dockerUsername,
             password: dockerPassword
         },
-        imageName: `${IMAGE_REGISTRY_SERVER}/nginx:http-latest`,
+        imageName: `${IMAGE_REGISTRY_SERVER}/nginx:certbot-latest`,
         skipPush: false,
     }, { dependsOn: registryDependencyList });
 
-    nginxImageHttp.repoDigest.apply(digest => console.log("nginx-http image digest:", digest))
+    nginxImageCertbot.repoDigest.apply(digest => console.log("nginx-certbot image digest:", digest))
 
     new k8s.apps.v1.Deployment("sslh-deployment", {
         metadata: { namespace: stack },
@@ -640,7 +640,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                         },
                         {
                             name: "sslh-proxy",
-                            image: nginxImageHttp.repoDigest,
+                            image: nginxImageCertbot.repoDigest,
                             env: [
                                 {
                                     name: "PROXY_PASS_URL",
@@ -678,7 +678,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 }
             }
         }
-    }, { dependsOn: [bastion, nginxImageHttp] });
+    }, { dependsOn: [bastion, nginxImageCertbot] });
 
     if (stack == Stack.DEV) {
         new k8s.core.v1.Service("acme-proxy", {
@@ -729,7 +729,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         skipPush: false,
     }, { dependsOn: registryDependencyList });
 
-    nginxImageHttp.repoDigest.apply(digest => console.log("welcome image digest:", digest))
+    welcomeImage.repoDigest.apply(digest => console.log("welcome image digest:", digest))
 
     const SSH_PUB_CERT = caCert.data.apply(data => data['ssh_host_ca_key.pub']);
 

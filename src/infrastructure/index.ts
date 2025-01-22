@@ -42,6 +42,7 @@ export const backendApiPostgresql = pulumi.secret(crypto.randomBytes(32).toStrin
 /* ------------------------ NGINX ingress controller ------------------------ */
 
 if (stack === Stack.DEV) {
+    // ? Maybe disable HSTS
     new command.local.Command("enable-ingress", {
         create: "minikube addons enable ingress",
         delete: "minikube addons disable ingress"
@@ -69,6 +70,13 @@ if (stack === Stack.DEV) {
                 service: {
                     type: "ClusterIP"
                 },
+                // ! Disable HSTS
+                // https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/nginx-configuration/configmap.md
+                config: {
+                    "hsts": "false",
+                    "hsts-include-subdomains": "false",
+                    "hsts-max-age": "0"
+                }
             },
         },
     });
