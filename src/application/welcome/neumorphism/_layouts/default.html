@@ -54,6 +54,11 @@
         {% include section-connect-ssh.html %}
       </section>
     {% endif %}
+    {%if site.connection_show_card %}
+      <section class="card neumorphism-card-big">
+        {% include section-trusted-connection.html %}
+      </section>
+    {% endif %}
   </div>
   {% include footer.html %}
 </body>

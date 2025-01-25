@@ -5,25 +5,24 @@
 
 <ol>
     <li>
-        <strong>Install <code>step</code></strong>: Begin by installing the <code>step</code> tool:
+        <strong>Install <code>step</code></strong>: Begin by installing the <code>step</code> tool. If you are on Windows, please refer to their <a class="highlight-link" href="https://smallstep.com/docs/step-cli/installation/#windows" target="_blank" rel="noreferrer">Windows installation guide</a>.
 <pre data-aos="zoom-in-right">
 <code class="language-bash">wget https://dl.smallstep.com/cli/docs-cli-install/latest/step-cli_amd64.deb
 sudo dpkg -i step-cli_amd64.deb</code></pre>
     </li>
     <li>
-        <strong>Bootstrap the CA</strong>: Once <code>step</code> is installed, bootstrap the CA by running the following command:
+        <strong>Bootstrap the CA</strong>: Once <code>step</code> is installed, bootstrap the CA by running the following command. This command will install the root certificate into the system's default trust store and configure our certificate providers.
 <pre data-aos="zoom-in-left">
 <code class="language-bash">step ca bootstrap \
   --ca-url https://{{site.ssh_step_ca_host}} \
   --fingerprint {{site.ssh_step_ca_fingerprint}} \
-  --install
-
-# Refresh ssh agent 
-eval $(ssh-agent)</code></pre>
+  --install</code></pre>
     </li>
     <li>
         <strong>Issue an SSH Certificate</strong>: After bootstrapping the CA, you can issue an ephemeral SSH certificate by logging in. Use the issued SSH certificate to connect to the challenge environment. The certificate will be valid for 24 hours. After 24 hours, your certificate will expire. To continue accessing the challenges, simply log in again to renew your certificate:
-        <pre data-aos="zoom-in-right"><code class="language-bash">step ssh login --issuer keycloak</code></pre>
+        <pre data-aos="zoom-in-right"><code class="language-bash"># Refresh ssh agent (on Linux)
+eval $(ssh-agent)
+step ssh login --issuer keycloak</code></pre>
     </li>
     <li>
         <strong>Accessing Challenge Environments</strong>: To access the challenge environments, the virtual machines (VMs) running the challenges are hidden behind an SSH bastion host. Users must perform an SSH proxy jump through the bastion to reach their specific challenge environments. The command you will need to use is given below:

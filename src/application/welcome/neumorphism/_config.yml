@@ -32,6 +32,8 @@ ssh_step_ca_fingerprint: $CA_FINGERPRINT
 bastion_host: $BASTION_HOST
 ssh_ca-pub-cert: $SSH_PUB_CERT
 
+connection_show_card: true
+
 exclude:
   [
     "_assets",
