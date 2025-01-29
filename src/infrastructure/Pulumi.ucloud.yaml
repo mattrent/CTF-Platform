@@ -4,4 +4,4 @@ config:
   infrastructure:KUBEVIRT_VERSION: v1.3.1
   infrastructure:NGINX_VERSION: 4.11.3
   infrastructure:PROVISIONER_PATH: /tmp/local-path-provisioner
-  infrastructure:PROVISIONER_VOLUME_TYPE: local
+  infrastructure:PROVISIONER_VOLUME_TYPE: hostPath
