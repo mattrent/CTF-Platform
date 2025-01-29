@@ -65,7 +65,7 @@ jobs:
 
       - name: Create pulumi_passphrase
         run: |
-          echo ${{ secrets.PULUMI_PASSPHRASE }} > pulumi_passphrase
+          echo ${{ secrets.PULUMI_CONFIG_PASSPHRASE }} > pulumi_passphrase
         working-directory: ucloud-k8s
 
       - name: Run Ansible Playbook
