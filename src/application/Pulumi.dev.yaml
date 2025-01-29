@@ -1,4 +1,4 @@
-encryptionsalt: v1:cmBhEiLHsIc=:v1:dJnXvH6dgqk0iNJF:9EltKb6YQw6aIy8dIGxPwUhJ6aWjkQ==
+encryptionsalt: v1:kyRGJiOz/ug=:v1:L0QfDyz+Zx1QE6dj:ImemHDIbEHV+f9ekvnNLI2w0f+m81w==
 config:
   application:ACME_DIRECTORY: https://step-step-certificates/acme/acme/directory
   application:ACME_EMAIL: kilar20@student.sdu.dk

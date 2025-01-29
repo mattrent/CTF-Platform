@@ -1,4 +1,4 @@
-encryptionsalt: v1:YMYAEkyvB5o=:v1:XCJkE4ADyAs1PoPk:zetPZSUI6YrenfBfwr8DKFwxwzAyyw==
+encryptionsalt: v1:gHMZ1eIOYME=:v1:9l/q9hcJVclkcFCZ:pUULdzJ0FQlYM3KwpeApzryjBasxDQ==
 config:
   authentication:CTFD_HOST: myhost
   authentication:CTFD_HTTP_RELATIVE_PATH: /ctfd/
@@ -7,9 +7,9 @@ config:
   authentication:KEYCLOAK_HOST: myhost
   authentication:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
   authentication:KEYCLOAK_PWD:
-    secure: v1:HZdv3X3TXdxCwkbx:k46VYAGmi9yMBUsE2oXxmrJzD9Wf
+    secure: v1:YT3qsxSlTqxxH/ac:sjgHumZb3NVyDnuicuGrsILLk14L
   authentication:KEYCLOAK_USER:
-    secure: v1:PtP60UJfQo/3NOfl:P44a+lpWgV732zNqhdfBc14p3pKQ
+    secure: v1:bBdPxYsmLVjhwutt:49W2Ize2iUrGsG9fEGbPYTcANcQJ
   authentication:KEYCLOAK_VERSION: 24.0.2
   authentication:REALM_CONFIGURATION_FILE: realm.json
   authentication:SSLH_TAG: 2.1.2

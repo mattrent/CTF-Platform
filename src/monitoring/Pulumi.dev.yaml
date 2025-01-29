@@ -1,4 +1,4 @@
-encryptionsalt: v1:dD3UZ13UAKo=:v1:WVk6qrwPj6dzlqpW:dk7gvr8AVTcoit94RPtYUssn+yoEVg==
+encryptionsalt: v1:hAnnm71zxi4=:v1:I9wec54rvT/oKtb+:4lZxzNK8Ymk/3grmDaCqUcwibf9utw==
 config:
   monitoring:GRAFANA_HOST: myhost
   monitoring:GRAFANA_HTTP_RELATIVE_PATH: /grafana/

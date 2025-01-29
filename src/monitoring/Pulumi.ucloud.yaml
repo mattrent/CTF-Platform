@@ -1,4 +1,4 @@
-encryptionsalt: v1:8a5zUYFTTR8=:v1:xj5R/1k4yZObszgn:JyiE8GUHGbnbjePOl95WFKRd1O54hQ==
+encryptionsalt: v1:+qv5AsAv6SY=:v1:NmE5uaBayho6lUtI:5oXzea/u4Oq/IOwMntIVQPy6iDfWrg==
 config:
   monitoring:GRAFANA_HOST: ctf.jacopomauro.com
   monitoring:GRAFANA_HTTP_RELATIVE_PATH: /grafana/

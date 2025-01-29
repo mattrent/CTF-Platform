@@ -1,4 +1,4 @@
-encryptionsalt: v1:Yn64XGcG2fM=:v1:83k/nEZl3fHFJDnK:kL6TMSYcRmDH/kkKhK2vi9TM1oTTiA==
+encryptionsalt: v1:DJPkpaO7mCs=:v1:nf3CUGE52nelwtQF:Ih68PGgVgzQIDIXoCav/Th/4mZ8uiw==
 config:
   certificates:CERT-MANAGER_VERSION: 1.16.2
   certificates:KEYCLOAK_HOST: myhost

@@ -1,4 +1,4 @@
-encryptionsalt: v1:zPoG23l2tQM=:v1:236kCqA5fFQjjva8:FbxN1M34v0e+4jZPdbie3UU/pJVWsg==
+encryptionsalt: v1:qv/dHGtEVzY=:v1:OTtM0+INka/mrWD3:3DP1Fg3++xKfr7/rnR98b7hw89Z2PA==
 config:
   authentication:CTFD_HOST: ctf.jacopomauro.com
   authentication:CTFD_HTTP_RELATIVE_PATH: /ctfd/
@@ -7,9 +7,9 @@ config:
   authentication:KEYCLOAK_HOST: ctf.jacopomauro.com
   authentication:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
   authentication:KEYCLOAK_PWD:
-    secure: v1:tjVKE+uWKel/bQVt:EMzP8U3CUUl9xrpaYKzQLpt67snS
+    secure: v1:SSWCCnXTsJ/SCYlX:8ssHxf9df36+pvAbxJlo9LdLXLZLLohibwz1XSYuHel6wNF+2hNIuvcE0CmL9GS+
   authentication:KEYCLOAK_USER:
-    secure: v1:yds5mwQxV36EsE5t:+5Jh3+v7NF04SO98egoz3cdngEI+
+    secure: v1:oQp5QRXj0S2SpAPq:uX3Y5ZbB1nAeERBWy8JXSXzA0O4Q
   authentication:KEYCLOAK_VERSION: 24.0.2
   authentication:REALM_CONFIGURATION_FILE: realm.json
   authentication:SSLH_TAG: 2.1.2

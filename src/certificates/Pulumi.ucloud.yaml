@@ -1,4 +1,4 @@
-encryptionsalt: v1:hDuZoHuW94o=:v1:DgxM34RVvo/YtlLS:qogNFqUOPyR4lrawSbPqCQP0AHx5Ww==
+encryptionsalt: v1:jaRZpPJjDHU=:v1:GQ3vwRv8aPgNoUPH:eP0oPalAwV9lmrrunG5OfI8efmDatw==
 config:
   certificates:CERT-MANAGER_VERSION: 1.16.2
   certificates:KEYCLOAK_HOST: ctf.jacopomauro.com

@@ -1,4 +1,4 @@
-encryptionsalt: v1:oEgFURhW14A=:v1:swU625FHZp6cZERd:ONRFaNwkQlf/cFLS4WrLy2MbS9vOEg==
+encryptionsalt: v1:ltJQYERw+vs=:v1:hEp0OAhGl5mXORJm:0pHbCL1kSzyCmP1lSP4RtUqUbxX/Sw==
 config:
   infrastructure:KUBE-PROMETHEUS-STACK_VERSION: 66.2.2
   infrastructure:KUBEVIRT_VERSION: v1.3.1

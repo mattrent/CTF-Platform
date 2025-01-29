@@ -1,4 +1,4 @@
-encryptionsalt: v1:kwJXUuFUtJw=:v1:XcAKEpGkBi0eLJzZ:EG+LZd0hkcKbsDvU55P9Lo6YPwLsbA==
+encryptionsalt: v1:ErGVpQpLITw=:v1:Eo3NOVNslw1m9pvL:fOQdhaJnBRyRh6uJNETKo0HFBSjkLA==
 config:
   application:ACME_DIRECTORY: https://acme-v02.api.letsencrypt.org/directory
   application:ACME_EMAIL: kilar20@student.sdu.dk
