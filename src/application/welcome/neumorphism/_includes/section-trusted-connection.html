@@ -7,13 +7,13 @@
 
 <p>The subsequent commands require the Step-CLI to be installed on your system. You can install Step-CLI on Linux using the command below. If you are on Windows, please refer to their <a class="highlight-link" href="https://smallstep.com/docs/step-cli/installation/#windows" target="_blank" rel="noreferrer">Windows installation guide</a>.</p>
 
-<pre data-aos="zoom-in-right">
+<pre data-aos="zoom-in-left">
 <code class="language-bash">wget https://dl.smallstep.com/cli/docs-cli-install/latest/step-cli_amd64.deb
 sudo dpkg -i step-cli_amd64.deb</code></pre>
 
 <p>You can then install the root certificate into the OS's default trust store by executing the command given below.</p>
 
-<pre data-aos="zoom-in-left">
+<pre data-aos="zoom-in-right">
 <code class="language-bash">step ca bootstrap \
     --ca-url https://{{site.ssh_step_ca_host}} \
     --fingerprint {{site.ssh_step_ca_fingerprint}} \
@@ -27,10 +27,10 @@ step certificate install $CERTFOLDER/$(ls -t $CERTFOLDER | grep Step | head -n 1
 
 <p>A similar command can be used on Windows; you simply have to specify the exact certificate that you want to install. The bootstrap command will provide you with its location on the OS.</p>
 
-<pre data-aos="zoom-in-left">
+<pre data-aos="zoom-in-right">
 <code class="language-bash">step install certificate &lt;certPath&gt; --java --firefox --no-system</code></pre>
 
 <p>The steps shown in this section are not mandatory unless you want to verify the HTTPS connection.</p>
 
-<p><strong>Note</strong>: If we rotate the root certificate for any reason, and you have previously installed the root certificate in your browser, you should either update the certificate or remove the old one. Use this command to do it: <pre><code class="language-bash">step certificate uninstall &lt;certPath&gt; --all</code></pre> Otherwise, your browser may display a signature error. You cannot bypass this prompt. However, in Chrome and Edge, you can type "thisisunsafe" on your keyboard to continue.</p>
+<p><strong>Note</strong>: If we rotate the root certificate for any reason, and you have previously installed the root certificate in your browser, you should either update the certificate or remove the old one. Use this command to do it: <pre data-aos="zoom-in-left"><code class="language-bash">step certificate uninstall &lt;certPath&gt; --all</code></pre> Otherwise, your browser may display a signature error. You cannot bypass this prompt. However, in Chrome and Edge, you can type "thisisunsafe" on your keyboard to continue.</p>
 </div>

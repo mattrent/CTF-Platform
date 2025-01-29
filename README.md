@@ -218,7 +218,7 @@ title: Pulumi Stacks Relationship
 flowchart TD
     B[Certificates] --> A[Infrastructure] 
     C[Monitoring] --> B
-    D[Authentication] --> B
+    D[Authentication] --> B --> D
     E[Application] --> B
     E --> D
     C --> D 
@@ -313,7 +313,7 @@ Deploying our platform onto UCloud is straightforward with our Ansible script. T
 
 We're also using [GitHub Actions](https://github.com/KianBankeLarsen/CTF-Platform/actions/workflows/ucloud-deploy.yml) in the main-wrapping repository to automate our CI/CD workflows. This helps keep everything up-to-date and running smoothly.
 
-For detailed setup instructions and more information, check out the [README.md](./ucloud-k8s/README.md).
+For detailed setup instructions and more information, check out the [ucloud-k8s](./ucloud-k8s/README.md) README.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
