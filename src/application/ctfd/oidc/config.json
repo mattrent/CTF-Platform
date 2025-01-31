@@ -4,5 +4,6 @@
     "OIDC_CLIENT_ID": "ctfd",
     "OIDC_CLIENT_SECRET": "${OIDC_CLIENT_SECRET}",
     "OIDC_SERVER": "https://keycloak/keycloak/",
-    "OIDC_REALM": "ctf"
+    "OIDC_REALM": "ctf",
+    "CERT_BUNDLE": "/var/run/autocert.step.sm/root.crt"
 }

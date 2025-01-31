@@ -1,8 +1,7 @@
 import os
 
-import jwt
 from CTFd.cache import clear_challenges, clear_standings, clear_user_session
-from CTFd.models import Admins, Users, db
+from CTFd.models import Users, db
 from CTFd.schemas.users import UserSchema
 from CTFd.utils import set_config
 from CTFd.utils import user as current_user
@@ -24,6 +23,7 @@ def load(app):
     oidc_client_secret = config['OIDC_CLIENT_SECRET']
     oidc_server = config['OIDC_SERVER']
     oidc_realm = config['OIDC_REALM']
+    cert_bundle = config['CERT_BUNDLE']
 
     # ---------------------------- login functionality --------------------------- #
 
@@ -68,12 +68,13 @@ def load(app):
 
     # -------------------------- Endpoint configuration -------------------------- #
 
+    # https://python-keycloak.readthedocs.io/en/latest/reference/keycloak/index.html
     keycloak_openid = KeycloakOpenID(
         server_url=oidc_server,
         client_id=oidc_client_id,
         realm_name=oidc_realm,
         client_secret_key=oidc_client_secret,
-        verify=False
+        verify=cert_bundle if cert_bundle else True
     )
 
     @app.route('/keycloak', methods=['GET'])
@@ -102,11 +103,7 @@ def load(app):
         session['token'] = token
         access_token = token['access_token']
 
-        # https://pyjwt.readthedocs.io/en/latest/usage.html#reading-the-claimset-without-validation
-        # ! Token not verified
-        # TODO http://localhost/keycloak/realms/ctf/protocol/openid-connect/certs
-        access_token_decoded = jwt.decode(access_token, ['RS256'], options={
-                                          "verify_signature": False})
+        access_token_decoded = keycloak_openid.decode_token(access_token)
 
         try:
             resource_access = access_token_decoded['resource_access']

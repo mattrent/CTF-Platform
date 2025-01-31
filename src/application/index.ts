@@ -328,7 +328,6 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             data: configMapOidc,
         });
 
-        // TODO verify OIDC TLS
         new k8s.apps.v1.Deployment("ctfd-deployment", {
             metadata: { namespace: NS },
             spec: {
