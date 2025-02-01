@@ -36,6 +36,12 @@ const stepCaSecret = stackReference.requireOutput("stepCaSecret") as pulumi.Outp
 
 /* -------------------------------- keycloak -------------------------------- */
 
+let keycloakCleanedPath = KEYCLOAK_HTTP_RELATIVE_PATH;
+
+if (KEYCLOAK_HTTP_RELATIVE_PATH !== "/" && KEYCLOAK_HTTP_RELATIVE_PATH.endsWith("/")) {
+        keycloakCleanedPath = KEYCLOAK_HTTP_RELATIVE_PATH.slice(0, -1);
+}
+
 const keycloakCert = new k8s.apiextensions.CustomResource("keycloak-inbound-tls", {
     apiVersion: "cert-manager.io/v1",
     kind: "Certificate",
@@ -149,7 +155,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
                 existingSecret: keycloakCert.metadata.name,
                 usePem: true
             },
-            httpRelativePath: KEYCLOAK_HTTP_RELATIVE_PATH,
+            httpRelativePath: `${keycloakCleanedPath}/`,
             auth: {
                 adminUser: KEYCLOAK_USER,
                 adminPassword: KEYCLOAK_PWD
@@ -165,6 +171,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
                     "cert-manager.io/issuer-kind": "StepIssuer",
                     "cert-manager.io/issuer-group": "certmanager.step.sm"
                 },
+                path: keycloakCleanedPath,
                 tls: true,
                 hostname: KEYCLOAK_HOST,
             },
