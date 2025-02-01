@@ -399,6 +399,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 "cert-manager.io/issuer": "step-issuer",
                 "cert-manager.io/issuer-kind": "StepIssuer",
                 "cert-manager.io/issuer-group": "certmanager.step.sm",
+                // traling slash is expected
+                "nginx.ingress.kubernetes.io/rewrite-target": `${cleanedCtfdPath}/$2`,
             },
         },
         spec: {
@@ -411,8 +413,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 host: CTFD_HOST,
                 http: {
                     paths: [{
-                        path: cleanedCtfdPath,
-                        pathType: "Prefix",
+                        path: `${cleanedCtfdPath}(/|$)(.*)`,
+                        pathType: "ImplementationSpecific",
                         backend: {
                             service: {
                                 name: ctfdService.metadata.name,

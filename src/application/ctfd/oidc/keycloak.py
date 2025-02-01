@@ -1,13 +1,15 @@
+import datetime
 import os
 
+import jwcrypto
 from CTFd.cache import clear_challenges, clear_standings, clear_user_session
 from CTFd.models import Users, db
 from CTFd.schemas.users import UserSchema
 from CTFd.utils import set_config
-from CTFd.utils import user as current_user
+from CTFd.utils.decorators import authed_only
 from CTFd.utils.security.auth import login_user, logout_user
 from flask import current_app, json, redirect, request, session, url_for
-from keycloak import KeycloakOpenID
+from keycloak import KeycloakOpenID, KeycloakPostError
 
 from .utils import Role
 
@@ -131,24 +133,51 @@ def load(app):
             elif Role.USER in roles and Role.ADMIN not in roles and Role.USER != provider_user.type:
                 patch_user(provider_user.id, {'type': Role.USER.value})
 
-        return redirect(current_app.config.get("APPLICATION_ROOT"))
+        return redirect(current_app.config.get('APPLICATION_ROOT'))
 
+    @authed_only
     @app.route('/keycloak-logout', methods=['GET'])
     def keycloak_logout():
+        try:
+            # SSO logout
+            keycloak_openid.logout(session['token']['refresh_token'])
+        except (KeyError, KeycloakPostError):
+            # User not logged in via Keycloak
+            #   do not care
+            pass
 
-        if current_user.authed():
+        # Logout from CTFd
+        logout_user()
+
+        return redirect(current_app.config.get('APPLICATION_ROOT'))
+
+    @authed_only
+    @app.before_request
+    def get_new_access_if_expired():
+        if 'token' not in session:
+            return
+
+        expired = False
+        now = datetime.datetime.now().timestamp()
+        token = session["token"]
+
+        try:
+            access_token = keycloak_openid.decode_token(token['access_token'])
+            exp = access_token["exp"]
+            if exp - 10 < now:
+                expired = True
+        except jwcrypto.jwt.JWTExpired:
+            expired = True
+
+        if expired:
+            # Refresh token
             try:
-                # SSO logout
-                keycloak_openid.logout(session['token']['refresh_token'])
-            except KeyError:
-                # User not logged in via Keycloak
-                #   do not care
-                pass
-
-            # Logout from CTFd
-            logout_user()
-
-        return redirect(current_app.config.get("APPLICATION_ROOT"))
+                token = keycloak_openid.refresh_token(token['refresh_token'])
+                session['token'] = token
+            # Or logout the user if the token is invalid
+            except KeycloakPostError:
+                logout_user()
+                return app.view_functions['auth.login']()
 
     # ------------------------ Application Reconfiguration ----------------------- #
 
