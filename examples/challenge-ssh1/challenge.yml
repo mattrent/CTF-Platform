@@ -1,0 +1,16 @@
+name: ssh1
+author: "author"
+category: category
+description: A SSH challenge
+type: container
+
+extra:
+    function: linear
+    initial: 500
+    decay: 10
+    minimum: 50
+
+solution: Solution description
+
+flags:
+    - flag{ssh-example}

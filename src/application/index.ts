@@ -587,7 +587,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 BACKENDURL: `http://deployer.${NS}.svc.cluster.local:8080`,
                 JWKSURL: "https://keycloak/keycloak/realms/ctf/protocol/openid-connect/certs",
                 ROOTCERT: "/var/run/autocert.step.sm/root.crt",
-                CHALLENGEDOMAIN: "." + HENRIK_BACKEND_HOST
+                CHALLENGEDOMAIN: "." + HENRIK_BACKEND_HOST,
+                VMIMAGEURL: "registry.gitlab.com/ctf9215737/ctf/alpinevm:latest"
             }
         }
     }, { dependsOn: backendAPI });
