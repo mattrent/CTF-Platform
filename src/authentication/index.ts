@@ -59,7 +59,7 @@ const keycloakCert = new k8s.apiextensions.CustomResource("keycloak-inbound-tls"
         ],
         issuerRef: {
             group: "certmanager.step.sm",
-            kind: "StepIssuer",
+            kind: "StepClusterIssuer",
             name: "step-issuer",
         },
     },
@@ -81,7 +81,7 @@ const postgresCert = new k8s.apiextensions.CustomResource("postgres-inbound-tls"
         ],
         issuerRef: {
             group: "certmanager.step.sm",
-            kind: "StepIssuer",
+            kind: "StepClusterIssuer",
             name: "step-issuer",
         },
     },
@@ -168,7 +168,7 @@ pulumi.all([grafanaRealmSecret, ctfdRealmSecret, stepCaSecret]).apply(([grafanaS
                     "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
                     "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
                     "cert-manager.io/issuer": "step-issuer",
-                    "cert-manager.io/issuer-kind": "StepIssuer",
+                    "cert-manager.io/issuer-kind": "StepClusterIssuer",
                     "cert-manager.io/issuer-group": "certmanager.step.sm"
                 },
                 path: keycloakCleanedPath,

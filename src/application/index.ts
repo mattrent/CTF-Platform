@@ -180,7 +180,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                     "nginx.ingress.kubernetes.io/proxy-body-size": "0", // disable package size
                     "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
                     "cert-manager.io/issuer": "step-issuer",
-                    "cert-manager.io/issuer-kind": "StepIssuer",
+                    "cert-manager.io/issuer-kind": "StepClusterIssuer",
                     "cert-manager.io/issuer-group": "certmanager.step.sm"
                 },
             },
@@ -241,7 +241,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             ],
             issuerRef: {
                 group: "certmanager.step.sm",
-                kind: "StepIssuer",
+                kind: "StepClusterIssuer",
                 name: "step-issuer",
             },
         },
@@ -397,7 +397,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
                 "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
                 "cert-manager.io/issuer": "step-issuer",
-                "cert-manager.io/issuer-kind": "StepIssuer",
+                "cert-manager.io/issuer-kind": "StepClusterIssuer",
                 "cert-manager.io/issuer-group": "certmanager.step.sm",
                 // traling slash is expected
                 "nginx.ingress.kubernetes.io/rewrite-target": `${cleanedCtfdPath}/$2`,
@@ -812,7 +812,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
                 "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
                 "cert-manager.io/issuer": "step-issuer",
-                "cert-manager.io/issuer-kind": "StepIssuer",
+                "cert-manager.io/issuer-kind": "StepClusterIssuer",
                 "cert-manager.io/issuer-group": "certmanager.step.sm"
             },
         },

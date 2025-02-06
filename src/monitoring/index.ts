@@ -41,7 +41,7 @@ const grafanaIngressAnnotations: {[key: string]: string} = {
     "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
     "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
     "cert-manager.io/issuer": "step-issuer",
-    "cert-manager.io/issuer-kind": "StepIssuer",
+    "cert-manager.io/issuer-kind": "StepClusterIssuer",
     "cert-manager.io/issuer-group": "certmanager.step.sm"
 };
 
@@ -286,7 +286,7 @@ const prometheusCert = new k8s.apiextensions.CustomResource("prometheus-inbound-
         ],
         issuerRef: {
             group: "certmanager.step.sm",
-            kind: "StepIssuer",
+            kind: "StepClusterIssuer",
             name: "step-issuer",
         },
     },
@@ -308,7 +308,7 @@ const nodeExporterCert = new k8s.apiextensions.CustomResource("node-exporter-inb
         ],
         issuerRef: {
             group: "certmanager.step.sm",
-            kind: "StepIssuer",
+            kind: "StepClusterIssuer",
             name: "step-issuer",
         },
     },
@@ -330,7 +330,7 @@ const kubeStateMetrics = new k8s.apiextensions.CustomResource("kube-state-metric
         ],
         issuerRef: {
             group: "certmanager.step.sm",
-            kind: "StepIssuer",
+            kind: "StepClusterIssuer",
             name: "step-issuer",
         },
     },
@@ -419,7 +419,7 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
                     },
                     issuerRef: {
                         group: "certmanager.step.sm",
-                        kind: "StepIssuer",
+                        kind: "StepClusterIssuer",
                         name: "step-issuer",
                     }
                 }

@@ -3,6 +3,7 @@ config:
   certificates:CERT-MANAGER_VERSION: 1.16.2
   certificates:KEYCLOAK_HOST: myhost
   certificates:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
+  certificates:MAIN_DOMAIN: myhost
   certificates:STEP_AUTOCERT_VERSION: 1.20.0
   certificates:STEP_CA_HOST: ca.myhost
   certificates:STEP_ISSUER_VERSION: 1.9.6

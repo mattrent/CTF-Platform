@@ -82,6 +82,7 @@ if (stack === Stack.DEV) {
     });
 
     // https://github.com/rancher/local-path-provisioner/issues/465
+    // TODO add Service Monitor
     new k8s.helm.v4.Chart("local-path-provisioner", {
         chart: "local-path-provisioner-0.0.30.tgz",
         namespace: NS,
