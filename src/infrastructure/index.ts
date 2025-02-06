@@ -12,12 +12,12 @@ const PROVISIONER_PATH = config.require("PROVISIONER_PATH");
 const PROVISIONER_VOLUME_TYPE = config.require("PROVISIONER_VOLUME_TYPE");
 const NGINX_VERSION = config.require("NGINX_VERSION");
 const KUBE_PROMETHEUS_STACK_VERSION = config.require("KUBE-PROMETHEUS-STACK_VERSION");
+const NGINX_NS = config.require("NGINX_NAMESPACE");
 
 /* -------------------------------- namespace ------------------------------- */
 
 const stack = pulumi.getStack();
 const NS = stack;
-const NGINX_NS = "ingress-nginx";
 
 new k8s.core.v1.Namespace("namespace", {
     metadata: { name: NS },
@@ -38,15 +38,20 @@ export const postgresCtfdAdminPassword = pulumi.secret(crypto.randomBytes(32).to
 export const stepCaAdminProvisionerPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const ctfdApiToken = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const backendApiPostgresql = pulumi.secret(crypto.randomBytes(32).toString("hex"));
+export const nginxSecretName = `${NGINX_NS}/nginx-inbound-tls`;
 
 /* ------------------------ NGINX ingress controller ------------------------ */
 
 if (stack === Stack.DEV) {
+    // Configure the TLS certificate to be used by the NGINX ingress controller
+    const patchCommand = new command.local.Command("patch-minikube-nginx", {
+        create: `echo ${nginxSecretName} | minikube addons configure ingress || echo y`,
+    });
     // ? Maybe disable HSTS
     new command.local.Command("enable-ingress", {
         create: "minikube addons enable ingress",
         delete: "minikube addons disable ingress"
-    });
+    }, {dependsOn: patchCommand});
     new command.local.Command("enable-rancher-local-path", {
         create: "minikube addons enable storage-provisioner-rancher",
         delete: "minikube addons disable storage-provisioner-rancher"
@@ -76,6 +81,9 @@ if (stack === Stack.DEV) {
                     "hsts": "false",
                     "hsts-include-subdomains": "false",
                     "hsts-max-age": "0"
+                },
+                extraArgs: {
+                    "default-ssl-certificate": nginxSecretName
                 }
             },
         },

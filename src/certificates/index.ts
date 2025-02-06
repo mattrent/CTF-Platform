@@ -9,6 +9,7 @@ const stack = pulumi.getStack();
 const org = pulumi.getOrganization();
 const config = new pulumi.Config();
 const stackReference = new pulumi.StackReference(`${org}/infrastructure/${stack}`);
+const NGINX_SECRET_NAME = stackReference.requireOutput("nginxSecretName");
 
 /* --------------------------------- config --------------------------------- */
 
@@ -20,8 +21,9 @@ const CERT_MANAGER_VERSION = config.require("CERT-MANAGER_VERSION");
 const STEP_ISSUER_VERSION = config.require("STEP_ISSUER_VERSION");
 const STEP_AUTOCERT_VERSION = config.require("STEP_AUTOCERT_VERSION");
 const TLS_DURATION = config.require("TLS_DURATION");
-const MAIN_DOMAIN = config.require("MAIN_DOMAIN");
-const NGINX_NS = "ingress-nginx";
+const CN = config.require("CN");
+const SANS = config.require("SANS");
+const NGINX_NS = config.require("NGINX_NAMESPACE");
 
 const CA_URL = `step-step-certificates.${NS}.svc.cluster.local`;
 
@@ -117,6 +119,7 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
 
     /* ------------------------------- certmanager ------------------------------ */
 
+    // TODO add Service Monitor
     const certManager = new k8s.helm.v3.Chart("cert-manager", {
         namespace: NS,
         version: CERT_MANAGER_VERSION,
@@ -182,67 +185,36 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
 
     /* ------------------------------ patch ingress ----------------------------- */
 
-    if (stack === Stack.DEV) {
-
-        const ingressCertificate = new k8s.apiextensions.CustomResource("nginx-inbound-tls", {
-            apiVersion: "cert-manager.io/v1",
-            kind: "Certificate",
-            metadata: {
-                name: "nginx-inbound-tls",
-                namespace: NGINX_NS,
+    const ingressCertificate = new k8s.apiextensions.CustomResource("nginx-inbound-tls", {
+        apiVersion: "cert-manager.io/v1",
+        kind: "Certificate",
+        metadata: {
+            name: NGINX_SECRET_NAME,
+            namespace: NGINX_NS,
+        },
+        spec: {
+            secretName: NGINX_SECRET_NAME,
+            commonName: CN,
+            dnsNames: SANS.split(","),
+            issuerRef: {
+                group: "certmanager.step.sm",
+                kind: "StepClusterIssuer",
+                name: "step-issuer",
             },
-            spec: {
-                secretName: "nginx-inbound-tls",
-                commonName: MAIN_DOMAIN,
-                dnsNames: [
-                    MAIN_DOMAIN,
-                    `*.${MAIN_DOMAIN}`
-                ],
-                issuerRef: {
-                    group: "certmanager.step.sm",
-                    kind: "StepClusterIssuer",
-                    name: "step-issuer",
-                },
-            },
-        }, {dependsOn: issuer});
+        },
+    }, {dependsOn: issuer});
 
-        const waitCommand = new command.local.Command("manual-certificate-wait", {
-            create: "sleep 20",
-            update: "sleep 20"
-        }, {dependsOn: ingressCertificate});
+    const waitCommand = new command.local.Command("manual-certificate-wait", {
+        create: "sleep 20",
+        update: "sleep 20"
+    }, {dependsOn: ingressCertificate});
 
-        let ca = pulumi.output("");
-        let cert = pulumi.output("");
-        let key = pulumi.output("");
+    const restartIngress = `kubectl rollout restart -n ${NGINX_NS} deployment.apps/ingress-nginx-controller`;
 
-        if (!pulumi.runtime.isDryRun()) {
-            const nginxCertificate = k8s.core.v1.Secret.get("nginx-secret", `${NGINX_NS}/nginx-inbound-tls`, {dependsOn: waitCommand});
-            ca = nginxCertificate.data.apply(data => data['ca.crt']);
-            cert = nginxCertificate.data.apply(data => data['tls.crt']);
-            key = nginxCertificate.data.apply(data => data['tls.key']);
-        };
-    
-        pulumi.all([ca, cert, key]).apply(([ca, cert, key]) => {
-            const patchIngress = `
-                kubectl patch secret ingress-nginx-admission -n ingress-nginx --type='json' -p='[
-                    {"op": "replace", "path": "/data/ca", "value": "${ca}"},
-                    {"op": "replace", "path": "/data/cert", "value": "${cert}"},
-                    {"op": "replace", "path": "/data/key", "value": "${key}"}
-                ]'`
-
-            new command.local.Command("patch-nginx", {
-                create: patchIngress,
-                update: patchIngress
-            });
-
-            const restartIngress = `kubectl rollout restart -n ${NGINX_NS} deployment.apps/ingress-nginx-controller`
-
-            new command.local.Command("restart-nginx", {
-                create: restartIngress,
-                update: restartIngress
-            });
-        });
-    }
+    new command.local.Command("restart-nginx", {
+        create: restartIngress,
+        update: restartIngress
+    }, {dependsOn: waitCommand});
 })
 
 /* ---------------------- Enable autocert for namespace --------------------- */
