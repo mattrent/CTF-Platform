@@ -38,14 +38,16 @@ export const postgresCtfdAdminPassword = pulumi.secret(crypto.randomBytes(32).to
 export const stepCaAdminProvisionerPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const ctfdApiToken = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const backendApiPostgresql = pulumi.secret(crypto.randomBytes(32).toString("hex"));
-export const nginxSecretName = `${NGINX_NS}/nginx-inbound-tls`;
+export const nginxSecretName = "nginx-inbound-tls";
 
 /* ------------------------ NGINX ingress controller ------------------------ */
 
 if (stack === Stack.DEV) {
     // Configure the TLS certificate to be used by the NGINX ingress controller
+    // ? LIMITATION: Cannot add more arguments using newline as ordinary bash commands.
+    // ? This cannot be updated without deleting and starting minikube again.
     const patchCommand = new command.local.Command("patch-minikube-nginx", {
-        create: `echo ${nginxSecretName} | minikube addons configure ingress || echo y`,
+        create: `echo ${NGINX_NS}/${nginxSecretName} | minikube addons configure ingress || true`,
     });
     // ? Maybe disable HSTS
     new command.local.Command("enable-ingress", {
@@ -60,7 +62,6 @@ if (stack === Stack.DEV) {
     new k8s.core.v1.Namespace("namespace-nginx", {
         metadata: { name: NGINX_NS },
     });
-
     // ? Use cert-manager to create root certificate
     new k8s.helm.v3.Chart("nginx-ingress", {
         namespace: NGINX_NS,
@@ -83,7 +84,7 @@ if (stack === Stack.DEV) {
                     "hsts-max-age": "0"
                 },
                 extraArgs: {
-                    "default-ssl-certificate": nginxSecretName
+                    "default-ssl-certificate": `${NGINX_NS}/${nginxSecretName}`
                 }
             },
         },
@@ -135,18 +136,20 @@ const kubeVirtOperator = new k8s.yaml.v2.ConfigFile("kubevirt-operator", {
     file: `https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml`,
 }, { deletedWith: deleteKubeVirt });
 
-// ? Needed on UCloud for some reason
-new command.local.Command("software-emulation-fallback", {
-    create: `kubectl patch kubevirt kubevirt -n kubevirt --type merge -p '{
-        "spec": {
-            "configuration": {
-                "developerConfiguration": {
-                    "useEmulation": true
+if (stack === Stack.UCLOUD) {
+    // ? Needed on UCloud for some reason
+    new command.local.Command("software-emulation-fallback", {
+        create: `kubectl patch kubevirt kubevirt -n kubevirt --type merge -p '{
+            "spec": {
+                "configuration": {
+                    "developerConfiguration": {
+                        "useEmulation": true
+                    }
                 }
             }
-        }
-    }'`
-}, {dependsOn: [kubeVirtOperator]});
+        }'`
+    }, {dependsOn: [kubeVirtOperator]});
+}
 
 /* ----------------------------- CRDs monitoring ---------------------------- */
 

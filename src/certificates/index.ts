@@ -1,4 +1,3 @@
-import { Stack } from "@ctf/utilities";
 import * as command from "@pulumi/command";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
@@ -34,7 +33,7 @@ const STEP_CA_ADMIN_PROVISIONER_PASSWORD = stackReference.requireOutput("stepCaA
 
 /* --------------------------------- step-ca -------------------------------- */
 
-pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply(([stepCaClientSecret, stepCaAdminProvisionerPassword]) => {
+pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD, NGINX_SECRET_NAME]).apply(([stepCaClientSecret, stepCaAdminProvisionerPassword, nginxSecret]) => {
     const stepChart = new k8s.helm.v4.Chart("step", {
         namespace: NS,
         version: STEP_AUTOCERT_VERSION,
@@ -95,6 +94,10 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
                     enabled: true,
                     ingressClassName: "nginx",
                     annotations: {
+                        // ? I am not too lucky trying to implement mTLS (it is not working)
+                        // "nginx.ingress.kubernetes.io/proxy-ssl-secret": `${NGINX_NS}/${nginxSecret}`,
+                        // "nginx.ingress.kubernetes.io/proxy-ssl-verify": "on",
+                        // "nginx.ingress.kubernetes.io/proxy-ssl-name": `step-step-certificates.${NS}.svc.cluster.local`,
                         "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
                         "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
                         "cert-manager.io/issuer": "step-issuer",
@@ -205,6 +208,8 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD]).apply((
     }, {dependsOn: issuer});
 
     const waitCommand = new command.local.Command("manual-certificate-wait", {
+        // The certificate is considered ready when the resource is created, 
+        // but the certificate is not yet issued (only temp secret is created)
         create: "sleep 20",
         update: "sleep 20"
     }, {dependsOn: ingressCertificate});
