@@ -548,6 +548,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     const fingerprint = caConfig.data.apply(data => JSON.parse(data['defaults.json']).fingerprint);
 
+    const bastionProbeCommand = ["sh", "-c", "ps aux | grep '[s]shd' | awk '{print $1}'"]   
+
     const bastion = new k8s.apps.v1.Deployment("bastion-deployment", {
         metadata: { namespace: NS },
         spec: {
@@ -585,7 +587,29 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     mountPath: "/etc/ssh/provisioner_password",
                                     subPath: "provisioner_password"
                                 }
-                            ]
+                            ],
+                            readinessProbe: {
+                                exec: {
+                                    command: bastionProbeCommand
+                                },
+                                periodSeconds: 10
+                            },
+                            livenessProbe: {
+                                exec: {
+                                    command: bastionProbeCommand  
+                                },
+                                periodSeconds: 10
+                            },
+                            startupProbe: {
+                                exec: {
+                                    command: bastionProbeCommand  
+                                },
+                                initialDelaySeconds: 10,
+                                periodSeconds: 10,
+                                timeoutSeconds: 5,
+                                failureThreshold: 3,
+                                successThreshold: 1
+                            },
                         },
                     ],
                     imagePullSecrets: [{ name: imagePullSecret.metadata.name }],
