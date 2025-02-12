@@ -405,7 +405,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 ],
                                 readinessProbe: {
                                     httpGet: {
-                                        path: "/ctfd",
+                                        path: cleanedCtfdPath,
                                         port: CTFD_PORT,
                                         scheme: "HTTP"
                                     },
@@ -413,7 +413,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 },
                                 livenessProbe: {
                                     httpGet: {
-                                        path: "/ctfd",
+                                        path: cleanedCtfdPath,
                                         port: CTFD_PORT,
                                         scheme: "HTTP"
                                     },
@@ -421,7 +421,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 },
                                 startupProbe: {
                                     httpGet: {
-                                        path: "/ctfd",
+                                        path: cleanedCtfdPath,
                                         port: CTFD_PORT,
                                         scheme: "HTTP"
                                     },
@@ -439,7 +439,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 env: [{ name: "PROXY_PASS_URL", value: `http://localhost:${CTFD_PORT}` }],
                                 readinessProbe: {
                                     httpGet: {
-                                        path: "/ctfd",
+                                        path: cleanedCtfdPath,
                                         port: CTFD_PROXY_PORT,
                                         scheme: "HTTPS"
                                     },
@@ -447,7 +447,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 },
                                 livenessProbe: {
                                     httpGet: {
-                                        path: "/ctfd",
+                                        path: cleanedCtfdPath,
                                         port: CTFD_PROXY_PORT,
                                         scheme: "HTTPS"
                                     },
@@ -455,7 +455,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 },
                                 startupProbe: {
                                     httpGet: {
-                                        path: "/ctfd",
+                                        path: cleanedCtfdPath,
                                         port: CTFD_PROXY_PORT,
                                         scheme: "HTTPS"
                                     },
@@ -905,7 +905,25 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     name: "CTFD_URL",
                                     value: CTFD_HOSTNAME+CTFD_RELATIVE_PATH
                                 }
-                            ]
+                            ],
+                            readinessProbe: {
+                                httpGet: {
+                                    path: "/",
+                                    port: WELCOME_IMAGE_PORT,
+                                    scheme: "HTTPS"
+                                },
+                                initialDelaySeconds: 5,
+                                periodSeconds: 10
+                            },
+                            livenessProbe: {
+                                httpGet: {
+                                    path: "/",
+                                    port: WELCOME_IMAGE_PORT,
+                                    scheme: "HTTPS"
+                                },
+                                initialDelaySeconds: 5,
+                                periodSeconds: 10
+                            }
                         },
                     ],
                     imagePullSecrets: [{ name: imagePullSecret.metadata.name }]
