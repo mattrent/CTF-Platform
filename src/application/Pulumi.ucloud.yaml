@@ -24,3 +24,4 @@ config:
   application:SSLH_TAG: 2.1.2
   application:STEP_CA_HOST: ca.ctf.jacopomauro.com
   application:WELCOME_HOST: ctf.jacopomauro.com
+  application:REGISTRY_STORAGE_CAPACITY: 50Gi

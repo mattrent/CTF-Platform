@@ -24,3 +24,4 @@ config:
   application:SSLH_TAG: 2.1.2
   application:STEP_CA_HOST: ca.myhost
   application:WELCOME_HOST: myhost
+  application:REGISTRY_STORAGE_CAPACITY: 50Gi

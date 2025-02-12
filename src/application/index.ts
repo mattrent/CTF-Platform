@@ -55,6 +55,7 @@ const KEYCLOAK_RELATIVE_PATH = config.require("KEYCLOAK_RELATIVE_PATH");
 const CTFD_HOSTNAME = config.require("CTFD_HOSTNAME");
 const CTFD_RELATIVE_PATH = config.require("CTFD_RELATIVE_PATH");
 const ACME_EMAIL = config.require("ACME_EMAIL");
+const REGISTRY_STORAGE_CAPACITY = config.require("REGISTRY_STORAGE_CAPACITY");
 // Remove trailing slash if it exists, but keep the root '/' intact
 const cleanedCtfdPath = (CTFD_HTTP_RELATIVE_PATH !== '/' && CTFD_HTTP_RELATIVE_PATH.endsWith('/'))
     ? CTFD_HTTP_RELATIVE_PATH.slice(0, -1)
@@ -82,6 +83,21 @@ const BACKEND_API_POSTGRESQL =
 pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD_DATABASE_NAME]).apply(([dockerUsername, dockerPassword, postgresCtfdAdminPassword, ctfdDbName]) => {
     const caConfig = k8s.core.v1.ConfigMap.get("step-certificates-config", `${NS}/step-step-certificates-config`);
     const caCert = k8s.core.v1.ConfigMap.get("step-certificates-certs", `${NS}/step-step-certificates-certs`);
+
+    const regsitryPvc = new k8s.core.v1.PersistentVolumeClaim("registry-pvc", {
+        metadata: {
+            name: "registry-pvc",
+            namespace: NS
+        },
+        spec: {
+            accessModes: ["ReadWriteOnce"],
+            resources: {
+                requests: {
+                    storage: REGISTRY_STORAGE_CAPACITY,
+                },
+            },
+        },
+    });
 
     const imageRegistryDeployment = new k8s.apps.v1.Deployment("docker-registry-deployment", {
         metadata: { namespace: NS },
@@ -116,9 +132,25 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                             { name: "REGISTRY_HTTP_TLS_KEY", value: "/var/run/autocert.step.sm/site.key" },
                         ],
                         volumeMounts: [
-                            { name: "auth-volume", mountPath: "/auth" },
+                            { 
+                                name: "auth-volume", 
+                                mountPath: "/auth" 
+                            },
+                            {
+                                name: "registry-storage",
+                                mountPath: "/var/lib/registry"
+                            }
                         ],
                         readinessProbe: {
+                            httpGet: {
+                                path: "/",
+                                port: REGISTRY_PORT,
+                                scheme: "HTTPS"
+                            },
+                            initialDelaySeconds: 5,
+                            periodSeconds: 10
+                        },
+                        livenessProbe: {
                             httpGet: {
                                 path: "/",
                                 port: REGISTRY_PORT,
@@ -129,7 +161,16 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                         }
                     }],
                     volumes: [
-                        { name: "auth-volume", emptyDir: {} },
+                        { 
+                            name: "auth-volume", 
+                            emptyDir: {} 
+                        },
+                        {
+                            name: "registry-storage",
+                            persistentVolumeClaim: {
+                                claimName: regsitryPvc.metadata.name
+                            }
+                        }
                     ],
                 },
             },
