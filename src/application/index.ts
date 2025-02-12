@@ -741,6 +741,13 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     nginxImageCertbot.repoDigest.apply(digest => console.log("nginx-certbot image digest:", digest))
 
+    const execCommand = [
+        "sh",
+        "-c",
+        `cert_date=$(date -d "$(openssl x509 -in $( find /etc/letsencrypt/live/ -name cert.pem) -noout -dates | cut -d= -f2 | tail -n 1 | tr -d " GMT")" +%s); now=$(date +%s); if [ "$cert_date" -gt "$now" ]; then exit 0; else exit 1; fi`
+    ];
+
+    // Readiness probe is not possible
     new k8s.apps.v1.Deployment("sslh-deployment", {
         metadata: { namespace: stack },
         spec: {
@@ -756,10 +763,19 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 "--foreground",
                                 "--listen=0.0.0.0:3443",
                                 "--tls=localhost:3080",
-                                "--http=localhost:80", // use IPv6 // upgrade connection to https
+                                "--http=localhost:80",
                                 "--ssh=bastion:22"
                             ],
-                            ports: [{ containerPort: 3443 }]
+                            ports: [{ containerPort: 3443 }],
+                            livenessProbe: {
+                                httpGet: {
+                                    path: "/health",
+                                    port: 3443,
+                                    scheme: "HTTP",
+                                },
+                                periodSeconds: 10,
+                                initialDelaySeconds: 30
+                            },
                         },
                         {
                             name: "sslh-proxy",

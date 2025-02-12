@@ -12,6 +12,7 @@ RUN chmod +x /docker-entrypoint.d/entrypoint.sh
 
 RUN if [ "$ENABLE_CERTBOT" = "true" ]; then \
     apk add --no-cache certbot certbot-nginx && \
+    apk add openssl && \
     echo "#!/bin/sh" > /etc/periodic/daily/renewcert.sh && \
     echo "echo \$(ps -a | grep 'nginx: master process' | grep -v 'grep' | awk '{print \$1}') > /var/run/nginx.pid" >> /etc/periodic/daily/renewcert.sh && \
     echo "certbot renew ${CERTBOT_OPTIONS}" >> /etc/periodic/daily/renewcert.sh && \
