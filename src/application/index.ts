@@ -402,13 +402,69 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                         value: `postgresql+psycopg2://postgres:${postgresCtfdAdminPassword}@postgresql-ctfd:5432/${ctfdDbName}`
                                             + `?sslmode=verify-full&sslrootcert=/var/run/autocert.step.sm/root.crt`
                                     }
-                                ]
+                                ],
+                                readinessProbe: {
+                                    httpGet: {
+                                        path: "/ctfd",
+                                        port: CTFD_PORT,
+                                        scheme: "HTTP"
+                                    },
+                                    periodSeconds: 10
+                                },
+                                livenessProbe: {
+                                    httpGet: {
+                                        path: "/ctfd",
+                                        port: CTFD_PORT,
+                                        scheme: "HTTP"
+                                    },
+                                    periodSeconds: 10
+                                },
+                                startupProbe: {
+                                    httpGet: {
+                                        path: "/ctfd",
+                                        port: CTFD_PORT,
+                                        scheme: "HTTP"
+                                    },
+                                    initialDelaySeconds: 30,
+                                    periodSeconds: 10,
+                                    timeoutSeconds: 5,
+                                    failureThreshold: 30,
+                                    successThreshold: 1
+                                },
                             },
                             {
                                 name: "nginx-tls-proxy",
                                 image: nginxImageHttps.repoDigest,
                                 ports: [{ containerPort: CTFD_PROXY_PORT }],
-                                env: [{ name: "PROXY_PASS_URL", value: `http://localhost:${CTFD_PORT}` }]
+                                env: [{ name: "PROXY_PASS_URL", value: `http://localhost:${CTFD_PORT}` }],
+                                readinessProbe: {
+                                    httpGet: {
+                                        path: "/ctfd",
+                                        port: CTFD_PROXY_PORT,
+                                        scheme: "HTTPS"
+                                    },
+                                    periodSeconds: 10
+                                },
+                                livenessProbe: {
+                                    httpGet: {
+                                        path: "/ctfd",
+                                        port: CTFD_PROXY_PORT,
+                                        scheme: "HTTPS"
+                                    },
+                                    periodSeconds: 10
+                                },
+                                startupProbe: {
+                                    httpGet: {
+                                        path: "/ctfd",
+                                        port: CTFD_PROXY_PORT,
+                                        scheme: "HTTPS"
+                                    },
+                                    initialDelaySeconds: 30,
+                                    periodSeconds: 10,
+                                    timeoutSeconds: 5,
+                                    failureThreshold: 30,
+                                    successThreshold: 1
+                                },
                             }
                         ],
                         imagePullSecrets: [{ name: imagePullSecret.metadata.name }],
@@ -440,7 +496,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 "cert-manager.io/issuer": "step-issuer",
                 "cert-manager.io/issuer-kind": "StepClusterIssuer",
                 "cert-manager.io/issuer-group": "certmanager.step.sm",
-                // traling slash is expected
+                // Otherwise traling slash is expected
                 "nginx.ingress.kubernetes.io/rewrite-target": `${cleanedCtfdPath}/$2`,
             },
         },
