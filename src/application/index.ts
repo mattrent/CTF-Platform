@@ -654,6 +654,26 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
+    const ALPINE_VM_IMAGE = `${IMAGE_REGISTRY_SERVER}/alpinevm:latest`; 
+
+    const alpineVmImage = new docker.Image("alpine-vm-image", {
+        build: {
+            context: "./vm",
+            dockerfile: "./vm/Dockerfile",
+            platform: "linux/amd64",
+            builderVersion: docker.BuilderVersion.BuilderV1,
+        },
+        registry: {
+            server: IMAGE_REGISTRY_SERVER,
+            username: dockerUsername,
+            password: dockerPassword
+        },
+        imageName: ALPINE_VM_IMAGE,
+        skipPush: false,
+    }, { dependsOn: registryDependencyList });
+
+    alpineVmImage.repoDigest.apply(digest => console.log("Alpine VM image digest:", digest))
+
     const backendAPI = new docker.Image("backend-image", {
         build: {
             context: "./challenges/backend",
@@ -681,6 +701,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         }
     });
 
+    // ! VM image missing image pull secret
+    // TODO VM image missing image pull secret
     new k8s.helm.v4.Chart("deployer", {
         namespace: NS,
         chart: HENRIK_BACKEND_CHART,

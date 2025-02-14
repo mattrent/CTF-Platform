@@ -16,6 +16,7 @@ updates:
     directories: 
       - "/src/application/ctfd"
       - "/src/application/ctfd/oidc"
+      - "/src/application/vm"
     schedule:
       interval: "weekly"
 
@@ -26,5 +27,6 @@ updates:
       - "/src/application/nginx"
       - "/src/application/welcome"
       - "/src/application/challenges/backend"
+      - "/src/application/vm"
     schedule:
       interval: "weekly"
