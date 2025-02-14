@@ -550,7 +550,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     const fingerprint = caConfig.data.apply(data => JSON.parse(data['defaults.json']).fingerprint);
 
-    const bastionProbeCommand = ["sh", "-c", "ps aux | grep '[s]shd' | awk '{print $1}'"]   
+    // Check process running and certificate is valid
+    const bastionProbeCommand = ["sh", "-c", `ps aux | grep '[s]shd' | awk '{print $1}' && cert_date=$(date -d "$(ssh-keygen -L -f /etc/ssh/ssh_host_ecdsa_key-cert.pub | grep "Valid:" | awk '{print $5}' | sed 's/T/ /')" +%s); now=$(date +%s); if [ "$cert_date" -gt "$now" ]; then true; else false; fi`]   
 
     const bastion = new k8s.apps.v1.Deployment("bastion-deployment", {
         metadata: { namespace: NS },
@@ -598,9 +599,9 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                             },
                             livenessProbe: {
                                 exec: {
-                                    command: bastionProbeCommand  
+                                    command: bastionProbeCommand
                                 },
-                                periodSeconds: 10
+                                periodSeconds: 60
                             },
                             startupProbe: {
                                 exec: {
