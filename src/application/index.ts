@@ -32,6 +32,7 @@ const REGISTRY_PORT = 5000;
 const WELCOME_IMAGE_PORT = 3080;
 const SSLH_PORT = 3443;
 const HTTPS_PORT = 443;
+const HTTP_PORT = 80;
 const REGISTRY_EXPOSED_PORT = parseInt(config.require("REGISTRY_EXPOSED_PORT"));
 const CTFD_HOST = config.require("CTFD_HOST");
 const IMAGE_REGISTRY_HOST = config.require("IMAGE_REGISTRY_HOST");
@@ -762,7 +763,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 "--foreground", // required to keep container alive
                                 `--listen=0.0.0.0:${SSLH_PORT}`,
                                 "--tls=localhost:3080",
-                                "--http=localhost:80",
+                                `--http=localhost:${HTTP_PORT}`,
                                 "--ssh=bastion:22"
                             ],
                             ports: [{ containerPort: SSLH_PORT }],
@@ -772,6 +773,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     path: "/health",
                                     port: SSLH_PORT,
                                     scheme: "HTTPS",
+                                    // expected by Kubernetes ingress resource
                                     httpHeaders: [{
                                         name: "Host",
                                         value: SERVER_NAME
@@ -814,7 +816,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     value: CERTBOT_OPTIONS
                                 },
                             ],
-                            ports: [{ containerPort: HTTPS_PORT }, { containerPort: 80 }],
+                            ports: [{ containerPort: HTTPS_PORT }, { containerPort: HTTP_PORT }],
                             // Curl health endpoint and check certificate validity
                             livenessProbe: {
                                 exec: {
@@ -842,8 +844,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             ports: [
                 {
                     name: "http",
-                    port: 80,
-                    targetPort: 80
+                    port: HTTP_PORT,
+                    targetPort: HTTP_PORT
                 },
                 {
                     name: "https",
@@ -861,6 +863,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             type: "NodePort",
             ports: [
                 {
+                    name: "sslh",
                     port: HTTPS_PORT,
                     targetPort: SSLH_PORT,
                     nodePort: parseInt(SSLH_NODEPORT)
@@ -869,7 +872,6 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         }
     });
 
-    // ? No hostname provided since livenessprobe does not do 
     new k8s.networking.v1.Ingress("health-acme-ingress", {
         metadata: {
             namespace: NS,
