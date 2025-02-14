@@ -33,6 +33,7 @@ const WELCOME_IMAGE_PORT = 3080;
 const SSLH_PORT = 3443;
 const HTTPS_PORT = 443;
 const HTTP_PORT = 80;
+const SSH_PORT = 22;
 const REGISTRY_EXPOSED_PORT = parseInt(config.require("REGISTRY_EXPOSED_PORT"));
 const CTFD_HOST = config.require("CTFD_HOST");
 const IMAGE_REGISTRY_HOST = config.require("IMAGE_REGISTRY_HOST");
@@ -565,7 +566,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                         {
                             name: "ssh-bastion",
                             image: bastionImage.repoDigest,
-                            ports: [{ containerPort: 22 }],
+                            ports: [{ containerPort: SSH_PORT }],
                             env: [
                                 {
                                     name: "KEY_ID",
@@ -648,7 +649,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         metadata: { namespace: NS, name: "bastion" },
         spec: {
             selector: appLabels.bastion,
-            ports: [{ port: 22 }]
+            ports: [{ port: SSH_PORT }]
         }
     });
 
@@ -735,7 +736,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 JWKSURL: "https://keycloak/keycloak/realms/ctf/protocol/openid-connect/certs",
                 ROOTCERT: "/var/run/autocert.step.sm/root.crt",
                 CHALLENGEDOMAIN: "." + HENRIK_BACKEND_HOST,
-                VMIMAGEURL: "registry.gitlab.com/ctf9215737/ctf/alpinevm:latest"
+                VMIMAGEURL: ALPINE_VM_IMAGE
             }
         }
     }, { dependsOn: backendAPI });
@@ -786,7 +787,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 `--listen=0.0.0.0:${SSLH_PORT}`,
                                 "--tls=localhost:3080",
                                 `--http=localhost:${HTTP_PORT}`,
-                                "--ssh=bastion:22"
+                                `--ssh=bastion:${SSH_PORT}`
                             ],
                             ports: [{ containerPort: SSLH_PORT }],
                             // Send traffic through SSLH to ACME proxy

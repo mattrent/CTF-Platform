@@ -151,6 +151,10 @@ CTF-Platform/
 │   │   │   ├── nginx-certbot.conf
 │   │   │   ├── nginx-http.conf
 │   │   │   └── nginx-https.conf
+│   │   ├── vm/
+│   │   │   ├── Dockerfile
+│   │   │   ├── get_vm.py
+│   │   │   └── requirements.txt
 │   │   ├── welcome/
 │   │   │   ├── neumorphism/    
 │   │   │   ├── Dockerfile
@@ -286,7 +290,7 @@ This stack will then be the default context moving forward.
 2. **Certificates Next:** 📜 Deploy the certificates project next; otherwise, the services using certificates won't work.
 3. **Order Flexibility:** 🔄 After setting up infrastructure and certificates, feel free to deploy the remaining projects in any order. Once deployed, they can be updated independently.
 
-During the deployment of the application stack, Pulumi will build Docker images and push them to a self-hosted registry. Since Minikube operates differently from a standard Kubernetes cluster, you will need to configure a host name on your local machine (as localhost cannot be used). The required hostname can be found in the `Pulumi.dev.yaml` file. While you might need to configure other hostnames, they are not necessary for a successful deployment and are only required when interacting with the services.
+❗During the deployment of the application stack, Pulumi will build Docker images and push them to a self-hosted registry. Since Minikube operates differently from a standard Kubernetes cluster, you will need to configure a host name on your local machine (as localhost cannot be used). The required hostname can be found in the `Pulumi.dev.yaml` file. While you might need to configure other hostnames, they are not necessary for a successful deployment and are only required when interacting with the services.
 
 🛠️ By following this structured approach, you'll ensure a smooth and efficient deployment process. Pulumi not only creates Kubernetes resources but also executes bash commands to handle procedures that would otherwise require manual intervention. This approach solves issues like the circular dependency between certificates and authentication. For example, the CA performs some initialization (only once) of its specified providers, necessitating a restart of the CA pod after Keycloak is deployed. Pulumi also builds and pushes Docker images to the self-hosted Docker registry as part of the deployment. These examples highlight why using Pulumi makes our lives simpler.
 
