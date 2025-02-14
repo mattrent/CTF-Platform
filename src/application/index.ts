@@ -30,6 +30,8 @@ const CTFD_PORT = 8000
 const CTFD_PROXY_PORT = 3080;
 const REGISTRY_PORT = 5000;
 const WELCOME_IMAGE_PORT = 3080;
+const SSLH_PORT = 3443;
+const HTTPS_PORT = 443;
 const REGISTRY_EXPOSED_PORT = parseInt(config.require("REGISTRY_EXPOSED_PORT"));
 const CTFD_HOST = config.require("CTFD_HOST");
 const IMAGE_REGISTRY_HOST = config.require("IMAGE_REGISTRY_HOST");
@@ -741,13 +743,9 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     nginxImageCertbot.repoDigest.apply(digest => console.log("nginx-certbot image digest:", digest))
 
-    const execCommand = [
-        "sh",
-        "-c",
-        `cert_date=$(date -d "$(openssl x509 -in $( find /etc/letsencrypt/live/ -name cert.pem) -noout -dates | cut -d= -f2 | tail -n 1 | tr -d " GMT")" +%s); now=$(date +%s); if [ "$cert_date" -gt "$now" ]; then exit 0; else exit 1; fi`
-    ];
-
-    // Readiness probe is not possible
+    // Readiness and Startup probe is not possible.
+    // Will not receive traffic until considered ready...
+    // Traffic is needed on startup due to ACME.
     new k8s.apps.v1.Deployment("sslh-deployment", {
         metadata: { namespace: stack },
         spec: {
@@ -760,18 +758,23 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                             name: "sslh",
                             image: `ghcr.io/yrutschle/sslh:${SSLH_TAG}`,
                             args: [
-                                "--foreground",
-                                "--listen=0.0.0.0:3443",
+                                "--foreground", // required to keep container alive
+                                `--listen=0.0.0.0:${SSLH_PORT}`,
                                 "--tls=localhost:3080",
                                 "--http=localhost:80",
                                 "--ssh=bastion:22"
                             ],
-                            ports: [{ containerPort: 3443 }],
+                            ports: [{ containerPort: SSLH_PORT }],
+                            // Send traffic through SSLH to ACME proxy
                             livenessProbe: {
                                 httpGet: {
                                     path: "/health",
-                                    port: 3443,
-                                    scheme: "HTTP",
+                                    port: SSLH_PORT,
+                                    scheme: "HTTPS",
+                                    httpHeaders: [{
+                                        name: "Host",
+                                        value: SERVER_NAME
+                                    }]
                                 },
                                 periodSeconds: 10,
                                 initialDelaySeconds: 30
@@ -810,7 +813,19 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     value: CERTBOT_OPTIONS
                                 },
                             ],
-                            ports: [{ containerPort: 443 }, { containerPort: 80 }]
+                            ports: [{ containerPort: HTTPS_PORT }, { containerPort: 80 }],
+                            // Curl health endpoint and check certificate validity
+                            livenessProbe: {
+                                exec: {
+                                    command: [
+                                        "sh",
+                                        "-c",
+                                        `cert_date=$(date -d "$(openssl x509 -in $( find /etc/letsencrypt/live/ -name cert.pem) -noout -dates | cut -d= -f2 | tail -n 1 | tr -d " GMT")" +%s); now=$(date +%s); if [ "$cert_date" -gt "$now" ]; then true; else false; fi && curl -k https://localhost/health`
+                                    ],
+                                },
+                                periodSeconds: 120,
+                                initialDelaySeconds: 30
+                            },
                         }
                     ],
                     imagePullSecrets: [{ name: imagePullSecret.metadata.name }]
@@ -819,21 +834,24 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         }
     }, { dependsOn: [bastion, nginxImageCertbot] });
 
-    if (stack == Stack.DEV) {
-        new k8s.core.v1.Service("acme-proxy", {
-            metadata: { namespace: stack, name: SERVER_NAME },
-            spec: {
-                selector: appLabels.sshl,
-                ports: [
-                    {
-                        name: "http",
-                        port: 80,
-                        targetPort: 80
-                    }
-                ]
-            }
-        });
-    }
+    const acmeProxyService = new k8s.core.v1.Service("acme-proxy", {
+        metadata: { namespace: stack, name: SERVER_NAME },
+        spec: {
+            selector: appLabels.sshl,
+            ports: [
+                {
+                    name: "http",
+                    port: 80,
+                    targetPort: 80
+                },
+                {
+                    name: "https",
+                    port: HTTPS_PORT,
+                    targetPort: HTTPS_PORT
+                }
+            ]
+        }
+    });
 
     new k8s.core.v1.Service("sslh-service", {
         metadata: { namespace: stack, name: "sslh-service" },
@@ -842,12 +860,50 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             type: "NodePort",
             ports: [
                 {
-                    port: 443,
-                    targetPort: 3443,
+                    port: HTTPS_PORT,
+                    targetPort: SSLH_PORT,
                     nodePort: parseInt(SSLH_NODEPORT)
                 },
             ]
         }
+    });
+
+    // ? No hostname provided since livenessprobe does not do 
+    new k8s.networking.v1.Ingress("health-acme-ingress", {
+        metadata: {
+            namespace: NS,
+            annotations: {
+                "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
+                "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
+                "cert-manager.io/issuer": "step-issuer",
+                "cert-manager.io/issuer-kind": "StepClusterIssuer",
+                "cert-manager.io/issuer-group": "certmanager.step.sm"
+            },
+        },
+        spec: {
+            ingressClassName: "nginx",
+            rules: [{
+                host: SERVER_NAME,
+                http: {
+                    paths: [{
+                        path: "/health",
+                        pathType: "Prefix",
+                        backend: {
+                            service: {
+                                name: acmeProxyService.metadata.name,
+                                port: {
+                                    number: HTTPS_PORT,
+                                },
+                            },
+                        },
+                    }],
+                },
+            }],
+            tls: [{
+                hosts: [SERVER_NAME],
+                secretName: "acme-health-inbound-tls"
+            }]
+        },
     });
 
     /* --------------------------------- Welcome -------------------------------- */
@@ -992,7 +1048,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             }],
             tls: [{
                 hosts: [WELCOME_HOST],
-                secretName: "welcome-registry-tls"
+                secretName: "welcome-inbound-tls"
             }]
         },
     });
