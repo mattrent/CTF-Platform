@@ -181,9 +181,16 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         },
     });
 
+    // https://github.com/emberstack/kubernetes-reflector/blob/main/README.md
     const imagePullSecret = new k8s.core.v1.Secret("image-pull-secret", {
         metadata: {
-            namespace: NS
+            namespace: NS,
+            annotations: {
+                "reflector.v1.k8s.emberstack.com/reflection-allowed": "true",
+                "reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces": "challenge-.*",
+                "reflector.v1.k8s.emberstack.com/reflection-auto-enabled": "true",
+                "reflector.v1.k8s.emberstack.com/reflection-auto-namespaces": "challenge-.*",
+            }
         },
         type: "kubernetes.io/dockerconfigjson",
         data: {
@@ -657,6 +664,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     const ALPINE_VM_IMAGE = `${IMAGE_REGISTRY_SERVER}/alpinevm:latest`; 
 
+    // TODO Use NIX to declaratively build VM image
+    // https://nix.dev/tutorials/nixos/nixos-configuration-on-vm.html
     const alpineVmImage = new docker.Image("alpine-vm-image", {
         build: {
             context: "./vm",
@@ -702,8 +711,6 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         }
     });
 
-    // ! VM image missing image pull secret
-    // TODO VM image missing image pull secret
     new k8s.helm.v4.Chart("deployer", {
         namespace: NS,
         chart: HENRIK_BACKEND_CHART,
@@ -736,7 +743,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 JWKSURL: "https://keycloak/keycloak/realms/ctf/protocol/openid-connect/certs",
                 ROOTCERT: "/var/run/autocert.step.sm/root.crt",
                 CHALLENGEDOMAIN: "." + HENRIK_BACKEND_HOST,
-                VMIMAGEURL: ALPINE_VM_IMAGE
+                VMIMAGEURL: ALPINE_VM_IMAGE,
+                IMAGEPULLSECRET: imagePullSecret.metadata.name,
             }
         }
     }, { dependsOn: backendAPI });
