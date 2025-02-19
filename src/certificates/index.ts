@@ -214,7 +214,7 @@ pulumi.all([STEP_CLIRENT_CA_SECRET, STEP_CA_ADMIN_PROVISIONER_PASSWORD, NGINX_SE
         update: "sleep 20"
     }, {dependsOn: ingressCertificate});
 
-    const restartIngress = `kubectl rollout restart -n ${NGINX_NS} deployment.apps/ingress-nginx-controller`;
+    const restartIngress = `kubectl rollout restart -n ${NGINX_NS} deployment.apps/ingress-nginx-controller && sleep 30`;
 
     new command.local.Command("restart-nginx", {
         create: restartIngress,

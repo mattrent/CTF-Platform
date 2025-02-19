@@ -4,6 +4,7 @@ import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import * as fs from "fs";
 import * as path from 'path';
+import { backendApiPostgresql } from "../infrastructure";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -711,6 +712,16 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         }
     });
 
+    const postgresqlUnleash = new k8s.core.v1.Secret("backend-unleash-postgresql-secret", {
+        metadata: {
+            namespace: NS,
+        },
+        stringData: {
+            "postgres-password": "postgres-admin-password",
+            "postgres-user-password": "postgres-user-password"
+        }
+    });
+
     new k8s.helm.v4.Chart("deployer", {
         namespace: NS,
         chart: HENRIK_BACKEND_CHART,
@@ -729,6 +740,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             },
             imagePullSecrets: [{ name: imagePullSecret.metadata.name }],
             postgresql: {
+                fullnameOverride: "deployer-postgresql",
+                nameOverride: "deployer-postgresql",
                 auth: {
                     existingSecret: postgresqlBackendAPI.metadata.name,
                     secretKeys: {
@@ -745,6 +758,81 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 CHALLENGEDOMAIN: "." + HENRIK_BACKEND_HOST,
                 VMIMAGEURL: ALPINE_VM_IMAGE,
                 IMAGEPULLSECRET: imagePullSecret.metadata.name,
+            },
+            unleash: {
+                env: [
+                    {
+                        name: "BASE_URI_PATH",
+                        value: `/unleash`
+                    },
+                    {
+                        name: "UNLEASH_DEFAULT_ADMIN_USERNAME",
+                        value: "admin"
+                    },
+                    {
+                        name: "UNLEASH_DEFAULT_ADMIN_PASSWORD",
+                        value: "admin"
+                    },
+                    {
+                        name: "INIT_FRONTEND_API_TOKENS",
+                        value: "default:production.unleash-insecure-api-token"
+                    },
+                    // Weird behavior with this env var
+                    // {
+                    //     name: "ENABLED_ENVIRONMENTS",
+                    //     value: "production"
+                    // }
+                ],
+                replicaCount: 1,
+                dbConfig: {
+                    host: "deployer-unleash-postgresql",
+                    useExistingSecret: {
+                        name: postgresqlUnleash.metadata.name,
+                        key: "postgres-user-password"
+                    }
+                },
+                // TODO Upgrade to HTTPS
+                postgresql: {
+                    fullnameOverride: "deployer-unleash-postgresql",
+                    // ! Mention in report
+                    nameOverride: "unleash-postgresql",
+                    auth: {
+                        existingSecret: postgresqlUnleash.metadata.name,
+                        secretKeys: {
+                            adminPasswordKey: "postgres-password",
+                            userPasswordKey: "postgres-user-password"
+                        }
+                    },
+                },
+                livenessProbe: {
+                    path: "/unleash/health"
+                },
+                readinessProbe: {
+                    path: "/unleash/health"
+                },
+                ingress: {
+                    enabled: true,
+                    annotations: {
+                        // TODO Upgrade to HTTPS
+                        "nginx.ingress.kubernetes.io/backend-protocol": "HTTP",
+                        "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
+                        "cert-manager.io/issuer": "step-issuer",
+                        "cert-manager.io/issuer-kind": "StepClusterIssuer",
+                        "cert-manager.io/issuer-group": "certmanager.step.sm",
+                    },
+                    className: "nginx",
+                    hosts: [{
+                        host: WELCOME_HOST,
+                        paths: [{
+                            path: "/unleash",
+                            pathType: "Prefix",
+                        }]
+                    }],
+                    tls: [{
+                        secretName: "unleash-inbound-tls",
+                        hosts: [WELCOME_HOST]
+                    }]
+                }
             }
         }
     }, { dependsOn: backendAPI });
