@@ -1,7 +1,7 @@
 {
     "features": [
         {
-            "name": "VM",
+            "name": "use-virtual-machine",
             "description": "Enable virutal machines; otherwise default to containers",
             "type": "release",
             "project": "default",
@@ -14,7 +14,7 @@
         {
             "name": "default",
             "id": "54705620-ed54-4108-a562-d11b719d7b83",
-            "featureName": "VM",
+            "featureName": "use-virtual-machine",
             "title": null,
             "parameters": {},
             "constraints": [],
@@ -26,17 +26,17 @@
     "featureEnvironments": [
         {
             "enabled": true,
-            "featureName": "VM",
+            "featureName": "use-virtual-machine",
             "environment": "production",
             "variants": [],
-            "name": "VM"
+            "name": "use-virtual-machine"
         },
         {
             "enabled": true,
-            "featureName": "VM",
+            "featureName": "use-virtual-machine",
             "environment": "development",
             "variants": [],
-            "name": "VM"
+            "name": "use-virtual-machine"
         }
     ],
     "contextFields": [],

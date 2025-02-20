@@ -329,3 +329,9 @@ For detailed setup instructions and more information, check out the [ucloud-k8s]
 Distributed under the MIT License. See [LICENSE](./LICENSE) for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+---
+
+<center>
+<img src="./assets/images/wordcloud.svg" style="padding-bottom: 1em;">
+</center>

@@ -663,7 +663,18 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
 
     /* ----------------------------- Henrik Backend ----------------------------- */
 
-    const ALPINE_VM_IMAGE = `${IMAGE_REGISTRY_SERVER}/alpinevm:latest`; 
+    const ALPINE_VM_IMAGE = `${IMAGE_REGISTRY_SERVER}/alpinevm:latest`;
+    
+    let unleashEnvironment = fs.readFileSync("vm-feature-flag.json", "utf-8");
+
+    const unleashConfigmap = new k8s.core.v1.ConfigMap("unleash-environment", {
+        metadata: {
+            namespace: NS
+        },
+        data: {
+            "feature-flag.json": unleashEnvironment
+        }
+    });
 
     // TODO Use NIX to declaratively build VM image
     // https://nix.dev/tutorials/nixos/nixos-configuration-on-vm.html
@@ -759,7 +770,19 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 VMIMAGEURL: ALPINE_VM_IMAGE,
                 IMAGEPULLSECRET: imagePullSecret.metadata.name,
             },
+            // TODO Add OIDC authentication to Unleash
             unleash: {
+                volumeMounts: [{
+                    name: "unleash-environment",
+                    mountPath: "/unleash/feature-flag.json",
+                    subPath: "feature-flag.json"
+                }],
+                volumes: [{
+                    name: "unleash-environment",
+                    configMap: {
+                        name: unleashConfigmap.metadata.name,
+                    }
+                }],
                 env: [
                     {
                         name: "BASE_URI_PATH",
@@ -777,11 +800,23 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                         name: "INIT_FRONTEND_API_TOKENS",
                         value: "default:production.unleash-insecure-api-token"
                     },
-                    // Weird behavior with this env var
-                    // {
-                    //     name: "ENABLED_ENVIRONMENTS",
-                    //     value: "production"
-                    // }
+                    // ? Weird behavior with this env var
+                    {
+                        name: "ENABLED_ENVIRONMENTS",
+                        value: "production"
+                    },
+                    {
+                        name: "IMPORT_FILE",
+                        value: "/unleash/feature-flag.json"
+                    },
+                    {
+                        name: "IMPORT_PROJECT",
+                        value: "default"
+                    },
+                    {
+                        name: "IMPORT_ENVIRONMENT",
+                        value: "production"
+                    },
                 ],
                 replicaCount: 1,
                 dbConfig: {
