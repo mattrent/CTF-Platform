@@ -4,7 +4,6 @@ import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import * as fs from "fs";
 import * as path from 'path';
-import { backendApiPostgresql } from "../infrastructure";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -664,6 +663,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
     /* ----------------------------- Henrik Backend ----------------------------- */
 
     const ALPINE_VM_IMAGE = `${IMAGE_REGISTRY_SERVER}/alpinevm:latest`;
+    const DEBIAN_CONTAINER_IMAGE = `${IMAGE_REGISTRY_SERVER}/debian-container:latest`;
     
     let unleashEnvironment = fs.readFileSync("vm-feature-flag.json", "utf-8");
 
@@ -681,7 +681,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
     const alpineVmImage = new docker.Image("alpine-vm-image", {
         build: {
             context: "./vm",
-            dockerfile: "./vm/Dockerfile",
+            dockerfile: "./vm/Dockerfile.vm",
             platform: "linux/amd64",
             builderVersion: docker.BuilderVersion.BuilderV1,
         },
@@ -695,6 +695,24 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
     }, { dependsOn: registryDependencyList });
 
     alpineVmImage.repoDigest.apply(digest => console.log("Alpine VM image digest:", digest))
+
+    const containerImage = new docker.Image("debian-container-image", {
+        build: {
+            context: "./vm",
+            dockerfile: "./vm/Dockerfile.container",
+            platform: "linux/amd64",
+            builderVersion: docker.BuilderVersion.BuilderV1,
+        },
+        registry: {
+            server: IMAGE_REGISTRY_SERVER,
+            username: dockerUsername,
+            password: dockerPassword
+        },
+        imageName: DEBIAN_CONTAINER_IMAGE,
+        skipPush: false,
+    }, { dependsOn: registryDependencyList });
+
+    containerImage.repoDigest.apply(digest => console.log("Debian container image digest:", digest))
 
     const backendAPI = new docker.Image("backend-image", {
         build: {
@@ -768,7 +786,9 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 ROOTCERT: "/var/run/autocert.step.sm/root.crt",
                 CHALLENGEDOMAIN: "." + HENRIK_BACKEND_HOST,
                 VMIMAGEURL: ALPINE_VM_IMAGE,
+                CONTAINERIMAGEURL: DEBIAN_CONTAINER_IMAGE,
                 IMAGEPULLSECRET: imagePullSecret.metadata.name,
+                UNLEASH_APIKEY: "default:production.unleash-insecure-api-token",
             },
             // TODO Add OIDC authentication to Unleash
             unleash: {
@@ -797,7 +817,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                         value: "admin"
                     },
                     {
-                        name: "INIT_FRONTEND_API_TOKENS",
+                        name: "INIT_CLIENT_API_TOKENS",
                         value: "default:production.unleash-insecure-api-token"
                     },
                     // ? Weird behavior with this env var
