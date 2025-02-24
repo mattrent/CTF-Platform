@@ -152,7 +152,8 @@ CTF-Platform/
 │   │   │   ├── nginx-http.conf
 │   │   │   └── nginx-https.conf
 │   │   ├── vm/
-│   │   │   ├── Dockerfile
+│   │   │   ├── Dockerfile.container
+│   │   │   ├── Dockerfile.vm
 │   │   │   ├── get_vm.py
 │   │   │   └── requirements.txt
 │   │   ├── welcome/
@@ -160,6 +161,7 @@ CTF-Platform/
 │   │   │   ├── Dockerfile
 │   │   │   ├── entrypoint.sh
 │   │   │   └── nginx.conf
+│   │   ├── vm-feature-flag.json
 │   │   └── index.ts
 │   ├── authentication/
 │   │   ├── index.ts
@@ -192,6 +194,7 @@ Our project consists of five Pulumi projects, each with a specific role to play:
   * **Henrik Backend:** The backend service providing core functionality and APIs for the platform.
   * **SSLH protocol multiplexer:** A protocol multiplexer that allows multiple services to share a single port, such as SSH and HTTPS.
   * **NGINX Proxies**: Proxies to upgrade connection and/or move SSL termination to pod.
+  * **Unleash**: An open-source solution for feature flagging.
 * **authentication:** 🔑 Manages SSO capabilities provided by Keycloak.
   * **Keycloak:** An open-source identity and access management solution for Single Sign-On (SSO), enabling secure authentication and authorization.
 * **certificates:** 📜 Handles certificate CA and issuers.

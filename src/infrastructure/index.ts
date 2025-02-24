@@ -38,6 +38,7 @@ export const postgresCtfdAdminPassword = pulumi.secret(crypto.randomBytes(32).to
 export const stepCaAdminProvisionerPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const ctfdApiToken = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const backendApiPostgresql = pulumi.secret(crypto.randomBytes(32).toString("hex"));
+export const unleashClientApiKey = pulumi.secret(`default:production.${crypto.randomBytes(32).toString("hex")}`);
 export const nginxSecretName = "nginx-inbound-tls";
 
 /* ------------------------ NGINX ingress controller ------------------------ */

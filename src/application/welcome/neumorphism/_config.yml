@@ -21,6 +21,7 @@ henrik_backend_host: $DEPLOYER_HOST
 grafana_url: $GRAFANA_URL
 keycloak_url: $KEYCLOAK_URL
 ctfd_url: $CTFD_URL
+unleash_url: $UNLEASH_URL
 
 building_show_card: true
 

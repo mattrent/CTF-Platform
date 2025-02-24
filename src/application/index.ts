@@ -1,4 +1,4 @@
-import { envSubst, serviceTemplate, Stack } from "@ctf/utilities";
+import { envSubst, serviceTemplate, Stack, cleanPath } from "@ctf/utilities";
 import * as docker from "@pulumi/docker";
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
@@ -39,7 +39,8 @@ const CTFD_HOST = config.require("CTFD_HOST");
 const IMAGE_REGISTRY_HOST = config.require("IMAGE_REGISTRY_HOST");
 const IMAGE_REGISTRY_SERVER = `${IMAGE_REGISTRY_HOST}:${REGISTRY_EXPOSED_PORT}`;
 const CTFD_OIDC_PLUGIN_PATH = config.require("CTFD_OIDC_PLUGIN_PATH");
-const CTFD_HTTP_RELATIVE_PATH = config.require("CTFD_HTTP_RELATIVE_PATH");
+const CTFD_HTTP_RELATIVE_PATH = cleanPath(config.require("CTFD_HTTP_RELATIVE_PATH"));
+const CTFD_HTTP_RELATIVE_PATH_TRAILING_SLASH = CTFD_HTTP_RELATIVE_PATH+"/";
 const SSLH_NODEPORT = config.require("SSLH_NODEPORT");
 const CTFD_DATABASE_NAME = config.require("CTFD_DATABASE_NAME");
 const POSTGRESQL_VERSION = config.require("POSTGRESQL_VERSION");
@@ -60,10 +61,8 @@ const CTFD_HOSTNAME = config.require("CTFD_HOSTNAME");
 const CTFD_RELATIVE_PATH = config.require("CTFD_RELATIVE_PATH");
 const ACME_EMAIL = config.require("ACME_EMAIL");
 const REGISTRY_STORAGE_CAPACITY = config.require("REGISTRY_STORAGE_CAPACITY");
-// Remove trailing slash if it exists, but keep the root '/' intact
-const cleanedCtfdPath = (CTFD_HTTP_RELATIVE_PATH !== '/' && CTFD_HTTP_RELATIVE_PATH.endsWith('/'))
-    ? CTFD_HTTP_RELATIVE_PATH.slice(0, -1)
-    : CTFD_HTTP_RELATIVE_PATH;
+const UNLEASH_HOSTNAME = config.require("UNLEASH_HOSTNAME");
+const UNLEASH_RELATIVE_PATH = cleanPath(config.require("UNLEASH_RELATIVE_PATH"));
 
 /* --------------------------------- secret --------------------------------- */
 
@@ -81,6 +80,10 @@ const POSTGRES_CTFD_ADMIN_PASSWORD =
     stackReference.requireOutput("postgresCtfdAdminPassword") as pulumi.Output<string>;
 const BACKEND_API_POSTGRESQL =
     stackReference.requireOutput("backendApiPostgresql") as pulumi.Output<string>;
+    const UNLEASH_CLIENT_APIKEY =
+    stackReference.requireOutput("unleashClientApiKey") as pulumi.Output<string>;
+const UNLEASH_USER = config.requireSecret("UNLEASH_USER");
+const UNLEASH_PWD = config.requireSecret("UNLEASH_PWD");
 
 /* -------------------------------- Regsitry -------------------------------- */
 
@@ -403,7 +406,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     subPath: "config.json"
                                 }],
                                 env: [
-                                    { name: "APPLICATION_ROOT", value: cleanedCtfdPath },
+                                    { name: "APPLICATION_ROOT", value: CTFD_HTTP_RELATIVE_PATH },
                                     { name: "REVERSE_PROXY", value: "true" },
                                     { name: "JWTSECRET", value: CTFD_JWT_SECRET },
                                     { name: "BACKENDURL", value: `http://deployer.${NS}.svc.cluster.local:8080` },
@@ -416,7 +419,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 ],
                                 readinessProbe: {
                                     httpGet: {
-                                        path: cleanedCtfdPath,
+                                        path: CTFD_HTTP_RELATIVE_PATH_TRAILING_SLASH,
                                         port: CTFD_PORT,
                                         scheme: "HTTP"
                                     },
@@ -424,7 +427,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 },
                                 livenessProbe: {
                                     httpGet: {
-                                        path: cleanedCtfdPath,
+                                        path: CTFD_HTTP_RELATIVE_PATH_TRAILING_SLASH,
                                         port: CTFD_PORT,
                                         scheme: "HTTP"
                                     },
@@ -432,7 +435,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 },
                                 startupProbe: {
                                     httpGet: {
-                                        path: cleanedCtfdPath,
+                                        path: CTFD_HTTP_RELATIVE_PATH_TRAILING_SLASH,
                                         port: CTFD_PORT,
                                         scheme: "HTTP"
                                     },
@@ -450,7 +453,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 env: [{ name: "PROXY_PASS_URL", value: `http://localhost:${CTFD_PORT}` }],
                                 readinessProbe: {
                                     httpGet: {
-                                        path: cleanedCtfdPath,
+                                        path: CTFD_HTTP_RELATIVE_PATH_TRAILING_SLASH,
                                         port: CTFD_PROXY_PORT,
                                         scheme: "HTTPS"
                                     },
@@ -458,7 +461,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 },
                                 livenessProbe: {
                                     httpGet: {
-                                        path: cleanedCtfdPath,
+                                        path: CTFD_HTTP_RELATIVE_PATH_TRAILING_SLASH,
                                         port: CTFD_PROXY_PORT,
                                         scheme: "HTTPS"
                                     },
@@ -466,7 +469,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 },
                                 startupProbe: {
                                     httpGet: {
-                                        path: cleanedCtfdPath,
+                                        path: CTFD_HTTP_RELATIVE_PATH_TRAILING_SLASH,
                                         port: CTFD_PROXY_PORT,
                                         scheme: "HTTPS"
                                     },
@@ -508,7 +511,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 "cert-manager.io/issuer-kind": "StepClusterIssuer",
                 "cert-manager.io/issuer-group": "certmanager.step.sm",
                 // Otherwise traling slash is expected
-                "nginx.ingress.kubernetes.io/rewrite-target": `${cleanedCtfdPath}/$2`,
+                "nginx.ingress.kubernetes.io/rewrite-target": `${CTFD_HTTP_RELATIVE_PATH}/$2`,
             },
         },
         spec: {
@@ -521,7 +524,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 host: CTFD_HOST,
                 http: {
                     paths: [{
-                        path: `${cleanedCtfdPath}(/|$)(.*)`,
+                        path: `${CTFD_HTTP_RELATIVE_PATH}(/|$)(.*)`,
                         pathType: "ImplementationSpecific",
                         backend: {
                             service: {
@@ -788,9 +791,11 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 VMIMAGEURL: ALPINE_VM_IMAGE,
                 CONTAINERIMAGEURL: DEBIAN_CONTAINER_IMAGE,
                 IMAGEPULLSECRET: imagePullSecret.metadata.name,
-                UNLEASH_APIKEY: "default:production.unleash-insecure-api-token",
+                UNLEASH_URL: `http://deployer-unleash:4242${UNLEASH_RELATIVE_PATH}/api/`,
+                UNLEASH_APIKEY: UNLEASH_CLIENT_APIKEY,
             },
             // TODO Add OIDC authentication to Unleash
+            // TODO Upgrade unleash server to HTTPS
             unleash: {
                 volumeMounts: [{
                     name: "unleash-environment",
@@ -806,19 +811,20 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 env: [
                     {
                         name: "BASE_URI_PATH",
-                        value: `/unleash`
+                        value: UNLEASH_RELATIVE_PATH
                     },
+                    // TODO Check this
                     {
                         name: "UNLEASH_DEFAULT_ADMIN_USERNAME",
-                        value: "admin"
+                        value: UNLEASH_USER
                     },
                     {
                         name: "UNLEASH_DEFAULT_ADMIN_PASSWORD",
-                        value: "admin"
+                        value: UNLEASH_PWD
                     },
                     {
                         name: "INIT_CLIENT_API_TOKENS",
-                        value: "default:production.unleash-insecure-api-token"
+                        value: UNLEASH_CLIENT_APIKEY
                     },
                     // ? Weird behavior with this env var
                     {
@@ -846,7 +852,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                         key: "postgres-user-password"
                     }
                 },
-                // TODO Upgrade to HTTPS
+                // TODO Upgrade database to HTTPS
                 postgresql: {
                     fullnameOverride: "deployer-unleash-postgresql",
                     // ! Mention in report
@@ -860,15 +866,14 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                     },
                 },
                 livenessProbe: {
-                    path: "/unleash/health"
+                    path: `${UNLEASH_RELATIVE_PATH}/health`
                 },
                 readinessProbe: {
-                    path: "/unleash/health"
+                    path: `${UNLEASH_RELATIVE_PATH}/health`
                 },
                 ingress: {
                     enabled: true,
                     annotations: {
-                        // TODO Upgrade to HTTPS
                         "nginx.ingress.kubernetes.io/backend-protocol": "HTTP",
                         "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
                         "cert-manager.io/issuer": "step-issuer",
@@ -877,15 +882,15 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                     },
                     className: "nginx",
                     hosts: [{
-                        host: WELCOME_HOST,
+                        host: UNLEASH_HOSTNAME,
                         paths: [{
-                            path: "/unleash",
+                            path: UNLEASH_RELATIVE_PATH,
                             pathType: "Prefix",
                         }]
                     }],
                     tls: [{
                         secretName: "unleash-inbound-tls",
-                        hosts: [WELCOME_HOST]
+                        hosts: [UNLEASH_HOSTNAME]
                     }]
                 }
             }
@@ -1153,6 +1158,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 {
                                     name: "CTFD_URL",
                                     value: CTFD_HOSTNAME+CTFD_RELATIVE_PATH
+                                },
+                                {
+                                    name: "UNLEASH_URL",
+                                    value: UNLEASH_HOSTNAME+UNLEASH_RELATIVE_PATH
                                 }
                             ],
                             readinessProbe: {

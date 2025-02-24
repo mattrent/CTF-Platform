@@ -25,3 +25,9 @@ config:
   application:STEP_CA_HOST: ca.myhost
   application:WELCOME_HOST: myhost
   application:REGISTRY_STORAGE_CAPACITY: 50Gi
+  application:UNLEASH_HOSTNAME: myhost
+  application:UNLEASH_RELATIVE_PATH: /unleash
+  application:UNLEASH_USER:
+    secure: v1:WM87GlTNXhQDUnRy:rk5bZx4Y+3nRg4rmf94CkizLmf1C
+  application:UNLEASH_PWD:
+    secure: v1:4JtzROJ7TPUZvtGn:Ucos40Tm+ITKajigCzhNqvOyBP8j

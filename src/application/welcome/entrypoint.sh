@@ -1,3 +1,3 @@
 #!/bin/sh
-envsubst '$STEP_CA_HOST $CA_FINGERPRINT $BASTION_HOST $SSH_PUB_CERT $DEPLOYER_HOST $GRAFANA_URL $KEYCLOAK_URL $CTFD_URL'  < /app/index.html > /app/index.html.tmp
+envsubst '$STEP_CA_HOST $CA_FINGERPRINT $BASTION_HOST $SSH_PUB_CERT $DEPLOYER_HOST $GRAFANA_URL $KEYCLOAK_URL $CTFD_URL $UNLEASH_URL'  < /app/index.html > /app/index.html.tmp
 mv /app/index.html.tmp /app/index.html

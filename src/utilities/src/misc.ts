@@ -39,3 +39,5 @@ export function restartStep(
         update: restartOnUpdate ? stepRestartCommand : undefined
     }, { dependsOn: waitCondition });
 }
+
+export const cleanPath = (input: string): string => input.replace(/(\/.+)\/$/, "$1");

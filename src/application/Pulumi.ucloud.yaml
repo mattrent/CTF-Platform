@@ -25,3 +25,9 @@ config:
   application:STEP_CA_HOST: ca.ctf.jacopomauro.com
   application:WELCOME_HOST: ctf.jacopomauro.com
   application:REGISTRY_STORAGE_CAPACITY: 50Gi
+  application:UNLEASH_HOSTNAME: ctf.jacopomauro.com
+  application:UNLEASH_RELATIVE_PATH: /unleash
+  application:UNLEASH_USER:
+    secure: v1:S/ZUPSXFGLUnTvOD:HJMc5+t60KoYzWbdhXpstUZjRoYw
+  application:UNLEASH_PWD:
+    secure: v1:YIk0PVYbDoFP/gn8:E7FoAfaZG1ZHKLIThqnxbUbsy7LDxkD2HbNFgmkzkWP81gvKJiv4ky6O0koLW9g4
