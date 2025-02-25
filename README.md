@@ -75,14 +75,15 @@ subgraph UCloud Kubernetes
     J -->|TLS| L[NGINX & Certbot]
     J -->|HTTP| L
     K -->|SSH| E[Challenges]
-    L -->|Let's Encrypt on ctf.jacopomauro.com and deployer.ctf.jacopomauro.com; otherwise SSL passthrough| G[Ingress Controller]
+    L -->|Let's Encrypt on ctf.jacopomauro.com and deployer.ctf.jacopomauro.com; otherwise SSL passthrough| G{Ingress Controller}
 subgraph Services
     G -->|HTTPS| H[Authentication]
     G -->|HTTPS| I[CA]
     G -->|HTTP| E
     G -->|HTTPS| F[Monitoring]
     G -->|HTTPS| O[Website]
-    G -->|HTTP| P[API]
+    G -->|HTTP| P[Deployer]
+    G -->|HTTP| Q[Feature Flags]
 end
 end
 end
