@@ -1067,7 +1067,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
         spec: {
             ingressClassName: "nginx",
             rules: [{
-                host: SERVER_NAME,
+                host: WELCOME_HOST,
                 http: {
                     paths: [{
                         path: "/health",
@@ -1084,7 +1084,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 },
             }],
             tls: [{
-                hosts: [SERVER_NAME],
+                hosts: [WELCOME_HOST],
                 secretName: "acme-health-inbound-tls"
             }]
         },
