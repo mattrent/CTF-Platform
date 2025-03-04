@@ -72,8 +72,6 @@ const DOCKER_USERNAME =
     stackReference.requireOutput("dockerUsername") as pulumi.Output<string>;
 const DOCKER_PASSWORD =
     stackReference.requireOutput("dockerPassword") as pulumi.Output<string>;
-const CTFD_JWT_SECRET =
-    stackReference.requireOutput("jwtCtfd") as pulumi.Output<string>;
 const CTFD_API_TOKEN =
     stackReference.requireOutput("ctfdApiToken") as pulumi.Output<string>;
 const POSTGRES_CTFD_ADMIN_PASSWORD =
@@ -408,7 +406,6 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 env: [
                                     { name: "APPLICATION_ROOT", value: CTFD_HTTP_RELATIVE_PATH },
                                     { name: "REVERSE_PROXY", value: "true" },
-                                    { name: "JWTSECRET", value: CTFD_JWT_SECRET },
                                     { name: "BACKENDURL", value: `http://deployer.${NS}.svc.cluster.local:8080` },
                                     { name: "API_TOKEN", value: CTFD_API_TOKEN },
                                     {
@@ -1017,7 +1014,12 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
     }, { dependsOn: [bastion, nginxImageCertbot] });
 
     const acmeProxyService = new k8s.core.v1.Service("acme-proxy", {
-        metadata: { namespace: stack, name: SERVER_NAME },
+        metadata: { 
+            namespace: stack, 
+            name: Stack.DEV === stack 
+                ? SERVER_NAME 
+                : "acme-proxy" // Domain name is not valid
+        },
         spec: {
             selector: appLabels.sshl,
             ports: [

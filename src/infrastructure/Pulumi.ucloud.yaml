@@ -5,4 +5,6 @@ config:
   infrastructure:NGINX_NAMESPACE: ingress-nginx
   infrastructure:NGINX_VERSION: 4.11.3
   infrastructure:PROVISIONER_PATH: /tmp/local-path-provisioner
-  infrastructure:PROVISIONER_VOLUME_TYPE: local
+  infrastructure:PROVISIONER_VOLUME_TYPE: hostPath
+  infrastructure:RECLAIM_POLICY: retain
+  infrastructure:VOLUME_BINDING_MODE: Immediate

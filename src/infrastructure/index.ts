@@ -13,6 +13,8 @@ const PROVISIONER_VOLUME_TYPE = config.require("PROVISIONER_VOLUME_TYPE");
 const NGINX_VERSION = config.require("NGINX_VERSION");
 const KUBE_PROMETHEUS_STACK_VERSION = config.require("KUBE-PROMETHEUS-STACK_VERSION");
 const NGINX_NS = config.require("NGINX_NAMESPACE");
+const RECLAIM_POLICY = config.require("RECLAIM_POLICY");
+const VOLUME_BINDING_MODE = config.require("VOLUME_BINDING_MODE");
 
 /* -------------------------------- namespace ------------------------------- */
 
@@ -31,7 +33,6 @@ export const stepCaSecret = pulumi.secret(crypto.randomBytes(32).toString("hex")
 
 export const dockerUsername = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const dockerPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
-export const jwtCtfd = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const postgresAdminPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const postgresUserPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
 export const postgresCtfdAdminPassword = pulumi.secret(crypto.randomBytes(32).toString("hex"));
@@ -103,13 +104,11 @@ if (stack === Stack.DEV) {
                 name: "local-path",
                 pathPattern: "{{ .PVC.Namespace }}-{{ .PVC.Name }}",
                 defaultVolumeType: PROVISIONER_VOLUME_TYPE,
+                reclaimPolicy: RECLAIM_POLICY,
+                volumeBindingMode: VOLUME_BINDING_MODE,
             },
-            nodePathMap: [
-                {
-                    node: "DEFAULT_PATH_FOR_NON_LISTED_NODES",
-                    paths: [PROVISIONER_PATH]
-                }
-            ]
+            nodePathMap: [], // requirement for shared filesystem
+            sharedFileSystemPath: PROVISIONER_PATH,
         },
     });
 }
