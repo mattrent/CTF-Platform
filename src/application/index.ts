@@ -952,7 +952,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     // expected by Kubernetes ingress resource
                                     httpHeaders: [{
                                         name: "Host",
-                                        value: SERVER_NAME
+                                        value: WELCOME_HOST
                                     }]
                                 },
                                 periodSeconds: 10,
