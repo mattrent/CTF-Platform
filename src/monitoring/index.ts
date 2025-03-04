@@ -1,6 +1,5 @@
 import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
-import * as fs from "fs";
 
 /* ------------------------------ prerequisite ------------------------------ */
 
@@ -26,12 +25,17 @@ const WEBCONFIGFILE = config.require("WEBCONFIGFILE");
 const KUBE_PROMETHEUS_STACK_VERSION = config.require("KUBE-PROMETHEUS-STACK_VERSION");
 const kubePrometheusStackRelaseName = "kube-prometheus-stack"
 const TLS_DURATION = config.require("TLS_DURATION");
+const LOKI_LOG_RENTION = config.require("LOKI_LOG_RENTION");
+const PROMETHEUS_RENTION = config.require("PROMETHEUS_RENTION");
+const PROMETHEUS_REQUEST_STORAGE = config.require("PROMETHEUS_REQUEST_STORAGE");
+const LOKI_REQUEST_STORAGE = config.require("LOKI_REQUEST_STORAGE");
 
 // Remove trailing slash if it exists, but keep the root '/' intact
 const cleanedGrafanaPath = (GRAFANA_HTTP_RELATIVE_PATH !== '/' && GRAFANA_HTTP_RELATIVE_PATH.endsWith('/')) 
   ? GRAFANA_HTTP_RELATIVE_PATH.slice(0, -1) 
   : GRAFANA_HTTP_RELATIVE_PATH;
 
+// TODO Add prometheus relabelings
 
 /* --------------------------------- Grafana -------------------------------- */
 
@@ -368,6 +372,18 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
                 }
             },
             prometheusSpec: { 
+                retention: PROMETHEUS_RENTION,
+                storageSpec: {
+                    volumeClaimTemplate: {
+                        spec: {
+                            resources: {
+                                requests: {
+                                    storage: PROMETHEUS_REQUEST_STORAGE
+                                }
+                            }
+                        }
+                    }
+                },
                 web: { 
                     tlsConfig: { 
                         keySecret: { 
@@ -550,6 +566,7 @@ const podAnnotationsExporters = {
 }
 
 // https://grafana.com/docs/loki/latest/setup/install/helm/install-monolithic/
+// https://github.com/grafana/loki/tree/main/production/helm/loki
 new k8s.helm.v4.Chart("loki", {
     namespace: NS,
     version: LOKI_VERSION,
@@ -560,6 +577,9 @@ new k8s.helm.v4.Chart("loki", {
     values: {
         deploymentMode: "SingleBinary",
         loki: {
+            limits_config: {
+                retention_period: LOKI_LOG_RENTION
+            },
             auth_enabled: false,
             commonConfig: {
                 replication_factor: 1
@@ -604,7 +624,10 @@ new k8s.helm.v4.Chart("loki", {
             },
         },
         singleBinary: {
-            replicas: 1
+            replicas: 1,
+            persistence: {
+                size: LOKI_REQUEST_STORAGE
+            }
         },
         read: {
             replicas: 0
