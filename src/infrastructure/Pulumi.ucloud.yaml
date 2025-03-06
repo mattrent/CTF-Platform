@@ -7,4 +7,4 @@ config:
   infrastructure:PROVISIONER_PATH: /tmp/local-path-provisioner
   infrastructure:PROVISIONER_VOLUME_TYPE: hostPath
   infrastructure:RECLAIM_POLICY: Retain
-  infrastructure:VOLUME_BINDING_MODE: Immediate
+  infrastructure:VOLUME_BINDING_MODE: WaitForFirstConsumer
