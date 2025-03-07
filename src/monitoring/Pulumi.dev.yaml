@@ -10,3 +10,7 @@ config:
   monitoring:PROMTAIL_VERSION: 6.16.6
   monitoring:TLS_DURATION: 5760h
   monitoring:WEBCONFIGFILE: web-configuration.yml
+  monitoring:LOKI_LOG_RENTION: 5760h
+  monitoring:PROMETHEUS_RENTION: 5760h
+  monitoring:PROMETHEUS_REQUEST_STORAGE: 10Gi
+  monitoring:LOKI_REQUEST_STORAGE: 10Gi

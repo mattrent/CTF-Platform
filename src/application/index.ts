@@ -955,8 +955,8 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                         value: WELCOME_HOST
                                     }]
                                 },
-                                periodSeconds: 10,
-                                initialDelaySeconds: 30
+                                periodSeconds: 30,
+                                initialDelaySeconds: 60
                             },
                         },
                         {
@@ -999,11 +999,11 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                     command: [
                                         "sh",
                                         "-c",
-                                        `cert_date=$(date -d "$(openssl x509 -in $( find /etc/letsencrypt/live/ -name cert.pem) -noout -dates | cut -d= -f2 | tail -n 1 | tr -d " GMT")" +%s); now=$(date +%s); if [ "$cert_date" -gt "$now" ]; then true; else false; fi && curl -k https://localhost/health`
+                                        `cert_date=$(date -d "$(openssl x509 -in $( find /etc/letsencrypt/live/ -name cert.pem) -noout -dates | cut -d= -f2 | tail -n 1 | sed 's/\\s\\+/ /g' | sed 's/ GMT//g')" +%s); now=$(date +%s); if [ "$cert_date" -gt "$now" ]; then true; else false; fi && curl ${stack === Stack.DEV ? "-k": ""} https://localhost/health`
                                     ],
                                 },
                                 periodSeconds: 120,
-                                initialDelaySeconds: 30
+                                initialDelaySeconds: 60
                             },
                         }
                     ],

@@ -4,7 +4,9 @@ config:
   infrastructure:KUBEVIRT_VERSION: v1.3.1
   infrastructure:NGINX_NAMESPACE: ingress-nginx
   infrastructure:NGINX_VERSION: 4.11.3
-  infrastructure:PROVISIONER_PATH: /tmp/local-path-provisioner
-  infrastructure:PROVISIONER_VOLUME_TYPE: hostPath
-  infrastructure:RECLAIM_POLICY: Retain
+  infrastructure:PROVISIONER_PATH: /var/nfs/kubedata
+  infrastructure:NFS_PROVISIONER_VERSION: 4.0.18
+  infrastructure:STORAGECLASS_RECLAIM_POLICY: Retain
+  infrastructure:NFS_RECLAIM_POLICY: Retain
   infrastructure:VOLUME_BINDING_MODE: WaitForFirstConsumer
+  infrastructure:NFS_SERVER: control

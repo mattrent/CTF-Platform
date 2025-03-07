@@ -9,12 +9,14 @@ import * as crypto from "crypto";
 const config = new pulumi.Config();
 const KUBEVIRT_VERSION = config.require("KUBEVIRT_VERSION");
 const PROVISIONER_PATH = config.require("PROVISIONER_PATH");
-const PROVISIONER_VOLUME_TYPE = config.require("PROVISIONER_VOLUME_TYPE");
 const NGINX_VERSION = config.require("NGINX_VERSION");
 const KUBE_PROMETHEUS_STACK_VERSION = config.require("KUBE-PROMETHEUS-STACK_VERSION");
 const NGINX_NS = config.require("NGINX_NAMESPACE");
-const RECLAIM_POLICY = config.require("RECLAIM_POLICY");
+const NFS_PROVISIONER_VERSION = config.require("NFS_PROVISIONER_VERSION");
+const NFS_RECLAIM_POLICY = config.require("NFS_RECLAIM_POLICY");
+const STORAGECLASS_RECLAIM_POLICY = config.require("STORAGECLASS_RECLAIM_POLICY");
 const VOLUME_BINDING_MODE = config.require("VOLUME_BINDING_MODE");
+const NFS_SERVER = config.require("NFS_SERVER");
 
 /* -------------------------------- namespace ------------------------------- */
 
@@ -92,23 +94,26 @@ if (stack === Stack.DEV) {
         },
     });
 
-    // https://github.com/rancher/local-path-provisioner/issues/465
-    // TODO add Service Monitor
-    new k8s.helm.v4.Chart("local-path-provisioner", {
-        chart: "local-path-provisioner-0.0.30.tgz",
+    // Kept for historical reasons: https://github.com/rancher/local-path-provisioner/issues/465
+    // https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/tree/master
+    new k8s.helm.v4.Chart("nfs-subdir-external-provisioner", {
+        chart: "https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/",
+        version: NFS_PROVISIONER_VERSION,
         namespace: NS,
         values: {
             storageClass: {
                 create: true,
                 defaultClass: true,
-                name: "local-path",
-                pathPattern: "{{ .PVC.Namespace }}-{{ .PVC.Name }}",
-                defaultVolumeType: PROVISIONER_VOLUME_TYPE,
-                reclaimPolicy: RECLAIM_POLICY,
-                volumeBindingMode: VOLUME_BINDING_MODE,
+                name: "nfs-client",
+                pathPattern: "${.PVC.namespace}-${.PVC.name}",
+                reclaimPolicy: STORAGECLASS_RECLAIM_POLICY,
+                volumeBindingMode: VOLUME_BINDING_MODE
             },
-            nodePathMap: [], // requirement for shared filesystem
-            sharedFileSystemPath: PROVISIONER_PATH,
+            nfs: {
+                path: PROVISIONER_PATH,
+                server: NFS_SERVER,
+                reclaimPolicy: NFS_RECLAIM_POLICY,
+            }
         },
     });
 }
