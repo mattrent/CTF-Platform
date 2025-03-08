@@ -89,9 +89,44 @@ end
 end
 ```
 
-
-
 This figure showcases the interconnectedness and complexity of our platform, highlighting how each part plays a vital role. From infrastructure setup and application management to monitoring and authentication, the diagram encapsulates the multifaceted nature of the system. Each component is designed to ensure modularity, scalability, and efficiency, forming a cohesive and robust deployment ecosystem.
+
+We are aware that making a fail-safe system is unachievable; instead, our goal is to create a safe-to-fail system. When shit hits the fan, we may need to perform a complete redeployment of the platform. In such cases, it is vital that this impacts only downtime and not data integrity. To eliminate this risk, we decided to use object storage buckets in MinIO to ensure robust and reliable data management.
+
+```mermaid
+---
+title: Backup Storage
+---
+graph TD
+subgraph UCloud
+subgraph Kubernetes Worker W
+PV0[Persistent Volume]
+end
+subgraph Kubernetes Worker X
+PV1[Persistent Volume] 
+end
+subgraph Kubernetes Worker Y
+PV2[Persistent Volume] 
+end
+subgraph Kubernetes Worker Z
+provisioner[NFS Storage Provisioner]
+end
+subgraph Kubernetes Control
+plane[Control Plane]
+subgraph NFS Filesystem
+SQ3L
+end
+end
+end
+subgraph CEPH
+MinIO
+end
+SQ3L --> MinIO
+provisioner --> SQ3L
+PV0[Persistent Volume] --> provisioner
+PV1[Persistent Volume] --> provisioner
+PV2[Persistent Volume] --> provisioner
+```
 
 Please read the [report](report/main.tex) for a more in-depth review.
 
