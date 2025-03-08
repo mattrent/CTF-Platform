@@ -97,7 +97,10 @@ if (stack === Stack.DEV) {
     // Kept for historical reasons: https://github.com/rancher/local-path-provisioner/issues/465
     // https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/tree/master
     new k8s.helm.v4.Chart("nfs-subdir-external-provisioner", {
-        chart: "https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/",
+        chart: "nfs-subdir-external-provisioner",
+        repositoryOpts: {
+            repo: "https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/",
+        },
         version: NFS_PROVISIONER_VERSION,
         namespace: NS,
         values: {
