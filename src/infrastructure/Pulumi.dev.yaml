@@ -4,7 +4,7 @@ config:
   infrastructure:KUBEVIRT_VERSION: v1.3.1
   infrastructure:NGINX_NAMESPACE: ingress-nginx
   infrastructure:NGINX_VERSION: 4.11.3
-  infrastructure:PROVISIONER_PATH: /var/nfs/kubedata
+  infrastructure:PROVISIONER_PATH: /nfs-storage
   infrastructure:NFS_PROVISIONER_VERSION: 4.0.18
   infrastructure:STORAGECLASS_RECLAIM_POLICY: Retain
   infrastructure:NFS_RECLAIM_POLICY: Retain
