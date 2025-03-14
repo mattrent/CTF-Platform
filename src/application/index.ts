@@ -994,12 +994,13 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                             ],
                             ports: [{ containerPort: HTTPS_PORT }, { containerPort: HTTP_PORT }],
                             // Curl health endpoint and check certificate validity
+                            // change localhost to domain name in production
                             livenessProbe: {
                                 exec: {
                                     command: [
                                         "sh",
                                         "-c",
-                                        `cert_date=$(date -d "$(openssl x509 -in $( find /etc/letsencrypt/live/ -name cert.pem) -noout -dates | cut -d= -f2 | tail -n 1 | sed 's/\\s\\+/ /g' | sed 's/ GMT//g')" +%s); now=$(date +%s); if [ "$cert_date" -gt "$now" ]; then true; else false; fi && curl ${stack === Stack.DEV ? "-k": ""} https://localhost/health`
+                                        `cert_date=$(date -d "$(openssl x509 -in $( find /etc/letsencrypt/live/ -name cert.pem) -noout -dates | cut -d= -f2 | tail -n 1 | sed 's/\\s\\+/ /g' | sed 's/ GMT//g')" +%s); now=$(date +%s); if [ "$cert_date" -gt "$now" ]; then true; else false; fi && curl -k https://localhost/health`
                                     ],
                                 },
                                 periodSeconds: 120,
