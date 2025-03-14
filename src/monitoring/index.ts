@@ -37,6 +37,11 @@ const cleanedGrafanaPath = (GRAFANA_HTTP_RELATIVE_PATH !== '/' && GRAFANA_HTTP_R
 
 // TODO Add prometheus relabelings
 
+// secrets
+
+const BACKEND_API_POSTGRESQL =
+    stackReference.requireOutput("backendApiPostgresql") as pulumi.Output<string>;
+
 /* --------------------------------- Grafana -------------------------------- */
 
 const grafanaIngressPathType = GRAFANA_HTTP_RELATIVE_PATH !== "/" ? "ImplementationSpecific" : "Prefix"
@@ -149,6 +154,26 @@ new k8s.helm.v3.Chart("grafana", {
                             tlsCACert: "$__file{/var/run/autocert.step.sm/root.crt}",
                             tlsClientKey: "$__file{/var/run/autocert.step.sm/site.key}",
                             tlsClientCert: "$__file{/var/run/autocert.step.sm/site.crt}"
+                        }
+                    },
+                    // https://grafana.com/docs/grafana/latest/datasources/postgres/configure/
+                    {
+                        name: "Deployer Database",
+                        type: "postgres",
+                        url: "deployer-postgresql",
+                        user: "postgres",
+                        secureJsonData: {
+                            password: BACKEND_API_POSTGRESQL
+                        },
+                        jsonData: {
+                            database: "postgres",
+                            sslmode: "disable",
+                            maxOpenConns: 100, // Grafana v5.4+
+                            maxIdleConns: 100, // Grafana v5.4+
+                            maxIdleConnsAuto: true, // Grafana v9.5.1+
+                            connMaxLifetime: 14400, // Grafana v5.4+
+                            postgresVersion: 1600, // 903=9.3, 904=9.4, 905=9.5, 906=9.6, 1000=10
+                            timescaledb: false
                         }
                     }
                 ]
