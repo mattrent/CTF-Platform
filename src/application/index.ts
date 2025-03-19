@@ -188,9 +188,9 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
             namespace: NS,
             annotations: {
                 "reflector.v1.k8s.emberstack.com/reflection-allowed": "true",
-                "reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces": "challenge-.*",
+                "reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces": "(challenge|test)-.*",
                 "reflector.v1.k8s.emberstack.com/reflection-auto-enabled": "true",
-                "reflector.v1.k8s.emberstack.com/reflection-auto-namespaces": "challenge-.*",
+                "reflector.v1.k8s.emberstack.com/reflection-auto-namespaces": "(challenge|test)-.*",
             }
         },
         type: "kubernetes.io/dockerconfigjson",
