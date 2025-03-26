@@ -348,7 +348,7 @@ Once the platform is deployed, the main guide will be available on the [homepage
 - **API Usage Guide:** Learn how to interact with the platform's API.
 - **SSH Connection Guide:** Detailed instructions on how to connect to challenges using SSH.
 
-For detailed information on how to deploy challenges, refer to the [Challenge Building Info](./challenge_building_info.md) document. This file contains all the necessary steps and best practices to create and deploy challenges effectively.
+For detailed information on how to deploy or test challenges, refer to the [Challenge Building Info](./challenge_building_info.md) and [Challenge Validation Info](./challenge_validation.md) documents, respectively. This file contains all the necessary steps and best practices to create and deploy challenges effectively.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
