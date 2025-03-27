@@ -31,9 +31,9 @@ const PROMETHEUS_REQUEST_STORAGE = config.require("PROMETHEUS_REQUEST_STORAGE");
 const LOKI_REQUEST_STORAGE = config.require("LOKI_REQUEST_STORAGE");
 
 // Remove trailing slash if it exists, but keep the root '/' intact
-const cleanedGrafanaPath = (GRAFANA_HTTP_RELATIVE_PATH !== '/' && GRAFANA_HTTP_RELATIVE_PATH.endsWith('/')) 
-  ? GRAFANA_HTTP_RELATIVE_PATH.slice(0, -1) 
-  : GRAFANA_HTTP_RELATIVE_PATH;
+const cleanedGrafanaPath = (GRAFANA_HTTP_RELATIVE_PATH !== '/' && GRAFANA_HTTP_RELATIVE_PATH.endsWith('/'))
+    ? GRAFANA_HTTP_RELATIVE_PATH.slice(0, -1)
+    : GRAFANA_HTTP_RELATIVE_PATH;
 
 // TODO Add prometheus relabelings
 
@@ -46,7 +46,7 @@ const BACKEND_API_POSTGRESQL =
 
 const grafanaIngressPathType = GRAFANA_HTTP_RELATIVE_PATH !== "/" ? "ImplementationSpecific" : "Prefix"
 const grafanaIngressPath = GRAFANA_HTTP_RELATIVE_PATH !== "/" ? `${cleanedGrafanaPath}(/|$)(.*)` : "/"
-const grafanaIngressAnnotations: {[key: string]: string} = {
+const grafanaIngressAnnotations: { [key: string]: string } = {
     "nginx.ingress.kubernetes.io/force-ssl-redirect": "true",
     "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS",
     "cert-manager.io/issuer": "step-issuer",
@@ -396,7 +396,7 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
                     insecureSkipVerify: false
                 }
             },
-            prometheusSpec: { 
+            prometheusSpec: {
                 retention: PROMETHEUS_RENTION,
                 storageSpec: {
                     volumeClaimTemplate: {
@@ -409,23 +409,23 @@ new k8s.helm.v4.Chart(kubePrometheusStackRelaseName, {
                         }
                     }
                 },
-                web: { 
-                    tlsConfig: { 
-                        keySecret: { 
-                            key: "tls.key", 
-                            name: prometheusCert.metadata.name 
+                web: {
+                    tlsConfig: {
+                        keySecret: {
+                            key: "tls.key",
+                            name: prometheusCert.metadata.name
                         },
-                        cert: { 
-                            secret: { 
-                                key: "tls.crt", 
-                                name: prometheusCert.metadata.name 
-                            } 
+                        cert: {
+                            secret: {
+                                key: "tls.crt",
+                                name: prometheusCert.metadata.name
+                            }
                         },
                         client_ca: {
-                            secret: { 
-                                key: "ca.crt", 
-                                name: prometheusCert.metadata.name 
-                            } 
+                            secret: {
+                                key: "ca.crt",
+                                name: prometheusCert.metadata.name
+                            }
                         },
                         clientAuthType: "VerifyClientCertIfGiven" // can be upgraded to RequireAndVerifyClientCert
                     }
@@ -568,7 +568,7 @@ const webConfigConfigmap = new k8s.core.v1.ConfigMap("webconfig", {
     }
 });
 
-const mounts =  {
+const mounts = {
     extraVolumeMounts: [
         {
             name: webConfigConfigmap.metadata.name,
@@ -629,7 +629,7 @@ new k8s.helm.v4.Chart("loki", {
             server: {
                 http_tls_config: {
                     client_auth_type: "VerifyClientCertIfGiven",
-                    client_ca_file:"/var/run/autocert.step.sm/root.crt",
+                    client_ca_file: "/var/run/autocert.step.sm/root.crt",
                     cert_file: "/var/run/autocert.step.sm/site.crt",
                     key_file: "/var/run/autocert.step.sm/site.key"
                 }
@@ -702,6 +702,7 @@ new k8s.helm.v4.Chart("loki", {
         },
         chunksCache: {
             podAnnotations: podAnnotationsExporters,
+            allocatedMemory: 2048,
             ...mounts
         }
     },
@@ -712,7 +713,7 @@ new k8s.helm.v4.Chart("loki", {
 // https://github.com/grafana/loki/issues/8965
 
 const serverConfig =
-`http_tls_config:
+    `http_tls_config:
     cert_file: /var/run/autocert.step.sm/site.crt
     key_file: /var/run/autocert.step.sm/site.key
     client_ca_file: /var/run/autocert.step.sm/root.crt
@@ -728,9 +729,9 @@ new k8s.helm.v3.Chart("promtail", {
     values: {
         config: {
             clients: [{
-                url: "https://loki:3100/loki/api/v1/push",        
-                tls_config: {        
-                    ca_file:"/var/run/autocert.step.sm/root.crt",
+                url: "https://loki:3100/loki/api/v1/push",
+                tls_config: {
+                    ca_file: "/var/run/autocert.step.sm/root.crt",
                     cert_file: "/var/run/autocert.step.sm/site.crt",
                     key_file: "/var/run/autocert.step.sm/site.key"
                 }
