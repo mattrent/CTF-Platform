@@ -12,8 +12,8 @@
 <a href="https://github.com/KianBankeLarsen/CTF-Platform/blob/main/LICENSE" style="text-decoration:none;">
   <img src="https://img.shields.io/github/license/KianBankeLarsen/CTF-Platform?style=for-the-badge" style="padding-bottom: 5px;/">
 </a>
-<!-- <a href="https://ctf.jacopomauro.com" style="text-decoration:none;">
-  <img src="https://img.shields.io/website?url=https%3A%2F%2Fctf.jacopomauro.com&style=for-the-badge" style="padding-bottom: 5px;"/>
+<!-- <a href="https://ctft.jacopomauro.com" style="text-decoration:none;">
+  <img src="https://img.shields.io/website?url=https%3A%2F%2Fctft.jacopomauro.com&style=for-the-badge" style="padding-bottom: 5px;"/>
 </a> -->
 </p>
 <p align="center">
@@ -23,7 +23,7 @@
 <br />
 Revolutionize Your CTF Challenges with Our Easy Deployment Platform
 <br />
-<a href="https://ctf.jacopomauro.com"><strong>Explore the platform»</strong></a>
+<a href="https://ctft.jacopomauro.com"><strong>Explore the platform»</strong></a>
 </p>
 
 <details>
@@ -75,7 +75,7 @@ subgraph UCloud Kubernetes
     J -->|TLS| L[NGINX & Certbot]
     J -->|HTTP| L
     K -->|SSH| E[Challenges]
-    L -->|Let's Encrypt on ctf.jacopomauro.com and deployer.ctf.jacopomauro.com; otherwise SSL passthrough| G{Ingress Controller}
+    L -->|Let's Encrypt on ctft.jacopomauro.com and deployer.ctft.jacopomauro.com; otherwise SSL passthrough| G{Ingress Controller}
 subgraph Services
     G -->|HTTPS| H[Authentication]
     G -->|HTTPS| I[CA]
@@ -342,7 +342,7 @@ For even more advanced setups, if using a provider, the complete infrastructure 
 <a name="usage"></a>
 ## 🪁 How to Use the Platform
 
-Once the platform is deployed, the main guide will be available on the [homepage](https://ctf.jacopomauro.com). This comprehensive guide includes:
+Once the platform is deployed, the main guide will be available on the [homepage](https://ctft.jacopomauro.com). This comprehensive guide includes:
 
 - **Links to Different Services:** Easily navigate to various services provided by the platform.
 - **API Usage Guide:** Learn how to interact with the platform's API.

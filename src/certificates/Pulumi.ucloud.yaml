@@ -1,12 +1,12 @@
 encryptionsalt: v1:jaRZpPJjDHU=:v1:GQ3vwRv8aPgNoUPH:eP0oPalAwV9lmrrunG5OfI8efmDatw==
 config:
   certificates:CERT-MANAGER_VERSION: 1.16.2
-  certificates:CN: ctf.jacopomauro.com
-  certificates:KEYCLOAK_HOST: ctf.jacopomauro.com
+  certificates:CN: ctft.jacopomauro.com
+  certificates:KEYCLOAK_HOST: ctft.jacopomauro.com
   certificates:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
   certificates:NGINX_NAMESPACE: ingress-nginx
-  certificates:SANS: 'ctf.jacopomauro.com,*.ctf.jacopomauro.com'
+  certificates:SANS: "ctft.jacopomauro.com,*.ctft.jacopomauro.com"
   certificates:STEP_AUTOCERT_VERSION: 1.20.0
-  certificates:STEP_CA_HOST: ca.ctf.jacopomauro.com
+  certificates:STEP_CA_HOST: ca.ctft.jacopomauro.com
   certificates:STEP_ISSUER_VERSION: 1.9.6
   certificates:TLS_DURATION: 5760h
