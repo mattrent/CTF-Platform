@@ -13,4 +13,4 @@ wget localhost:8080
 FLAG=$(cat index.html | grep -o flag{.*})
 
 # Print the flag to the solution output
-echo $FLAG >> /run/solution/flag.txt
+echo "$FLAG" >> /run/solution/flag.txt
