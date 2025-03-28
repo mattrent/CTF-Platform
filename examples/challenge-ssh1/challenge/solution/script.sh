@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Start SSH tunnel as background service
-sshpass -p 'test' ssh -o StrictHostKeyChecking=accept-new -p 8022 test@$SSH_SERVICE_INTERNAL_URL -L 8080:web1.ctf:80 -N &
+sshpass -p 'test' ssh -o StrictHostKeyChecking=accept-new -p 8022 test@$SSH_SERVICE_INTERNAL_URL -L 8080:web1.ctf:80 -N -f
 
 # Wait for SSH tunnel to be established
 sleep 5
