@@ -31,3 +31,4 @@ config:
     secure: v1:WM87GlTNXhQDUnRy:rk5bZx4Y+3nRg4rmf94CkizLmf1C
   application:UNLEASH_PWD:
     secure: v1:4JtzROJ7TPUZvtGn:Ucos40Tm+ITKajigCzhNqvOyBP8j
+  application:ALLOWED_CHALLENGES_AT_ONCE: "1"
