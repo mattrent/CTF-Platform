@@ -71,10 +71,38 @@
 \setcounter{page}{1}
 
 \chapter{Introduction}
+Digitalization has become an integral part of our lives. As technology continues to evolve, so do the challenges associated with it. One of the most pressing issues in today's digital landscape is cybersecurity, as it is part of \textit{Europe's digital targets for 2030} \Parencite{europe_digital_decade}. The Agency for Digital Government marks Denmark as a digital frontrunner \Parencite{danish_digital_journey}. The strong digital infrastructure we have today has been achieved through more than 20 years of close collaboration amongst Danish IT companies, the Danish national government municipalities and regions. Examples of such IT companies are KMD, EG and Netcompany. The digital infrastructure offers automation of repetitive manual tasks and accessibility to information and services. While automation minimizes the risk of human errors, the increased use of software libraries and expanded accessibility also enlarge the attack surface.
 
-\section{Motivation}
+With the increasing number of cyber threats and attacks, organizations are constantly seeking ways to enhance their security measures and protect their sensitive data. This has led to a growing demand for educated cybersecurity professionals who can proactively identify and mitigate risks. Such know-how is partly taught from workshops, books, talks etc., but an important key ingredient is practical experience. One way to achieve this is through the use of a competitive Capture the Flag (CTF) game. CTFs are a kind of computer security competition. Two kinds of CTF competitions exist \Parencite{ctf_overview}: 
 
-\section{Goal}
+\begin{itemize}
+    \item Jeopardy revolve around a set of challenges provided by the competition organizers. They are mainly focusing on exploiting a system in order to reveal a small piece of text or ``flag''. 
+    \item Attach \& Defense is a kind of CTF where the participants are given a set of vulnerable server software. The goal is to attack the other teams' servers while defending their own. A successful attack is one that retrieves a flag. Its purpose is to simulate digital warfare.
+\end{itemize}
+
+This thesis will not go into detail regarding the CTF challenges themselves, but rather focus on the infrastructure and architecture of a platform hosting such challenges. We will though provide some very simplistic Jeopardy challenges to demonstrate the platform's capabilities.
+
+\paragraph{Motivation}
+The motivation behind this thesis is to develop a CTF platform tailored for educational purposes, particularly for Computer Science bachelor's students at the University of Southern Denmark. The platform was initially designed to be hosted on UCloud \Parencite{SDUCloud}, a cloud service managed by the University of Southern Denmark and supported by servers from Aarhus University. However, due to the missing support for hardware virtualization, we decided to migrate the platform to Hetzner \Parencite{Hetzner}. This change in setting enabled us to eliminate certain complexities that were otherwise imposed by using UCloud, as detailed in Chapter \ref{chap:architecture}. UCloud was initially chosen because of its cost-effectiveness and the fact that it is a service provided by the university.
+
+Although this Master's Thesis was developed independently, it is essential to acknowledge the contributions of the individuals who played a role in the project. The group composition was as follows: Henrik Rossen Jakobsen, a former Master's student, began his Thesis in January 2024. His initial research focused on analyzing different CTF platforms by comparing their strengths and weaknesses. This analysis established a set of requirements for the platform to be developed. I joined Henrik in September 2024 to assist in the platform's development. Due to the limitations of UCloud, Matteo Trentin, a PhD student, joined the project to establish a distributed Kubernetes cluster on both UCloud and Hetzner. Following this, we worked independently while contributing features to a unified platform. We all share the same supervisor, Jacopo Mauro, who provided guidance and support throughout the project.
+
+By reading Henrik's Thesis, I was able to gain insights into the main state-of-the-art competitor, namely Haaukins. This platform is also used to host the De Danske Cybermesterskaber (DDC). The drawbacks of the platform is that it is complicated to deploy due to limited documentation and manual steps, and there is no way to check the validity of a challenge without creating a CTFd event. Additionally, containers are a widely used solution for deploying challenges. However, they carry the risk of container escape, where an attacker could exploit a vulnerability to gain access to the host system. This risk is heightened in the context of CTF competitions, as challenges may deliberately include vulnerabilities -- we have mitigated this risk by using Virtual Machines (VMs) instead of containers.
+
+\paragraph{Contributions} test
+
+\begin{figure}
+    \centering
+    \includesvg[width=1\textwidth]{../assets/images/wordcloud.svg}
+    \caption{Word cloud generated from technologies applied in this thesis.}
+    \label{fig:wordcloud}
+\end{figure}
+
+\paragraph{Structure} test
+
+The project files and documentation are available at \url{https://kianbankelarsen.github.io/CTF-Platform/}, along with additional related resources, all of which can be accessed through this URL.
+
+This report was prepared with the assistance of generative AI tools such as Edge Copilot and GitHub Copilot, specifically for linguistic refinement and error correction purposes.
 
 \chapter{Infrastructure as Code}
 
@@ -84,7 +112,7 @@
 
 \section{Terraform}
 
-\chapter{Cloud Architecture}
+\chapter{Cloud Agnostic Architecture}\label{chap:architecture}
 
 \section{UCloud}
 
@@ -112,7 +140,7 @@
 
 \section{Smallstep}
 
-\section{Let's Encryption}
+\section{Let's Encrypt}
 
 \section{TLS versus mTLS}
 
@@ -187,6 +215,12 @@
 \section{Metric Collection}
 
 \section{Logging}
+
+\chapter{Static Code Analysis}
+
+\section{SonarCloud}
+
+\section{Dependabot}
 
 \chapter{Evaluation}
 
