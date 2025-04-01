@@ -118,15 +118,95 @@ The functionalities offered by Pulumi and Terraform are largely similar, though 
 
 Despite this adaptability, both Pulumi and Terraform are utilized in this project. The author of this thesis is responsible for development with Pulumi, while Terraform is managed by Matteo Trentin -- a division of tasks determined solely by proficiency. While creating simple (minimal technology stack), state-of-the-art software is the goal, compromises are inevitable in team environments with tight deadlines. Nonetheless, this complexity can be transparently adjusted in the future, if strictly necessary. This thesis will not go into detail of the development of Terraform IaC, as it has not been developed by the author.
 
-\subsection{Pulumi Implementation}
-\Parencite{pulumiProjects2025}
+\section{Pulumi Projects \& Stacks}
+When starting a new project, it is essential to determine how to organize the Pulumi project and its stacks. To assist in this decision, the Pulumi documentation provides insights into the trade-offs between different approaches \Parencite{pulumiProjects2025}.
 
-\begin{figure}
+The monolithic approach is well-suited for projects that prioritize simplicity, version control, and agility. This method makes it easier to track dependencies, configure package managers, and manage code efficiently, as everything can be previewed and handled in a unified manner.
+
+The micro-stacks approach, similar to microservices but applied to projects and stacks, offers greater independence. Each stack can be deployed separately, making it ideal for projects with varying deployment cadences. Security is another key factor. Large organizations often require Role-Based Access Control (RBAC), which makes micro-stacks advantageous. This approach enables fine-grained access control, ensuring that critical infrastructure can only be modified by selected team members.
+
+For this project, a hybrid approach was adopted. While it primarily relies on micro-stacks, keeping related components together, it also incorporates monolithic elements since the stacks are not entirely independent. The stack organization follows a layered structure. The base layer includes essential components like Custom Resource Definitions (CRDs), secret generation, storage provisioner, KubeVirt, namespaces, and the ingress controller. Directly above this is the Private Key Infrastructure (PKI), responsible for certificate issuance. 
+
+The remaining stacks exist on the same hierarchical level. The Monitoring stack is completely independent, collecting metrics and logs from the Kubernetes cluster in a passive, non-intrusive manner. Monolithic traits arise in the Application stack, as it combines various unrelated services. While the authentication stack is independent, certificates depend on it for issuing personal SSH certificates, creating a circular dependency (explained in Chapter \ref{chap:pki}).
+
+High coherence and low coupling are vital for effective stack design. While it is important to group related elements together, the decision to create new stacks should align with the project's scope and complexity. For smaller projects, maintaining simplicity is often more practical. The stack relationships are visually represented in Figure \ref{fig:pulumi_stacks}.
+
+\begin{figure}[h]
     \centering
     \includegraphics[width=.5\textwidth]{images/pulumi_stacks.png}
     \caption{Pulumi Stacks Relationship. An arrow pointing from a source to a target indicates that the source depends on the target. Given the layered approach, these relationships are transitive. However, arrows targeting certificates are explicitly included due to their significance.}
     \label{fig:pulumi_stacks}
 \end{figure}
+
+Our project consists of five Pulumi projects, each with a specific role to play:
+
+\begin{itemize}
+    \item \textbf{Application:} Home to CTF platform/cloud-specific functionality.
+    \begin{itemize}
+        \item \textbf{Homepage:} A user guide for navigating and utilizing the platform.
+        \item \textbf{SSHD Alpine bastion:} A secure SSHD server based on Alpine Linux, serving as a bastion host for your cloud environment.
+        \item \textbf{CTFd:} A CTF platform for hosting cybersecurity challenges and competitions.
+        \item \textbf{Deployer Backend:} The backend service providing core functionality and APIs for the platform.
+        \item \textbf{SSLH protocol multiplexer:} A protocol multiplexer that allows multiple services to share a single port, such as SSH and HTTPS.
+        \item \textbf{NGINX Proxies:} Proxies to upgrade connection and/or move SSL termination to pod.
+        \item \textbf{Unleash:} An open-source solution for feature flagging.
+    \end{itemize}
+    \item \textbf{Authentication:} Manages SSO capabilities provided by Keycloak.
+    \begin{itemize}
+        \item \textbf{Keycloak:} An open-source identity and access management solution for Single Sign-On (SSO), enabling secure authentication and authorization.
+    \end{itemize}
+    \item \textbf{Certificates:} Handles certificate CA and issuers.
+    \begin{itemize}
+        \item \textbf{Step Certificates:} A Certificate Authority (CA) toolkit for managing and issuing certificates within your environment.
+        \item \textbf{Step Autocert:} Automates the issuance and renewal of TLS certificates to ensure your services remain secure.
+        \item \textbf{Step Issuer:} An issuer that integrates with Cert-Manager to manage certificate lifecycles.
+        \item \textbf{Cert-Manager:} A Kubernetes add-on to automate the management and issuance of TLS certificates from various issuing sources.
+    \end{itemize}
+    \item \textbf{Infrastructure:} Takes care of basic cluster configuration.
+    \begin{itemize}
+        \item \textbf{Rancher Local Path Storage Provisioner:} Manages dynamic storage provisioning for Kubernetes using NFS, enabling shared storage across nodes.
+        \item \textbf{Nginx Ingress Controller:} Manages external access to services in a Kubernetes cluster through HTTP and HTTPS.
+        \item \textbf{KubeVirt:} Extends Kubernetes by adding support for running virtual machine workloads alongside container workloads.
+    \end{itemize}
+    \item \textbf{Monitoring:} Ensures cluster observability and log collection.
+    \begin{itemize}
+        \item \textbf{Prometheus:} A monitoring system and time-series database for capturing metrics and alerts.
+        \item \textbf{Prometheus-Operator:} Simplifies the setup and management of Prometheus instances within Kubernetes.
+        \item \textbf{Grafana:} An open-source platform for monitoring and observability, providing dashboards and visualizations for your metrics.
+        \item \textbf{Loki:} A log aggregation system designed for efficiency and ease of use, seamlessly integrating with Prometheus.
+        \item \textbf{Promtail:} An agent that ships the contents of local logs to a Loki instance.
+        \item \textbf{Node-exporter:} Exports hardware and OS metrics exposed by Linux kernels for monitoring.
+    \end{itemize}
+\end{itemize}
+
+\section{Managing Secrets in Pulumi}
+Pulumi includes a built-in mechanism for managing secrets. The user provides a passphrase, which is combined with the encryption salt stored in each stack to encrypt secrets. However, these stacks can also include configuration values in plain text. Secrets can be added using the following command:
+
+\begin{minted}{bash}
+    pulumi config set --stack <stack> --secret <key> <value>
+\end{minted}
+
+And configuration values can be added using the following command:
+
+\begin{minted}{bash}
+    pulumi config set --stack <stack> <key> <value>
+\end{minted}
+
+This mechanism functions similarly to a password vault, where all secrets are safeguarded by a single master passphrase. As such, it is crucial to ensure that this passphrase is never compromised. While passwords within the stack can be rotated, the passphrase represents a single point of failure.
+
+In case the passphrase have been compromised, it can be updated using the command:
+
+\begin{minted}{bash}
+    pulumi stack change-secrets-provider passphrase --stack <stack>
+\end{minted}
+
+Only passwords that must be explicitly known, such as Keycloak login credentials, are stored within the stacks. Passwords that only need to be used by the system are generated during deployment. For example, knowing the database password provides no benefit since it is solely used by the application. Similarly, client credentials for OAuth2 clients are designed to remain confidential. By ensuring that these passwords are not accessible, the risk of them being leaked is eliminated, at least to some extent -- any application can be compromised from within.
+
+Generating secrets during deployment streamlines password rotation. Updating the Infrastructure stack triggers the creation of new credentials, and updating referencing stacks applies these changes. However, Kubernetes does not always restart services automatically, so a rollout restart may be necessary to ensure the updates take effect.
+
+A key word to remember here is \textit{Stack Reference}. When working with micro-stacks, it may be necessary to share information between stacks -- this is trivially given when working with a monolithic approach, as everything is in the same stack. Stack references enable you to access outputs of one stack from another stack. These outputs could include the name of a randomly generated secret, secret values, or any other user-defined stack output.
+
+\section{Pulumi Deployment}
 
 \section{Ansible}
 
@@ -150,8 +230,7 @@ Despite this adaptability, both Pulumi and Terraform are utilized in this projec
 
 \section{Object Storage}
 
-\chapter{Private Key Infrastructure}
-
+\chapter{Private Key Infrastructure} \label{chap:pki}
 \section{Certificate Authority}
 
 \section{Trust Chains}

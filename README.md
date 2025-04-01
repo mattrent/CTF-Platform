@@ -235,7 +235,7 @@ Our project consists of five Pulumi projects, each with a specific role to play:
   * **Homepage**: A user guide for navigating and utilizing the platform.
   * **SSHD Alpine bastion:** A secure SSHD server based on Alpine Linux, serving as a bastion host for your cloud environment.
   * **CTFd:** A CTF platform for hosting cybersecurity challenges and competitions.
-  * **Henrik Backend:** The backend service providing core functionality and APIs for the platform.
+  * **Deployer Backend:** The backend service providing core functionality and APIs for the platform.
   * **SSLH protocol multiplexer:** A protocol multiplexer that allows multiple services to share a single port, such as SSH and HTTPS.
   * **NGINX Proxies**: Proxies to upgrade connection and/or move SSL termination to pod.
   * **Unleash**: An open-source solution for feature flagging.
@@ -247,7 +247,7 @@ Our project consists of five Pulumi projects, each with a specific role to play:
   * **Step Issuer:** An issuer that integrates with Cert-Manager to manage certificate lifecycles.
   * **Cert-Manager:** A Kubernetes add-on to automate the management and issuance of TLS certificates from various issuing sources.
 * **infrastructure:** 🏗️ Takes care of basic cluster configuration.
-  * **Rancher Local Path Storage Provisioner:** Manages dynamic storage provisioning for Kubernetes using local paths on nodes.
+  * **NFS Storage Provisioner:** Manages dynamic storage provisioning for Kubernetes using NFS, enabling shared storage across nodes.
   * **Nginx Ingress Controller:** Manages external access to services in a Kubernetes cluster through HTTP and HTTPS.
   * **KubeVirt:** Extends Kubernetes by adding support for running virtual machine workloads alongside container workloads.
 * **monitoring:** 📊 Ensures cluster observability and log collection.
