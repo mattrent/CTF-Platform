@@ -105,12 +105,32 @@ The project files and documentation are available at \url{https://kianbankelarse
 This report was prepared with the assistance of generative AI tools such as Edge Copilot and GitHub Copilot, specifically for linguistic refinement and error correction purposes.
 
 \chapter{Infrastructure as Code}
+Infrastructure as Code (IaC) is a modern approach to provision and configure resources. IaC is desirable because it offers consistency and repeatability, reducing the risk of human error and ensuring that the infrastructure is always in a known state. The critical importance of such reliability is underscored by incidents like the Knight Capital Group's failed deployment, which resulted in the loss of nearly \$400 million within just 45 minutes \Parencite{seven2014knightmare}. Additional benefits of IaC include version control and documentation. Version control allows for easier disaster recovery, as the entire infrastructure can be restored to a previous state if needed. Documentation is automatically generated, as the code itself serves as documentation. Tools like Pulumi and Terraform, which only require interface implementation, inherently support both Cloud-Native and Multi-Cloud environments. The cloud-agnostic nature of the code simplifies migration between clouds. However, pipelines often present challenges during migration due to their proprietary domain specific language (DSL).
 
-\section{Pulumi}
+In this chapter, we will explore the IaC tools used in this project. We will discuss the chosen technologies as well as why they were even brought to use in the first place. The tools covered include Pulumi, Terraform, and Ansible. While pipelines -- and even Ansible -- are not typically classified as IaC, we will also provide a brief overview of GitHub Actions, which plays a role in deploying the platform.
+
+\section{Pulumi versus Terraform}
+Pulumi and Terraform are very similar tools, but they differ in their approach to defining infrastructure. Terraform uses a domain-specific language (DSL) called HashiCorp Configuration Language (HCL), which is declarative. This means that you describe the desired state of your infrastructure, and Terraform figures out how to achieve that state. Pulumi, on the other hand, uses general-purpose programming languages like TypeScript, Python, Go, and C\# \Parencite{pulumi_vs_terraform}. This allows for more flexibility and the ability to use existing libraries and tools. Thereby, Pulumi is primarily declarative, but it incorporates imperative capabilities to include procedural logic alongside infrastructure definitions.
+
+Terraform began its journey in 2014 \Parencite{hashicorpTerraform}, laying the foundation for Infrastructure as Code (IaC) tools, while Pulumi entered the scene in 2017 \Parencite{pulumiAbout}. Pulumi remains open-source software (OSS), distributed under the Apache 2.0 license \Parencite{pulumiLicense2025}. In 2024, IBM's acquisition of HashiCorp resulted in Terraform transitioning to closed-source software (CSS). In response, OpenTofu emerged as a fork of Terraform \Parencite{opentofu}, ensuring the continuation of open-source alternatives. OpenTofu is licensed under the Mozilla Public License 2.0 \Parencite{opentofuLicense2025}. In order to transition users from Terraform to Pulumi, Pulumi provides software to convert template files from HCL into Pulumi programs \Parencite{pulumiMigration2025}.
+
+The functionalities offered by Pulumi and Terraform are largely similar, though there are some technical distinctions. While this project does not require advanced features provided by either tool, we do benefit from Pulumi's capability to support encrypted secrets. This facilitates seamless secret management both locally and in production environments, eliminating the need for paid external secret vaults \Parencite{pulumi_vs_terraform}. Additionally, Pulumi provides dynamic provider support -- a feature not available in Terraform. Conversely, Terraform supports Policy as Code, which is not offered by Pulumi. Crucially, Pulumi can adapt any Terraform provider, enabling the management of all infrastructure supported by Terraform.
+
+Despite this adaptability, both Pulumi and Terraform are utilized in this project. The author of this thesis is responsible for development with Pulumi, while Terraform is managed by Matteo Trentin -- a division of tasks determined solely by proficiency. While creating simple (minimal technology stack), state-of-the-art software is the goal, compromises are inevitable in team environments with tight deadlines. Nonetheless, this complexity can be transparently adjusted in the future, if strictly necessary. This thesis will not go into detail of the development of Terraform IaC, as it has not been developed by the author.
+
+\subsection{Pulumi Implementation}
+\Parencite{pulumiProjects2025}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=.5\textwidth]{images/pulumi_stacks.png}
+    \caption{Pulumi Stacks Relationship. An arrow pointing from a source to a target indicates that the source depends on the target. Given the layered approach, these relationships are transitive. However, arrows targeting certificates are explicitly included due to their significance.}
+    \label{fig:pulumi_stacks}
+\end{figure}
 
 \section{Ansible}
 
-\section{Terraform}
+\section{GitHub Actions}
 
 \chapter{Cloud Agnostic Architecture}\label{chap:architecture}
 
@@ -132,11 +152,11 @@ This report was prepared with the assistance of generative AI tools such as Edge
 
 \chapter{Private Key Infrastructure}
 
-\section{Authority}
+\section{Certificate Authority}
 
 \section{Trust Chains}
 
-\section{Signing Request}
+\section{Certificate Signing Request}
 
 \section{Smallstep}
 

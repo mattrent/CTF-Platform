@@ -62,6 +62,10 @@ To give you a comprehensive view of our system’s architecture, here is a high-
 ```mermaid
 ---
 title: UCloud Platform Architecture
+config:
+  theme: mc
+  look: classic
+  layout: dagre
 ---
 graph TD
     A(User) -->|Send request| B[Loadbalancer]
@@ -96,6 +100,10 @@ We are aware that making a fail-safe system is unachievable; instead, our goal i
 ```mermaid
 ---
 title: UCloud Backup Storage
+config:
+  theme: mc
+  look: classic
+  layout: dagre
 ---
 graph TD
 subgraph UCloud
@@ -257,14 +265,17 @@ The relationship between the stacks is illustrated below. An arrow pointing from
 ```mermaid
 ---
 title: Pulumi Stacks Relationship
+config:
+  theme: mc
+  look: classic
+  layout: elk
 ---
 flowchart TD
-    B[Certificates] --> A[Infrastructure] 
-    C[Monitoring] --> B
-    D[Authentication] --> B --> D
-    E[Application] --> B
-    E --> D
-    C --> D 
+    B["Certificates"] --> A["Infrastructure"] & D["Authentication"]
+    C["Monitoring"] --> B & D
+    D --> B
+    E["Application"] --> B & D
+
 ```
 
 As a rule of thumb, whenever something towards the bottom is updated or modified, everything above should be restarted to cascade the changes or update dependencies. This means that performing tasks like password rotation in the infrastructure stack or updating the CA can become tedious.
