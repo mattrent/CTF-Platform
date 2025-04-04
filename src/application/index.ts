@@ -1167,6 +1167,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 {
                                     name: "UNLEASH_URL",
                                     value: UNLEASH_HOSTNAME+UNLEASH_RELATIVE_PATH
+                                },
+                                {
+                                    name: "REGISTER_LINK",
+                                    value: KEYCLOAK_HOSTNAME+ cleanPath(KEYCLOAK_RELATIVE_PATH)+ "/realms/ctf/account/#/register"
                                 }
                             ],
                             readinessProbe: {
