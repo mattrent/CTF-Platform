@@ -359,7 +359,7 @@ Once the platform is deployed, the main guide will be available on the [homepage
 - **API Usage Guide:** Learn how to interact with the platform's API.
 - **SSH Connection Guide:** Detailed instructions on how to connect to challenges using SSH.
 
-For detailed information on how to deploy or test challenges, refer to the documents [Challenge Building Info](./challenge_building_info.md) and [Challenge Validation Info](./challenge_validation.md), respectively. In the [Notebook](./examples/challenge-ssh1/deployment/notebook.ipynb), you will find a Python implementation that demonstrates how to execute several of the platform's endpoints. These files all the necessary steps and best practices to create and deploy challenges effectively.
+For detailed information on how to deploy or test challenges, refer to the documents [Challenge Building Info](./challenge_building_info.md) and [Challenge Validation Info](./challenge_validation.md), respectively. In the [Notebook](./examples/deployment/notebook.ipynb), you will find a Python implementation that demonstrates how to execute several of the platform's endpoints. These files all the necessary steps and best practices to create and deploy challenges effectively.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
