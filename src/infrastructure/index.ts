@@ -57,7 +57,7 @@ if (stack === Stack.DEV) {
     new command.local.Command("enable-ingress", {
         create: "minikube addons enable ingress",
         delete: "minikube addons disable ingress"
-    }, {dependsOn: patchCommand});
+    }, { dependsOn: patchCommand });
     new command.local.Command("enable-rancher-local-path", {
         create: "minikube addons enable storage-provisioner-rancher",
         delete: "minikube addons disable storage-provisioner-rancher"
@@ -144,6 +144,7 @@ const kubeVirtOperator = new k8s.yaml.v2.ConfigFile("kubevirt-operator", {
     file: `https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml`,
 }, { deletedWith: deleteKubeVirt });
 
+// TODO: add stack Hetzner
 if (stack === Stack.UCLOUD) {
     // ? Needed on UCloud for some reason
     new command.local.Command("software-emulation-fallback", {
@@ -151,12 +152,12 @@ if (stack === Stack.UCLOUD) {
             "spec": {
                 "configuration": {
                     "developerConfiguration": {
-                        "useEmulation": true
+                        "useEmulation": false
                     }
                 }
             }
         }'`
-    }, {dependsOn: [kubeVirtOperator]});
+    }, { dependsOn: [kubeVirtOperator] });
 }
 
 /* ----------------------------- CRDs monitoring ---------------------------- */
