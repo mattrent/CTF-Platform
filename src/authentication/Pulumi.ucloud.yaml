@@ -1,10 +1,10 @@
 encryptionsalt: v1:qv/dHGtEVzY=:v1:OTtM0+INka/mrWD3:3DP1Fg3++xKfr7/rnR98b7hw89Z2PA==
 config:
-  authentication:CTFD_HOST: ctft.jacopomauro.com
+  authentication:CTFD_HOST: ctf.jacopomauro.com
   authentication:CTFD_HTTP_RELATIVE_PATH: /ctfd/
-  authentication:GRAFANA_HOST: ctft.jacopomauro.com
+  authentication:GRAFANA_HOST: ctf.jacopomauro.com
   authentication:GRAFANA_HTTP_RELATIVE_PATH: /grafana/
-  authentication:KEYCLOAK_HOST: ctft.jacopomauro.com
+  authentication:KEYCLOAK_HOST: ctf.jacopomauro.com
   authentication:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
   authentication:KEYCLOAK_PWD:
     secure: v1:SSWCCnXTsJ/SCYlX:8ssHxf9df36+pvAbxJlo9LdLXLZLLohibwz1XSYuHel6wNF+2hNIuvcE0CmL9GS+

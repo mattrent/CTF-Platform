@@ -2,30 +2,30 @@ encryptionsalt: v1:ErGVpQpLITw=:v1:Eo3NOVNslw1m9pvL:fOQdhaJnBRyRh6uJNETKo0HFBSjk
 config:
   application:ACME_DIRECTORY: https://acme-v02.api.letsencrypt.org/directory
   application:ACME_EMAIL: kilar20@student.sdu.dk
-  application:BASTION_HOST: ctft.jacopomauro.com
+  application:BASTION_HOST: ctf.jacopomauro.com
   application:CTFD_DATABASE_NAME: ctfd
-  application:CTFD_HOST: ctft.jacopomauro.com
-  application:CTFD_HOSTNAME: ctft.jacopomauro.com
+  application:CTFD_HOST: ctf.jacopomauro.com
+  application:CTFD_HOSTNAME: ctf.jacopomauro.com
   application:CTFD_HTTP_RELATIVE_PATH: /ctfd/
   application:CTFD_OIDC_PLUGIN_PATH: ctfd/oidc
   application:CTFD_RELATIVE_PATH: /ctfd/
-  application:GRAFANA_HOSTNAME: ctft.jacopomauro.com
+  application:GRAFANA_HOSTNAME: ctf.jacopomauro.com
   application:GRAFANA_RELATIVE_PATH: /grafana/
-  application:HENRIK_BACKEND_HOST: deployer.ctft.jacopomauro.com
+  application:HENRIK_BACKEND_HOST: deployer.ctf.jacopomauro.com
   application:HTTPD_TAG: alpine3.20
   application:IMAGE_REGISTRY_HOST: localregistry
-  application:KEYCLOAK_HOSTNAME: ctft.jacopomauro.com
+  application:KEYCLOAK_HOSTNAME: ctf.jacopomauro.com
   application:KEYCLOAK_RELATIVE_PATH: /keycloak/
   application:POSTGRESQL_VERSION: 16.2.2
   application:REGISTRY_EXPOSED_PORT: "30444"
   application:REGISTRY_TAG: 2.8.3
-  application:SERVER_NAME: ctft.jacopomauro.com deployer.ctft.jacopomauro.com
+  application:SERVER_NAME: ctf.jacopomauro.com deployer.ctf.jacopomauro.com
   application:SSLH_NODEPORT: "30443"
   application:SSLH_TAG: 2.1.2
-  application:STEP_CA_HOST: ca.ctft.jacopomauro.com
-  application:WELCOME_HOST: ctft.jacopomauro.com
+  application:STEP_CA_HOST: ca.ctf.jacopomauro.com
+  application:WELCOME_HOST: ctf.jacopomauro.com
   application:REGISTRY_STORAGE_CAPACITY: 50Gi
-  application:UNLEASH_HOSTNAME: ctft.jacopomauro.com
+  application:UNLEASH_HOSTNAME: ctf.jacopomauro.com
   application:UNLEASH_RELATIVE_PATH: /unleash
   application:UNLEASH_USER:
     secure: v1:S/ZUPSXFGLUnTvOD:HJMc5+t60KoYzWbdhXpstUZjRoYw

@@ -1,9 +1,9 @@
 encryptionsalt: v1:+qv5AsAv6SY=:v1:NmE5uaBayho6lUtI:5oXzea/u4Oq/IOwMntIVQPy6iDfWrg==
 config:
-  monitoring:GRAFANA_HOST: ctft.jacopomauro.com
+  monitoring:GRAFANA_HOST: ctf.jacopomauro.com
   monitoring:GRAFANA_HTTP_RELATIVE_PATH: /grafana/
   monitoring:GRAFANA_VERSION: 8.6.1
-  monitoring:KEYCLOAK_HOST: ctft.jacopomauro.com
+  monitoring:KEYCLOAK_HOST: ctf.jacopomauro.com
   monitoring:KEYCLOAK_HTTP_RELATIVE_PATH: /keycloak/
   monitoring:KUBE-PROMETHEUS-STACK_VERSION: 66.2.2
   monitoring:LOKI_VERSION: 6.21.0

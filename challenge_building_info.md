@@ -70,9 +70,9 @@ The docker-compose is meant to be executed in an Alpine VM having port 8080 and 
 There are the following eternally set environment variables that docker-compose can use:
 * `HTTP_PORT` for the incoming port of HTTP connections
 * `SSH_PORT` for the incoming port of SSH connections
-* `DOMAIN` for the domain name of the challenge. When deployed on the CTF platform, a random string like `6cf6f182-78e0-4c40` will be assigned to the deployed challenge that will be reachable using `6cf6f182-78e0-4c40.ctft.jacopomauro.com`.
+* `DOMAIN` for the domain name of the challenge. When deployed on the CTF platform, a random string like `6cf6f182-78e0-4c40` will be assigned to the deployed challenge that will be reachable using `6cf6f182-78e0-4c40.ctf.jacopomauro.com`.
 
-When submitted to the CTF platform, the docker-compose will deploy a challenge and generate a URL per challenge. A challenge receiving traffic on `HTTP_PORT` will be accessible at https://$DOMAIN.ctft.jacopomauro.com
+When submitted to the CTF platform, the docker-compose will deploy a challenge and generate a URL per challenge. A challenge receiving traffic on `HTTP_PORT` will be accessible at https://$DOMAIN.ctf.jacopomauro.com
 The CTF platform will redirect the request and handle TLS termination.
 
 The platform expects the challenges to provide a health endpoint at `HTTP_PORT`, so it can check that the challenge is running. The endpoint should reply with a status code equal to or greater than 200 and less than 400.
@@ -279,13 +279,13 @@ Then,
 If your challenge relies on subdomains, you need to handle redirection and domain configuration appropriately. The following points clarify how to set up challenges that depend on multiple subdomains or require specific domain behavior:
 
 * **Primary Access Point**:
-   The primary access point for the challenge is `$DOMAIN.ctft.jacopomauro.com`. All HTTPS traffic to the challenge must be routed through this domain. The platform will perform TLS termination and redirect the traffic over HTTPS to the challenge VM.
+   The primary access point for the challenge is `$DOMAIN.ctf.jacopomauro.com`. All HTTPS traffic to the challenge must be routed through this domain. The platform will perform TLS termination and redirect the traffic over HTTPS to the challenge VM.
 
 * **Handling Subdomains**:
-   If your challenge requires multiple subdomains (e.g., `sub1.$DOMAIN.ctft.jacopomauro.com`, `sub2.$DOMAIN.ctft.jacopomauro.com`), you need to implement appropriate redirections within the challenge environment. The most common approach is to include an **nginx container** or similar reverse proxy in your `docker-compose` configuration. This container can route traffic to the correct subdomains internally. Note that you are limited to have only one subdomain level (e.g., `sub1.$DOMAIN.ctft.jacopomauro.com` is OK but not `sub0.sub1.$DOMAIN.ctft.jacopomauro.com`).
+   If your challenge requires multiple subdomains (e.g., `sub1.$DOMAIN.ctf.jacopomauro.com`, `sub2.$DOMAIN.ctf.jacopomauro.com`), you need to implement appropriate redirections within the challenge environment. The most common approach is to include an **nginx container** or similar reverse proxy in your `docker-compose` configuration. This container can route traffic to the correct subdomains internally. Note that you are limited to have only one subdomain level (e.g., `sub1.$DOMAIN.ctf.jacopomauro.com` is OK but not `sub0.sub1.$DOMAIN.ctf.jacopomauro.com`).
 
 * **Challenges Needing Additional Domains**:
-   If your challenge requires the use of multiple unique domains (beyond `$DOMAIN.ctft.jacopomauro.com`), consider allowing the player to use **SSH port forwarding**:
+   If your challenge requires the use of multiple unique domains (beyond `$DOMAIN.ctf.jacopomauro.com`), consider allowing the player to use **SSH port forwarding**:
    - Provide an SSH service within a container, allowing the player to establish port-forwarding connections.
    - From the container, the player can navigate as if originating traffic from the internal environment, enabling access to any necessary domains or subdomains.
 
