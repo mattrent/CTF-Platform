@@ -93,7 +93,7 @@ new k8s.helm.v3.Chart("grafana", {
                 auth_url: `https://${KEYCLOAK_HOST}${KEYCLOAK_HTTP_RELATIVE_PATH}realms/ctf/protocol/openid-connect/auth`,
                 api_url: `https://${KEYCLOAK_HOST}${KEYCLOAK_HTTP_RELATIVE_PATH}realms/ctf/protocol/openid-connect/userinfo`,
                 signout_redirect_url: `https://${KEYCLOAK_HOST}${KEYCLOAK_HTTP_RELATIVE_PATH}realms/ctf/protocol/openid-connect/logout`,
-                role_attribute_path: "contains(resource_access.grafana.roles, 'admin') && 'Admin' || contains(resource_access.grafana.roles, 'editor') && 'Editor' || ''"
+                role_attribute_path: "contains(resource_access.grafana.roles, 'admin') && 'Admin' || contains(resource_access.grafana.roles, 'editor') && 'Editor' || contains(resource_access.grafana.roles, 'viewer') && 'Viewer' ||  ''"
             },
             server: {
                 root_url: `https://${GRAFANA_HOST}${GRAFANA_HTTP_RELATIVE_PATH}`,

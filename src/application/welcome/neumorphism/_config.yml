@@ -32,6 +32,7 @@ ssh_step_ca_host: $STEP_CA_HOST
 ssh_step_ca_fingerprint: $CA_FINGERPRINT
 bastion_host: $BASTION_HOST
 ssh_ca-pub-cert: $SSH_PUB_CERT
+register_link: $REGISTER_LINK
 
 connection_show_card: true
 

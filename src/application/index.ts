@@ -63,6 +63,7 @@ const ACME_EMAIL = config.require("ACME_EMAIL");
 const REGISTRY_STORAGE_CAPACITY = config.require("REGISTRY_STORAGE_CAPACITY");
 const UNLEASH_HOSTNAME = config.require("UNLEASH_HOSTNAME");
 const UNLEASH_RELATIVE_PATH = cleanPath(config.require("UNLEASH_RELATIVE_PATH"));
+const ALLOWED_CHALLENGES_AT_ONCE = config.require("ALLOWED_CHALLENGES_AT_ONCE");
 
 /* --------------------------------- secret --------------------------------- */
 
@@ -790,6 +791,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                 IMAGEPULLSECRET: imagePullSecret.metadata.name,
                 UNLEASH_URL: `http://deployer-unleash:4242${UNLEASH_RELATIVE_PATH}/api/`,
                 UNLEASH_APIKEY: UNLEASH_CLIENT_APIKEY,
+                ALLOWEDCHALLENGESATONCE: ALLOWED_CHALLENGES_AT_ONCE
             },
             // TODO Add OIDC authentication to Unleash
             // TODO Upgrade unleash server to HTTPS
@@ -1165,6 +1167,10 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 {
                                     name: "UNLEASH_URL",
                                     value: UNLEASH_HOSTNAME+UNLEASH_RELATIVE_PATH
+                                },
+                                {
+                                    name: "REGISTER_LINK",
+                                    value: KEYCLOAK_HOSTNAME+ cleanPath(KEYCLOAK_RELATIVE_PATH)+ "/realms/ctf/account/#/register"
                                 }
                             ],
                             readinessProbe: {

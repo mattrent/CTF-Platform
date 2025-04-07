@@ -62,6 +62,10 @@ To give you a comprehensive view of our system’s architecture, here is a high-
 ```mermaid
 ---
 title: UCloud Platform Architecture
+config:
+  theme: mc
+  look: classic
+  layout: dagre
 ---
 graph TD
     A(User) -->|Send request| B[Loadbalancer]
@@ -96,6 +100,10 @@ We are aware that making a fail-safe system is unachievable; instead, our goal i
 ```mermaid
 ---
 title: UCloud Backup Storage
+config:
+  theme: mc
+  look: classic
+  layout: dagre
 ---
 graph TD
 subgraph UCloud
@@ -227,7 +235,7 @@ Our project consists of five Pulumi projects, each with a specific role to play:
   * **Homepage**: A user guide for navigating and utilizing the platform.
   * **SSHD Alpine bastion:** A secure SSHD server based on Alpine Linux, serving as a bastion host for your cloud environment.
   * **CTFd:** A CTF platform for hosting cybersecurity challenges and competitions.
-  * **Henrik Backend:** The backend service providing core functionality and APIs for the platform.
+  * **Deployer Backend:** The backend service providing core functionality and APIs for the platform.
   * **SSLH protocol multiplexer:** A protocol multiplexer that allows multiple services to share a single port, such as SSH and HTTPS.
   * **NGINX Proxies**: Proxies to upgrade connection and/or move SSL termination to pod.
   * **Unleash**: An open-source solution for feature flagging.
@@ -239,7 +247,7 @@ Our project consists of five Pulumi projects, each with a specific role to play:
   * **Step Issuer:** An issuer that integrates with Cert-Manager to manage certificate lifecycles.
   * **Cert-Manager:** A Kubernetes add-on to automate the management and issuance of TLS certificates from various issuing sources.
 * **infrastructure:** 🏗️ Takes care of basic cluster configuration.
-  * **Rancher Local Path Storage Provisioner:** Manages dynamic storage provisioning for Kubernetes using local paths on nodes.
+  * **NFS Storage Provisioner:** Manages dynamic storage provisioning for Kubernetes using NFS, enabling shared storage across nodes.
   * **Nginx Ingress Controller:** Manages external access to services in a Kubernetes cluster through HTTP and HTTPS.
   * **KubeVirt:** Extends Kubernetes by adding support for running virtual machine workloads alongside container workloads.
 * **monitoring:** 📊 Ensures cluster observability and log collection.
@@ -257,14 +265,17 @@ The relationship between the stacks is illustrated below. An arrow pointing from
 ```mermaid
 ---
 title: Pulumi Stacks Relationship
+config:
+  theme: mc
+  look: classic
+  layout: elk
 ---
 flowchart TD
-    B[Certificates] --> A[Infrastructure] 
-    C[Monitoring] --> B
-    D[Authentication] --> B --> D
-    E[Application] --> B
-    E --> D
-    C --> D 
+    B["Certificates"] --> A["Infrastructure"] & D["Authentication"]
+    C["Monitoring"] --> B & D
+    D --> B
+    E["Application"] --> B & D
+
 ```
 
 As a rule of thumb, whenever something towards the bottom is updated or modified, everything above should be restarted to cascade the changes or update dependencies. This means that performing tasks like password rotation in the infrastructure stack or updating the CA can become tedious.
@@ -348,7 +359,7 @@ Once the platform is deployed, the main guide will be available on the [homepage
 - **API Usage Guide:** Learn how to interact with the platform's API.
 - **SSH Connection Guide:** Detailed instructions on how to connect to challenges using SSH.
 
-For detailed information on how to deploy or test challenges, refer to the documents [Challenge Building Info](./challenge_building_info.md) and [Challenge Validation Info](./challenge_validation.md), respectively. In the [Notebook](./examples/challenge-ssh1/deployment/notebook.ipynb), you will find a Python implementation that demonstrates how to execute several of the platform's endpoints. These files all the necessary steps and best practices to create and deploy challenges effectively.
+For detailed information on how to deploy or test challenges, refer to the documents [Challenge Building Info](./challenge_building_info.md) and [Challenge Validation Info](./challenge_validation.md), respectively. In the [Notebook](./examples/deployment/notebook.ipynb), you will find a Python implementation that demonstrates how to execute several of the platform's endpoints. These files all the necessary steps and best practices to create and deploy challenges effectively.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
