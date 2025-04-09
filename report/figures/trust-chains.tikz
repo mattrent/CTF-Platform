@@ -1,0 +1,14 @@
+% https://q.uiver.app/#q=WzAsOCxbMiwwLCJcXHRleHR7Um9vdH0iXSxbMSwxLCJcXHRleHR7SW50ZXJtZWRpYXRlfSJdLFszLDEsIlxcdGV4dHtJbnRlcm1lZGlhdGV9Il0sWzAsMiwiXFx0ZXh0e0VudGl0eX0iXSxbMiwyLCJcXHRleHR7RW50aXR5fSJdLFszLDMsIlxcdGV4dHtFbnRpdHl9Il0sWzMsMiwiXFx0ZXh0e0ludGVybWVkaWF0ZX0iXSxbMiwxLCJcXHRleHR7RW50aXR5fSJdLFswLDFdLFsxLDNdLFsxLDRdLFsyLDZdLFs2LDVdLFswLDJdLFswLDddXQ==
+\[\begin{tikzcd}
+	&& {\text{Root}} \\
+	& {\text{Intermediate}} & {\text{Entity}} & {\text{Intermediate}} \\
+	{\text{Entity}} && {\text{Entity}} & {\text{Intermediate}} \\
+	&&& {\text{Entity}}
+	\arrow[from=1-3, to=2-2]
+	\arrow[from=1-3, to=2-3]
+	\arrow[from=1-3, to=2-4]
+	\arrow[from=2-2, to=3-1]
+	\arrow[from=2-2, to=3-3]
+	\arrow[from=2-4, to=3-4]
+	\arrow[from=3-4, to=4-4]
+\end{tikzcd}\]

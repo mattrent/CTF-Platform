@@ -156,24 +156,74 @@ To illustrate the role of dynamic provisioning, consider a scenario where a clou
 
 The rest of this section will explore various approaches to storage provisioning, including manual and dynamic methods. Additionally, we will examine different types of volumes that PVs can utilize and discuss the potential implications of these choices.
 
-\paragraph{Volume Types} Volume types in Kubernetes offers a variety of volume types, each designed for specific use cases and operational requirements. It natively supports six types, with additional options available through the installation of compatible drivers. Common examples include \texttt{hostPath}, \texttt{local}, and \texttt{nfs}. Details about using NFS will be provided when discussing the NFS provisioner.
+\subsection{Volume Types} 
+Volume types in Kubernetes offers a variety of volume types, each designed for specific use cases and operational requirements. It natively supports six types, with additional options available through the installation of compatible drivers. Common examples include \texttt{hostPath}, \texttt{local}, and \texttt{nfs}. Details about using NFS will be provided when discussing the NFS provisioner.
 
 The \texttt{hostPath} volume type allows a pod to access a file or directory on the host node's filesystem. While useful for testing or debugging, it is not recommended for production environments as it creates a dependency on a specific node. Additionally, Kubernetes advises against using \texttt{hostPath} in production due to security concerns and its inability to enforce storage request constraints or monitor disk usage \Parencite{kubernetes_hostpath}.
 
 The \texttt{local} volume type shares similarities with \texttt{hostPath} but is better suited for production environments. It enables pods to access a specific directory on the host node's filesystem. Unlike \texttt{hostPath}, \texttt{local} volumes are managed by Kubernetes, ensuring that constraints like storage requests are enforced, and disk usage is monitored. Additionally, \texttt{local} volumes require node affinity to be explicitly specified, meaning the pod will only be scheduled on the node where the corresponding local volume resides. While it is possible to use \texttt{hostPath} volumes with node affinity, this behavior is optional and not inherently required. Without node affinity, a pod may initially be scheduled on one node and later rescheduled to another. This can lead to accessibility issues, as the pod will no longer be able to access the data stored on the first node. Since the data is tied to the specific node's filesystem, it will not be available on the second node. 
 
-\paragraph{Manual Provisioning} Manual provisioning involves provisioning a disk, creating a PV, and then creating a PVC. This process can be both cumbersome and time-consuming. Additionally, the user must decide the mount path for the PV. Ensuring accessibility to the volume introduces further challenges. It is crucial that the disk remains accessible from the node where the pod is deployed or scheduled. This can be achieved by configuring node affinity constraints, or by using a \texttt{nfs} volume if the disk is only accessible from the control node. Furthermore, it must be determined whether multiple PVCs can claim the same PV, or if a one-to-one relationship is required. This behavior can be enforced by specifying either the \texttt{storageClassName}, \texttt{ClaimRef} or the \texttt{volumeName} \Parencite{kubernetesPersistentVolumes}.
+\subsection{Manual Provisioning} 
 
-\paragraph{Local Path Provisioner} The Rancher Local Path Provisioner enables dynamic provisioning of storage on the local filesystem \Parencite{rancher_local_path_provisioner}. This lightweight solution creates a directory on the host node's filesystem and mounts it as a volume in the pod. It offers several useful features. For instance, it allows specifying a path on the host to store data based on the node where the pod is scheduled, along with the option to define a default path. Key parameters such as \texttt{reclaimPolicy}, \texttt{pathPattern}, \texttt{defaultVolumeType}, and \texttt{volumeBindingMode} can be configured. The \texttt{pathPattern} ensures deterministic paths, enabling reliable reclamation of the volume even after a cluster reboot. The \texttt{volumeBindingMode} should ideally be set to \texttt{WaitForFirstConsumer}, as this ensures PVs are bound with consideration of the pod's scheduling requirements \Parencite{kubernetes_storage_classes}. Additionally, the provisioner supports shared filesystems. In cases where shared filesystems are enabled, the \texttt{local} volume type cannot be used, as it disables affinity, which is a mandatory requirement for \texttt{local} volumes (inferred from source code and experienced during implementation).
+Manual provisioning involves provisioning a disk, creating a PV, and then creating a PVC. This process can be both cumbersome and time-consuming. Additionally, the user must decide the mount path for the PV. Ensuring accessibility to the volume introduces further challenges. It is crucial that the disk remains accessible from the node where the pod is deployed or scheduled. This can be achieved by configuring node affinity constraints, or by using a \texttt{nfs} volume if the disk is only accessible from the control node. Furthermore, it must be determined whether multiple PVCs can claim the same PV, or if a one-to-one relationship is required. This behavior can be enforced by specifying either the \texttt{storageClassName}, \texttt{ClaimRef} or the \texttt{volumeName} \Parencite{kubernetesPersistentVolumes}.
 
-\paragraph{Network Filesystem Provisioner} test
+\subsection{Local Path Provisioner} 
 
-\newpage
+The Rancher Local Path Provisioner enables dynamic provisioning of storage on the local filesystem \Parencite{rancher_local_path_provisioner}. This lightweight solution creates a directory on the host node's filesystem and mounts it as a volume in the pod. It offers several useful features. For instance, it allows specifying a path on the host to store data based on the node where the pod is scheduled, along with the option to define a default path. Key parameters such as \texttt{reclaimPolicy}, \texttt{pathPattern}, \texttt{defaultVolumeType}, and \texttt{volumeBindingMode} can be configured. The \texttt{pathPattern} ensures deterministic paths, enabling reliable reclamation of the volume even after a cluster reboot. The \texttt{volumeBindingMode} should ideally be set to \texttt{WaitForFirstConsumer}, as this ensures PVs are bound with consideration of the pod's scheduling requirements \Parencite{kubernetes_storage_classes}. Additionally, the provisioner supports shared filesystems. In cases where shared filesystems are enabled, the \texttt{local} volume type cannot be used, as it disables affinity, which is a mandatory requirement for \texttt{local} volumes (inferred from source code and experienced during implementation).
+
+\subsection{Network Filesystem Provisioner} 
+
+Kubernetes recommends the use of the NFS Subdir External Provisioner, developed by the GitHub organization kubernetes-sigs \Parencite{kubernetes_storage_classes_nfs}. This provisioner provides an efficient way to manage NFS shares for Kubernetes clusters. It creates subdirectories within an existing NFS share, enabling multiple Kubernetes clusters to utilize the same NFS server and thereby centralize storage management.
+
+The provisioner offers configuration options similar to those of the Rancher Local Path Provisioner, with the added ability to specify NFS configuration parameters. It uses the volume type \texttt{NFS} for its Persistent Volumes (PVs).
+
+An NFS server facilitates file sharing over a network by exporting a directory. To restrict access, host-based authentication can be configured on the NFS server. This method allows access to be limited based on specific IP addresses or hostnames \Parencite{ubuntu_nfs_setup}.
+
+\section{Private Key Infrastructure}
+
+Public Key Infrastructure (PKI) is a system that manages digital certificates and public-key encryption. It is important for establishing trust and securing communication in various applications. A certificate is a digital identifier used to verify the identity of an entity. Certificates are issued by trusted organizations called Certificate Authorities (CAs) and include details such as the entity \textit{whom} they belong to, \textit{what} they verify, and details about the certificate itself such as the certificate's expiration date \Parencite{ibm_digital_certificates}.
+
+Certificates are used for authentication by providing information about the entity and its purpose. They also enable encryption, typically during the initial handshake of a secure session, due to their asymmetric encryption properties \Parencite{cloudflare_tls_handshake}. This asymmetry comes from the use of a paired public and private key.
+
+\subsection{Certificate Authority}
+A CA is a trusted entity that issues digital certificates. It authenticates the identity of the entity requesting the certificate and signs it using its private key. This signature can be verified with the CA's public key, establishing trust in the certificate. Trust is transitive, meaning that if you trust a CA and that CA trusts another entity, you also trust that entity. This concept will be explored further in Subsection \ref{sec:trust_chains}.
+
+Well-known Certificate Authorities (CAs) include Let's Encrypt, GlobalSign, and DigiCert. Among these, Let's Encrypt is unique as a non-profit CA that provides free domain-validated X.509 certificates. In Subsection \ref{sec:acme_challenges}, we will discuss the process of obtaining these certificates through ACME challenges.
+
+\subsection{Trust Chains} \label{sec:trust_chains}
+A trust chain is a sequence of certificates that establishes a chain of trust from a root certificate to an end-entity or leaf certificate. The root certificate is the top-level certificate in the hierarchy. It is self-signed and serves as the trust anchor for the entire PKI. Intermediate certificates are issued by the root certificate and can be used to sign other intermediate or end-entity certificates, as shown in Figure \ref{fig:pki_diagram}. The end-entity certificate is the final certificate in the chain, and that certificate cannot be used for signing other certificates. Let's Encrypt only issue end-entity certificates; otherwise, it would be possible to mimic Let's Encrypt and issue certificates for any domain \Parencite{letsencrypt_certificates}.
+
+\begin{figure}[h]
+    \centering
+    \input{./figures/trust-chains.tikz}
+    \caption{This PKI diagram demonstrates the hierarchical structure of certificates. The root certificate is self-signed, the intermediate certificate is signed by the root certificate, and the end-entity certificate is signed by the intermediate certificate.}
+    \label{fig:pki_diagram}
+\end{figure}
+
+Every certificate contain information about its issuer, such that the trust chain can be verified. When inspecting the trust chain in the browser, then the complete trust chain is presented, except for the root certificate. It does not have to be bundled because the browser already has a list of default trusted root certificates. Every certificate in the chain serves a specific purpose.
+
+The advantage of using intermediate certificates is that the root certificate remains protected and is never directly exposed, reducing the risk of compromise. If an intermediate certificate is compromised, it can be pruned, removing a branch of the certificate hierarchy while preserving the integrity of the PKI.
+
+The certificates issued by Let's Encrypt are valid for 90 days \Parencite{letsencrypt_faq}. This short validity period is a security measure to limit the impact of compromised certificates. This encourages users to automate the renewal process, ensuring that certificates are regularly updated and remain valid. The maximum validity period for a certificate is 398 days, however Apple's proposals lays out a roadmap for gradually reducing this to 47 days maximum by April 2027 \Parencite{globalsign_certificate_lifespans}. A shorter validity period necessitates repeated verification of domain ownership, which is beneficial since certificate revocation can be a lengthy process, and the system administrator may not even be aware of a compromise!
+
+\subsection{ACME Challenges}\label{sec:acme_challenges}
+ACME (Automatic Certificate Management Environment) is a protocol designed to automate the issuance and renewal of SSL/TLS certificates. Originally developed by the creators of Let's Encrypt, it was standardized by the IETF in 2019 \parencite{letsencrypt_isrg_anniversary}.
+
+ACME uses challenges to prove ownership of domains. There are three types of challenges available, namely \texttt{HTTP-01}, \texttt{DNS-01}, and \texttt{TLS-ALPN-01}. The \texttt{HTTP-01} challenge requires the user to create a specific file on their web server, which Let's Encrypt will attempt to access. The \texttt{DNS-01} challenge requires the user to create a DNS TXT record with a specific value. The \texttt{TLS-ALPN-01} challenge requires the user to configure their server to respond to a specific ALPN (Application-Layer Protocol Negotiation) request \Parencite{letsencrypt_challenge_types}.
+
+Automatic certificate renewal can be achieved by using Certbot developed by the Electronic Frontier Foundation (EFF) \parencite{letsencrypt_peter_eckersley}. Certbot is a command-line tool that automates the process of obtaining and renewing certificates. However, when used with NGINX, it only supports the \texttt{HTTP-01} challenge. DNS plugins can be installed to enable DNS-based validation, but this requires a compatible DNS provider \parencite{certbot_plugins}.
+
+The \texttt{HTTP-01} and \texttt{TLS-ALPN-01} challenges can only verify fully qualified domain names, whereas the \texttt{DNS-01} challenge establishes control over the DNS itself, allowing the issuance of wildcard certificates \Parencite{letsencrypt_challenge_types}.
+
+\subsection{Smallstep}
+Smallstep claims to be ``leading the industry in Zero Trust for devices'' \parencite{smallstep}. The company caught my attention while researching authentication solutions for the platform. Their Smallstep SSH product removes the hassle of managing static keys, makes proxy jumps transparent, and allows user-level Access Control Lists (ACLs) while integrating with Open Authentication (OAuth) Single Sign-On (SSO). It seems almost too good to be true -- it is proprietary.
+
+However, Smallstep also provides OSS tools for certificate management. Step Certificates \Parencite{smallstep_certificates} and Step Autocert \Parencite{smallstep_autocert} offer a way to issue and handle certificates. Both tools are licensed under the Apache License 2.0. Step Certificates works as a CA toolkit, integrates with OAuth providers, and supports ACME challenges. While it lacks some of Smallstep SSH's advanced features, it remains a solid OSS option.
+
+\subsection{Service Mesh}
+Digital certificates enable authentication, allowing mutual TLS (mTLS) when both parties verify each other. Even with automated issuance, service configuration can be challenging. Istio, an open-source service mesh licensed under Apache License 2.0 \Parencite{istio_license}, simplifies microservice management with traffic control, security, and observability. It enforces mTLS using Envoy sidecar proxies, routing traffic through them via IP tables \Parencite{istio_architecture}. A service mesh enables mTLS without modifying application code. Other options exist, like NGINX Service Mesh, but Istio is the most widely used \Parencite{toptal_service_mesh}.
 
 \section{Identity \& Access Management}
-\section{Private Key Infrastructure}
-\subsection{Certificate Authority}
-\subsection{Trust Chains}
 
 \section{Virtual Machines \& Containers} \label{sec:vm_vs_container}
 \subsection{NixOS qcow2 Images}
@@ -280,6 +330,8 @@ Only passwords that must be explicitly known, such as Keycloak login credentials
 Generating secrets during deployment streamlines password rotation. Updating the Infrastructure stack triggers the creation of new credentials, and updating referencing stacks applies these changes. However, Kubernetes does not always restart services automatically, so a rollout restart may be necessary to ensure the updates take effect.
 
 A key word to remember here is \textit{Stack Reference}. When working with micro-stacks, it may be necessary to share information between stacks -- this is trivially given when working with a monolithic approach, as everything is in the same stack. Stack references enable you to access outputs of one stack from another stack. These outputs could include the name of a randomly generated secret, secret values, or any other user-defined stack output.
+
+\chapter{Discussion}
 
 \chapter{Conclusion}
 
