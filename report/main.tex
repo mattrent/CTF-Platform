@@ -224,18 +224,121 @@ However, Smallstep also provides OSS tools for certificate management. Step Cert
 Digital certificates enable authentication, allowing mutual TLS (mTLS) when both parties verify each other. Even with automated issuance, service configuration can be challenging. Istio, an open-source service mesh licensed under Apache License 2.0 \Parencite{istio_license}, simplifies microservice management with traffic control, security, and observability. It enforces mTLS using Envoy sidecar proxies, routing traffic through them via IP tables \Parencite{istio_architecture}. A service mesh enables mTLS without modifying application code. Other options exist, like NGINX Service Mesh, but Istio is the most widely used \Parencite{toptal_service_mesh}.
 
 \section{Identity \& Access Management}
+In today's digital landscape, software platforms must support a diverse array of users, each with distinct organizational roles and access rights. Authentication verifies a user's identity, while authorization determines their access rights.
+
+\subsection{Architectures}
+Different Identity \& Access Management (IAM) architectures exist, including centralized, decentralized, and distributed approaches. The centralized approach is an architecture that consolidates identity management into a single system. It simplifies administration and enforces uniform policies but creates a single point of failure. Scaling is limited because it often relies on a single database for identity storage. A distributed approach solves this by involving multiple synchronized databases or identity stores. However, the decentralized blockchain approach manages to validity identity without a central governing instance \Parencite{geeksforgeeks2025}. Every approach has its own advantages and disadvantages, which can be described with models such as the CAP theorem. 
+
+\subsection{Market Leaders}
+Few OSS options are available for on-premise deployment. Essential IAM features include support for OpenID Connect (OIDC) and OAuth. Based on the certified OpenID provider list from the OpenID Foundation \parencite{openidImplementations}, only two high-quality OSS options remain after subjective filtering:
+
+\begin{itemize}
+    \item ZITADEL 1.53.1 (Apache 2.0)
+    \item Keycloak 18.0.0 (Apache 2.0)
+\end{itemize}
+
+Further review of an article by Grafana confirms Keycloak as a recommended OAuth 2.0 provider \parencite{keycloak}, identifying it as the only OSS option on their list \parencite{grafana_oauth}. Combined with prior experience using Keycloak, this validates our choice to adopt it as our IAM solution.
+
+\subsection{Realm \& Client}
+The fundamental pillars of Keycloak consist of configuring the realm and corresponding clients. First, what is a realm? A realm is a fundamental concept used to manage a set of users, credentials, roles, and groups. Realms offer isolation, as each realm is independent of others, meaning users, roles, and configurations in one realm do not affect those in another. This isolation enables multi-tenancy, allowing different organizations or projects to use the same Keycloak instance without interfering with each other. Each realm can be configured to use its own identity providers, user federations, authentication flows, and more \Parencite{keycloakDocs}. Our CTF platform only has a single tenant, so one realm is sufficient. Let us call this realm \texttt{CTF} for clarity.
+
+Next, what is a client? In a typical server-client communication model, Keycloak functions as the authentication server, receiving requests from clients that rely on it. A good practice is to create a separate client for each \textit{client} interacting with Keycloak. This setup allows for precise configuration of allowed hosts and redirect URIs and enables the creation of a client secret when confidential access is required.
+
+The default settings should generally suffice, as we plan to rely primarily on the access token, with no expectation of using the ID token -- more details on this can be found in Subsection \ref{sec:token_claims}.
+
+\subsection{Token Claims \& Scopes}\label{sec:token_claims}
+Authenticating using Keycloak will return a JWT in response. This JWT contains both an ID token and an access token. The access token can be used to query the \texttt{userinfo} endpoint if needed. The content or claims within the JWT must be configured in Keycloak. If roles are needed in either the userinfo or the ID token, a predefined mapper must be configured to include these claims. The access- and ID token is by default encoded using the RS256 algorithm -- RSA Digital Signature Algorithm with the SHA-256 hash function \todo{Check this}.
+
+The JWT includes some default metadata claims that provide information about who issued the token, when it was issued, and other essential details. The mandatory claims are listed below:
+
+\begin{itemize} 
+    \item \textbf{iss (Issuer)}: Identifies the principal that issued the JWT.
+    \item \textbf{aud (Audience)}: Identifies the recipients that the JWT is intended for. 
+    \item \textbf{exp (Expiration Time)}: Identifies the expiration time on or after which the JWT must not be accepted for processing. 
+    \item \textbf{iat (Issued At)}: Identifies the time at which the JWT was issued. 
+    \item \textbf{jti (JWT ID)}: Provides a unique identifier for the JWT, which can be used to prevent the JWT from being replayed. 
+\end{itemize}
+
+Keycloak includes certain scopes by default without needing to request them explicitly. Each scope can encompass multiple claims, and the descriptions below provide an idea of what those claims might include:
+
+\begin{itemize} 
+    \item \textbf{acr}: The Authentication Context Class Reference, indicating the level or method of authentication. 
+    \item \textbf{basic}: Typically includes basic user information such as user ID (the \texttt{sub} claim) and authentication time. 
+    \item \textbf{email}: Contains the user's email address and a flag indicating whether the email has been verified. 
+    \item 
+    \textbf{profile}: Includes profile information such as name, family name, given name, nickname, and profile picture. 
+    \item \textbf{roles}: Lists the roles assigned to the user, which can be used for authorization purposes. 
+\end{itemize}
+
+There are also scopes that must be explicitly requested. This includes information like address and phone number:
+
+\begin{itemize} 
+    \item \textbf{address}: Contains the user's address information. 
+    \item \textbf{microprofile-jwt}: A claim used in MicroProfile JWT for additional JWT token information. 
+    \item \textbf{offline\_access}: Indicates that the token can be used to obtain a refresh token for offline access. 
+    \item \textbf{phone}: Includes the user's phone number and a flag indicating whether the phone number has been verified. 
+\end{itemize}
+
+Being aware of the JWT's content is definitely useful during authorization.\todo{Check information in this subsection.}
+
+\subsection{Supported Grant Types}
+Keycloak supports various OAuth 2.0 grant types, defining how clients obtain access tokens for different authentication scenarios, each with specific security considerations. This section is based on the official Keycloak documentation \Parencite{keycloakGrantTypes}.
+
+\paragraph{Authorization Code}\label{sec:auth_code}
+The Authorization Code Grant involves a two-step process where the client first obtains an authorization code, which is then exchanged for an access token. The authentication is handled by Keycloak, which ensures that the client never directly handles the user's credentials. Figure \ref{fig:authorization_code_flow} illustrates the flow of this process. The exchange of the authorization code for an access token happens server-to-server, reducing the risk of exposing sensitive information through client-side scripts, which could be subject to Cross-Origin Resource Sharing (CORS) restrictions.
+
+\begin{figure}[h]
+    \centering
+    \input{./figures/auth-code-flow}
+    \caption{Authorization Code Flow.}
+    \label{fig:authorization_code_flow}
+\end{figure}
+
+\paragraph{Implicit}
+The Implicit flow works similarly to Authorization Code flow but directly provides the Access Token and ID Token instead of an Authorization Code. This eliminates the step of exchanging the Authorization Code for an Access Token. However, it does not provide a Refresh Token. The OAuth 2.0 Security Best Current Practice discourages the Implicit Grant flow. It has also been excluded from the upcoming OAuth 2.1 specification.
+
+\paragraph{Resource Owner Password Credentials}
+This flow exchanges user credentials (username and password) for tokens, allowing applications, as well as users (if the client in question is public), to request personal tokens from Keycloak. According to OAuth 2.0 Security Best Practices, this flow is discouraged, with alternatives like Device Authorization Grant or Authorization Code recommended. 
+
+\paragraph{Client Credentials} Confidential clients can use the Client Credentials flow to obtain an access token for the client itself, using either a secret or with public/private keys -- this flow is designed for machine-to-machine authentication. This flow is part of the OAuth 2.0 specification but is not included in OpenID Connect.
+
+\paragraph{Device Authorization Grant} The Device Authorization Grant is designed for devices with limited input capabilities, such as smart TVs or IoT devices, or lacks a suitable browser. The user authenticates using a verification URI together with a user code and device code generated by Keycloak. The user uses this information to complete the authentication on another more suitable device.
+
+\paragraph{Client Initiated Backchannel Authentication Grant} This flow operates like the Device Authorization Grant but bypasses browser redirection, sending authentication directly to a registered device (e.g., mobile app or SMS).
+
+We are only interested in using the Authorization Code flow, Resource Owner Password Credentials and possibly Client Credentials -- elaborated in Chapter \ref{chap:implementation}.
+
+\section{Monitoring}
+\subsection{Dashboards}
+\subsection{Metrics}
+\subsection{Logging}
+\subsection{Data Sources}
 
 \section{Virtual Machines \& Containers} \label{sec:vm_vs_container}
+\subsection{Docker}
+\subsection{KubeVirt}
 \subsection{NixOS qcow2 Images}
 
 \section{Registry as a Pull-Through Cache}
+\subsection{Mirror}
+\subsection{Harbor}
+
 \section{Feature Flag System}
+\subsection{Strategies \& Segments}
+\subsection{Rollout Management}
+
 \section{Static Website}
-\section{Monitoring}
+\subsection{Static Site Generators}
+Jekyll, Astro
+\subsection{Web Servers}
+GitHub Pages, NGINX
+
 \section{Static Code Analysis}
+\subsection{Dependabot}
+\subsection{SonarCloud}
+\subsection{Linting}
 
-
-\chapter{Implementation}
+\chapter{Implementation}\label{chap:implementation}
 
 \section{Infrastructure as Code}
 
@@ -503,153 +606,11 @@ While \texttt{ServiceMonitor} is used to monitor services, \texttt{PodMonitor} i
 In summary, use \texttt{ServiceMonitor} when you have services managing multiple pods and need aggregated metrics. Use \texttt{PodMonitor} when you need detailed metrics from individual pods, especially when services are not defined or needed. Everything mentioned in this section has been tested through an experiment.
 
 \chapter{Identity \& Access Management}
-In today's digital landscape, software platforms must support a diverse array of users, each with distinct organizational roles and access rights. This is particularly crucial when developing a CTF platform, where managing user authentication and authorization becomes essential. Authentication verifies a user's identity, while authorization determines their access rights.
-
-A key decision in Identity and Access Management (IAM) is whether to adopt a centralized or decentralized approach. Centralized IAM simplifies management by consolidating user data and access controls in one place, making it easier for administrators to configure and maintain. This approach also facilitates Single Sign-On (SSO), allowing users to authenticate once and gain access to multiple services.
-
-On the other hand, decentralized IAM, though more complex to develop, offers significant benefits. It distributes authentication and authorization responsibilities across various services, enhancing security and resilience. Fortunately, open-source solutions implementing standardized protocols can handle these complexities, providing robust IAM capabilities without the need for extensive in-house development.
-
-By leveraging these solutions, organizations can ensure secure, efficient, and scalable management of user identities and access rights, ultimately enhancing the overall user experience and system security.
-
-For this project, we decided to use the multi-tenant open-source service named Keycloak \parencite{keycloak}. The choice was not based on academic reasons but rather on prior experience configuring this service. Several alternatives could have been considered, such as Zitadel, Apereo CAS, LemonLDAP::NG, and Gluu Server. These services support the same protocols, with some exceptions: Gluu Server also supports SCIM, while Zitadel does not support SAML. 
-
-It is important to mention that for configuring external authentication on Grafana, we rely on Generic OAuth. This protocol is only surpassed by LDAP in terms of preference \parencite{grafana_authentication}. Further investigation led us to an article by Grafana, which directly recommends Keycloak as an OAuth2 provider, highlighting it as the only open-source service on the list \parencite{grafana_oauth}. This confirms that Keycloak is a sufficient and reliable solution for our needs.
-
 \section{Protocols}
 \todo{Study this}
 
 \section{Realm \& Client}
 When deploying Keycloak, we rely on a Helm chart maintained by Bitnami \parencite{bitnami_keycloak}. Keycloak's documentation can be challenging to navigate, making it difficult to compare the Helm chart with the official documentation to determine how to fill in the Helm \texttt{values.yaml} file. However, after some effort, we managed to configure it. This configuration is part of the monitoring Pulumi project. More interesting is how to configure Keycloak itself to ensure reliable integrations with other services.
-
-The fundamental pillars consist of configuring the realm and corresponding clients. First, what is a realm? A realm is a fundamental concept used to manage a set of users, credentials, roles, and groups. Realms offer isolation, as each realm is independent of others, meaning users, roles, and configurations in one realm do not affect those in another. This isolation enables multi-tenancy, allowing different organizations or projects to use the same Keycloak instance without interfering with each other. Each realm can be configured to use its own identity providers, user federations, authentication flows, and more. Our CTF platform only has a single tenant, so one realm is sufficient. Let's call this realm \texttt{CTF} for clarity.
-
-Next, what is a client? The answer is simple when thinking about typical server-client communication. The server (Keycloak) receives requests from clients (services). It is good practice to create a client for each service using Keycloak. This approach allows for configuring allowed hosts, allowed redirects, and each client having its own client secret (if enabled). This ensures that no clients can conflict, as only the client that should be able to make requests would have the secret to do so. The default settings should be sufficient, as we intend to rely on the access token and foresee the ID token -- more on this in section \ref{sec:token_claims}.
-
-When the realm and clients have been configured, we will need to export the configuration so that it can be stored statically and loaded dynamically when needed. The realm and client settings should not be lost just because the Kubernetes cluster is reset!
-
-\todo{Generating the client secret?}
-
-\section{Token Claims \& Scopes}\label{sec:token_claims}
-Authenticating using Keycloak will return a JWT in response. This JWT contains both an ID token and an access token. The access token can be used to query the userinfo endpoint if needed. The content or claims within the JWT must be configured in Keycloak. This project uses the default settings, which already provide the necessary information in the access token. However, if roles are needed in either the userinfo or the ID token, a predefined mapper must be configured to include these claims. The access- and ID token is by default encoded using the RS256 algorithm -- RSA Digital Signature Algorithm with the SHA-256 hash function.
-
-The JWT includes some default metadata claims that provide information about who issued the token, when it was issued, and other essential details. The mandatory claims are listed below:
-
-\begin{itemize} 
-    \item \textbf{iss (Issuer)}: Identifies the principal that issued the JWT.
-    \item \textbf{aud (Audience)}: Identifies the recipients that the JWT is intended for. 
-    \item \textbf{exp (Expiration Time)}: Identifies the expiration time on or after which the JWT must not be accepted for processing. 
-    \item \textbf{iat (Issued At)}: Identifies the time at which the JWT was issued. 
-    \item \textbf{jti (JWT ID)}: Provides a unique identifier for the JWT, which can be used to prevent the JWT from being replayed. 
-\end{itemize}
-
-Keycloak includes certain scopes by default without needing to request them explicitly. Each scope can encompass multiple claims, and the descriptions below provide an idea of what those claims might include:
-
-\begin{itemize} 
-    \item \textbf{acr}: The Authentication Context Class Reference, indicating the level or method of authentication. 
-    \item \textbf{basic}: Typically includes basic user information such as user ID (the \texttt{sub} claim) and authentication time. 
-    \item \textbf{email}: Contains the user's email address and a flag indicating whether the email has been verified. 
-    \item 
-    \textbf{profile}: Includes profile information such as name, family name, given name, nickname, and profile picture. 
-    \item \textbf{roles}: Lists the roles assigned to the user, which can be used for authorization purposes. 
-\end{itemize}
-
-There are also scopes that must be explicitly requested. This includes information like address and phone number, which are not included by default to protect user privacy:
-
-\begin{itemize} 
-    \item \textbf{address}: Contains the user's address information. 
-    \item \textbf{microprofile-jwt}: A claim used in MicroProfile JWT for additional JWT token information. 
-    \item \textbf{offline\_access}: Indicates that the token can be used to obtain a refresh token for offline access. 
-    \item \textbf{phone}: Includes the user's phone number and a flag indicating whether the phone number has been verified. 
-\end{itemize}
-
-Being aware of the JWT's content is definitely useful, as will become evident when discussing some of the difficulties that arose when configuring Grafana to use Keycloak for authentication, as detailed in section \ref{sec:grafana_auth}.
-
-\section{Supported Grant Types}
-Keycloak supports various OAuth 2.0 grant types to cater to different authentication scenarios. These grant types define the methods through which clients can obtain access tokens, each suited for specific use-cases and accompanied by unique security considerations.
-
-The information presented in this section is based on the official Keycloak documentation, which provides comprehensive details on the supported grant types and their respective use-cases and security considerations \Parencite{keycloak2024}.
-
-\subsection*{Authorization Code}\label{sec:auth_code}
-The Authorization Code Grant is primarily used by web and mobile applications. It involves a two-step process where the client first obtains an authorization code, which is then exchanged for an access token. This method ensures that the client never directly handles the user's credentials, enhancing security by reducing the risk of credential exposure.
-
-A diagram showing the flow is given below:
-
-\begin{tcolorbox}
-\begin{scriptsize}
-\begin{verbatim}
-            +----------+
-            | Resource |
-            |   Owner  |
-            +----------+
-                 ^
-                 |
-                (B)
-            +----|-----+          Client Identifier      +---------------+
-            |         -+----(A)-- & Redirection URI ---->|               |
-            |  User-   |                                 | Authorization |
-            |  Agent  -+----(B)-- User authenticates --->|     Server    |
-            |          |                                 |               |
-            |         -+----(C)-- Authorization Code ---<|               |
-            +-|----|---+                                 +---------------+
-              |    |                                         ^      v
-             (A)  (C)                                        |      |
-              |    |                                         |      |
-              ^    v                                         |      |
-            +---------+                                      |      |
-            |         |>---(D)-- Authorization Code ---------'      |
-            |  Client |          & Redirection URI                  |
-            |         |                                             |
-            |         |<---(E)----- Access Token -------------------'
-            +---------+       (w/ Optional Refresh Token)
-
-        Note: The lines illustrating steps (A), (B), and (C) are broken into
-        two parts as they pass through the user-agent.
-
-                            Authorization Code Flow
-
-        https://datatracker.ietf.org/doc/html/rfc6749#section-4.1
-\end{verbatim}
-\end{scriptsize}
-\end{tcolorbox}
-
-This two-step process is essential for avoiding issues with Cross-Origin Resource Sharing (CORS). CORS is a security feature implemented by web browsers to prevent web pages from making requests to a different domain than the one that served the web page, known as the same-origin policy. By using the Authorization Code Grant, the exchange of the authorization code for an access token happens server-to-server, reducing the risk of exposing sensitive information through client-side scripts, which could be subject to CORS restrictions.
-
-\subsection*{Implicit}
-The Implicit Grant is designed for browser-based applications like single-page applications (SPAs). In this flow, the access token is issued directly without an intermediate authorization code. A key security risk is that the token is provided in the URL, which can be logged in browser history, server logs, or shared inadvertently, exposing the token to malicious actors. On the positive side, the client does not handle user credentials directly.\todo{revise SPA}
-
-Including the access token in the URL is necessary to address CORS restrictions. CORS policies can block requests from the browser to a different domain if the access token is included in the response body, as this can trigger a preflight request.
-
-To mitigate these risks, the token is short-lived, minimizing the window for misuse. This flow is used for quick authentication, where the token is used briefly and then discarded. Additionally, the Implicit Grant does not provide a refresh token, as these are long-lived and pose a significant security risk if exposed. By not issuing a refresh token, the access token's lifespan is limited, reducing the impact of potential interception.
-
-According to the current OAuth 2.0 Security Best Current Practice, the Implicit Grant flow is discouraged due to its security vulnerabilities. Consequently, this flow has been removed from the upcoming OAuth 2.1 specification.
-
-\subsection*{Resource Owner Password Credentials}
-The Resource Owner Password Credentials (ROPC) Grant is intended for scenarios where the user has a high level of trust in the client application, such as first-party clients. In this flow, the client application directly collects the user's credentials (username and password) and exchanges them for an access token from the authorization server. This method is straightforward but comes with significant security risks, as the client handles the user's credentials directly.
-
-A major drawback of the ROPC Grant is the potential exposure of user credentials. If the client application is compromised, the user's credentials can be intercepted and misused. Additionally, this flow does not support multi-factor authentication (MFA), which further reduces its security robustness.
-
-Despite these risks, the ROPC Grant can be useful in specific cases, such as when migrating legacy applications that already collect user credentials. It allows these applications to transition to OAuth 2.0 without requiring significant changes to their authentication mechanisms.
-
-The OAuth 2.0 Security Best Current Practice advises against using the ROPC Grant due to its inherent vulnerabilities. As a result, this flow is being deprecated in favor of more secure alternatives like the Authorization Code Grant.
-
-\subsection*{Client Credentials}
-The Client Credentials Grant is used when clients (applications and services) need to obtain access on behalf of themselves rather than on behalf of a user. This flow is particularly useful for background services that apply changes to the system in general rather than for a specific user. In this flow, the client application authenticates with the authorization server using its client credentials (client ID and client secret) and directly obtains an access token.
-
-Keycloak supports client authentication using either a secret or public/private keys. This flexibility allows for secure authentication methods tailored to the specific needs of the client application.
-
-One of the main advantages of the Client Credentials Grant is its simplicity and efficiency in scenarios where user context is not required. However, it also means that the access token obtained is limited to the permissions granted to the client application itself, rather than any specific user.
-
-\subsection*{Device Authorization Grant}
-The Device Authorization Grant is used by clients running on internet-connected devices that have limited input capabilities or lack a suitable browser, such as smart TVs, gaming consoles, or IoT devices. In this flow, the application requests that Keycloak provide a device code and a user code. Keycloak creates these codes and returns them to the application.
-
-The application then provides the user with the user code and a verification URI. The user accesses this verification URI on another device with a suitable browser to authenticate. Meanwhile, the application repeatedly polls Keycloak until the user completes the authorization process.
-
-Once user authentication is complete, the application obtains the device code. The application then uses this device code along with its credentials to obtain an Access Token, Refresh Token, and ID Token from Keycloak.
-
-This grant type is particularly useful for scenarios where user interaction with the device is limited or cumbersome. It allows the user to authenticate on a more convenient device, such as a smartphone or computer, while the original device remains in a waiting state.
-
-\subsection*{Client Initiated Backchannel Authentication Grant}
-The Client Initiated Backchannel Authentication (CIBA) Grant is used by clients to initiate the authentication flow without redirecting through the user's browser. This is particularly useful for devices with limited input capabilities, such as smart TVs or IoT devices. The app requests an \texttt{auth\_req\_id} from Keycloak, and the user completes authentication on a separate device. This flow allows for secure login without direct user interaction with the app.
 
 \newpage
 
