@@ -1170,7 +1170,7 @@ pulumi.all([DOCKER_USERNAME, DOCKER_PASSWORD, POSTGRES_CTFD_ADMIN_PASSWORD, CTFD
                                 },
                                 {
                                     name: "REGISTER_LINK",
-                                    value: KEYCLOAK_HOSTNAME+ cleanPath(KEYCLOAK_RELATIVE_PATH)+ "/realms/ctf/account/#/register"
+                                    value: KEYCLOAK_HOSTNAME + cleanPath(KEYCLOAK_RELATIVE_PATH) + "/realms/ctf/account/#/register"
                                 }
                             ],
                             readinessProbe: {
