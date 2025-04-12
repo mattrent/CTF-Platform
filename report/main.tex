@@ -309,19 +309,67 @@ This flow exchanges user credentials (username and password) for tokens, allowin
 We are only interested in using the Authorization Code flow, Resource Owner Password Credentials and possibly Client Credentials -- elaborated in Chapter \ref{chap:implementation}.
 
 \section{Monitoring}
+
+Monitoring is essential for managing a Kubernetes cluster. It provides visibility into service health and performance, enabling early anomaly detection and resolution. Rather than reacting like firefighters, we aim to prevent issues before they arise, ensuring stability and reliability.
+
+This chapter covers technologies and tools for monitoring, including health metrics and logs. A single entry point for data access is essential, with dashboards aiding interpretation and action.
+
 \subsection{Dashboards}
+Artificial Intelligence for IT Operations (AIOps) tools analyze and transform data into actionable insights. These insights are displayed through dashboards or alerts. Choosing the right technology can be challenging. To start, we will use the DevSecOps Period Table \parencite{digitalai2025devsecops}. The orange section lists AIOps tools relevant to our decision-making.
+
+\begin{multicols}{2} 
+    \begin{itemize} 
+        \item Datadog (proprietary) 
+        \item Big Panda (proprietary) 
+        \item Instana (proprietary) 
+        \item Splunk (proprietary) 
+        \item AppDynamics (proprietary) 
+        \item Kibana (Elastic License, SSPL, AGPLv3) 
+        \item Dynatrace (proprietary) 
+        \item New Relic (proprietary) 
+        \item Grafana (AGPLv3) 
+    \end{itemize} 
+\end{multicols}
+
+Research shows that only Kibana and Grafana are open-source. Kibana's triple-licensing is complex, but its source code is publicly available, and a Docker image is provided on Docker Hub \Parencite{kibana-docker2025}. Grafana originated as a fork of Kibana in 2014 \Parencite{odegaard2019grafana}, making them closely related. Their key features are:
+
+\paragraph{Kibana} Part of the Elasticsearch, Logstash, and Kibana (ELK) stack, Kibana provides a web interface for searching, analyzing, and visualizing data in Elasticsearch. It includes machine learning for anomaly detection and reporting.
+
+\paragraph{Grafana} Grafana supports multiple data sources, making it more flexible than Kibana. It provides alerting and notification when thresholds are exceeded and offers community-driven plugins.
+
+Grafana is the most popular open-source visualization tool, with extensive documentation and community support. It has 67.5k stars and 12.5k forks on GitHub \Parencite{grafana2025}, compared to Kibana's 20.4k stars and 8.3k forks \Parencite{kibana2025}. Grafana's features align best with our needs, making it the preferred choice for monitoring.
+
 \subsection{Metrics}
+
+Metrics quantify system performance, enabling trend analysis, anomaly detection, and resource optimization. This project examines Prometheus, Graphite, and VictoriaMetrics for metric storage and scraping, all licensed under the Apache License 2.0.
+
+\paragraph{Graphite} Developed by Chris Davis in 2006, Graphite stores time-series data using a push-based model, where applications send metrics to a central server \Parencite{grafana_graphite}. The first version of Grafana included a graph panel called ``graphite'', initially supporting Graphite exclusively \Parencite{odegaard2019grafana}.
+
+\paragraph{Prometheus} Prometheus collects metrics as time-series data with timestamps, uses PromQL for queries, and supports built-in alerting and visualization. It scrapes metrics from configured endpoints using a pull-based model \Parencite{grafana_graphite}. Prometheus Pushgateway enables push-based metric collection.
+
+\paragraph{VictoriaMetrics} Supports Prometheus querying API and Graphite API, enabling use as a replacement for both in Grafana \Parencite{VictoriaMetricsDocs}. Functions as Prometheus storage or a full replacement \Parencite{victoriametrics2025}. Uses both push and pull models and is considered more efficient than Prometheus \Parencite{last9_prometheus_vs_victoriametrics}.
+
+Graphite only supports the push model, making it less suitable for our needs. This leaves the final decision between Prometheus and VictoriaMetrics. While VictoriaMetrics appears to be superior to Prometheus, Prometheus is more popular on GitHub, with 58.1k stars and 9.5k forks \Parencite{prometheus_github}, compared to VictoriaMetrics' 13.7k stars and 1.3k forks \Parencite{victoriametrics2025}. Additionally, Grafana promotes Prometheus in its guides \Parencite{grafana_prometheus_intro} and has developed Grafana Mimir \Parencite{grafana_mimir}, a time-series database designed for Prometheus' long-term storage. Prometheus was chosen for this project, but VictoriaMetrics remains a viable alternative for further exploration.
+
 \subsection{Logging}
-\subsection{Data Sources}
+Logging involves log aggregation and log collection.
 
-\section{Virtual Machines \& Containers} \label{sec:vm_vs_container}
-\subsection{Docker}
-\subsection{KubeVirt}
-\subsection{NixOS qcow2 Images}
+For log aggregation, Grafana Loki was chosen because it is part of the same ecosystem and provides an open-source set of components that can be composed into a fully featured logging stack \parencite{grafana_loki}. Loki is licensed under AGPLv3 \Parencite{grafana_loki_license}.
 
-\section{Registry as a Pull-Through Cache}
-\subsection{Mirror}
-\subsection{Harbor}
+Log collection requires more consideration. Grafana offers several options, including Promtail, Grafana Alloy, OpenTelemetry, and Fluent Bit \Parencite{grafana_loki_send_data}. All are licensed under the Apache License, Version 2.0. Promtail was historically a preferred choice due to its direct integration with Loki; however, it has been deprecated in favor of Grafana Alloy \Parencite{grafana_promtail}. Despite this, Promtail was selected for this project based on prior experience and ease of use.
+
+Fluent Bit is a flexible alternative but was not chosen, as Promtail is tailored for Loki \Parencite{grafana_loki_send_data}. OpenTelemetry, while powerful in collecting metrics, logs, and traces \Parencite{opentelemetry_overview}, was deemed excessive for this use case, where the focus is only on log collection. Given the project's requirements and the goal of achieving a Minimal Viable Product (MVP), Promtail remained the preferred option despite its deprecation.
+
+The logging architecture is illustrated in Figure \ref{fig:logging_architecture}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1\textwidth]{./images/loki-promtail.png}
+    \caption{Logging architecture.}
+    \label{fig:logging_architecture}
+\end{figure}
+
+\newpage
 
 \section{Feature Flag System}
 \subsection{Strategies \& Segments}
@@ -332,6 +380,15 @@ We are only interested in using the Authorization Code flow, Resource Owner Pass
 Jekyll, Astro
 \subsection{Web Servers}
 GitHub Pages, NGINX
+
+\section{Registry as a Pull-Through Cache}
+\subsection{Mirror}
+\subsection{Harbor}
+
+\section{Virtual Machines \& Containers} \label{sec:vm_vs_container}
+\subsection{Containers}
+\subsection{KubeVirt}
+\subsection{NixOS qcow2 Images}
 
 \section{Static Code Analysis}
 \subsection{Dependabot}
@@ -486,9 +543,7 @@ A key word to remember here is \textit{Stack Reference}. When working with micro
 \section{Domain Name}
 
 \chapter{Monitoring}
-Monitoring is an essential aspect of managing a Kubernetes cluster. It provides a comprehensive overview of the health and performance of our services, enabling us to detect and address anomalies before they escalate into critical issues. Effective monitoring allows us to be proactive, ensuring the stability and reliability of our production environment. Rather than reacting to problems like firefighters, we aim to prevent issues from occurring in the first place.
 
-In this chapter, we will explore the various technologies and tools used to achieve effective monitoring. Whether it involves sampling health metrics or gathering logs, the information should be accessible from a single entry point. Dashboards play a crucial role in this process, enhancing and contextualizing the data to make it meaningful and actionable. By leveraging these tools, we can maintain a robust and resilient Kubernetes cluster.
 
 \section{A Single Entry Point}
 Monitoring should be straightforward; otherwise, people will not use it! While the initial setup requires some effort, once it is running, all data should be readily available. Therefore, we want all our monitoring to be accessible from a single entry point, so that responsible personnel will not have to aggregate multiple sources to make a rational conclusion about the Kubernetes cluster's health.
