@@ -3,4 +3,4 @@
 	url = https://github.com/KianBankeLarsen/ucloud-k8s.git
 [submodule "src/application/challenges"]
 	path = src/application/challenges
-	url = https://github.com/KianBankeLarsen/CTF-Challenges.git
+	url = https://github.com/mattrent/CTF-Challenges
