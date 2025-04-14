@@ -369,11 +369,22 @@ The logging architecture is illustrated in Figure \ref{fig:logging_architecture}
     \label{fig:logging_architecture}
 \end{figure}
 
-\newpage
-
 \section{Feature Flag System}
-\subsection{Strategies \& Segments}
-\subsection{Rollout Management}
+Feature flags are a useful tool for managing software features. They allow system administrators to enable or disable features based on contextual information, such as user roles or location. Feature flags also support A/B testing by enabling controlled rollout, allowing only a subset of users to access a new feature. Additionally, they can be used when integrating a new API into production, allowing testing before deprecating the previous API.
+
+We will not focus on selecting a Feature Flag System. Unleash has provided an objective list of OSS tools that address this need \Parencite{UnleashFeatureFlags}. This is notable, given that Unleash specializes in Feature Flags. It is licensed under the Apache-2.0 license, has 12k stars and 759 forks on GitHub \Parencite{UnleashRepo}, and has been ranked as the top Feature Management Software on G2 \Parencite{UnleashFeatureFlags}. Based on this, we will examine the main features of Unleash rather than other tools. While Unleash offers a more feature-rich enterprise version, the OSS features are sufficient for this project.
+
+\subsection{The Anatomy of Unleash}
+Unleash manages feature flags using a client-server architecture. The server controls the feature flags, while the client retrieves and evaluates them via a REST API. The exported endpoints are typically wrapped by a client library, such as the unleash-client-go library for Go, developed by Unleash \Parencite{unleash_client_go_v3}.
+
+Feature flags are organized within projects, which can be used to group related feature flags, teams, or modules. A project can also be assigned per tenant to simulate multi-tenancy. The OSS version supports one project, the Pro version allows up to three, and the Enterprise version supports up to 500 \Parencite{unleash_resource_limits}.
+
+Projects contain environments. The OSS version permits two environments \Parencite{unleash_resource_limits}, which is sufficient for a production environment and an optional development environment if the environments differ. A feature flag is then assigned to an environment. 
+
+\subsection{Activation Strategies}
+An activation strategy defines which users receive a feature. It is assigned to a feature flag within an environment. A feature flag can have multiple activation strategies, each evaluated independently. A collection of such reusable activation strategies is called a segment \Parencite{unleash_activation_strategies}.
+
+The default activation strategy is a 100\% gradual rollout, adjustable by setting rollout percentage, targeting, and variants. The rollout percentage determines how many users receive the feature. Targeting specifies which users should be affected, using constraints defined by a context field, an operator, and a value. This allows filtering based on any context. Variants extend a feature flag's payload with additional data to create different versions \Parencite{unleash_activation_strategies}.
 
 \section{Static Website}
 \subsection{Static Site Generators}
