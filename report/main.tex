@@ -387,19 +387,48 @@ An activation strategy defines which users receive a feature. It is assigned to 
 The default activation strategy is a 100\% gradual rollout, adjustable by setting rollout percentage, targeting, and variants. The rollout percentage determines how many users receive the feature. Targeting specifies which users should be affected, using constraints defined by a context field, an operator, and a value. This allows filtering based on any context. Variants extend a feature flag's payload with additional data to create different versions \Parencite{unleash_activation_strategies}.
 
 \section{Static Website}
-\subsection{Static Site Generators}
-Jekyll, Astro
-\subsection{Web Servers}
-GitHub Pages, NGINX
+Web development involves various technologies and frameworks. Some websites, such as blogs or online CVs, only need to display informational content. In these cases, the Model-View-Controller (MVC) pattern may not be necessary. Instead, static site generators can be used to create static websites. These tools convert plain text files into static HTML pages and are commonly used for blogs, documentation, and content-driven sites.
 
-\section{Registry as a Pull-Through Cache}
+\subsection{Static Site Generators}
+Several static site generators are available, including Jekyll \Parencite{jekyll}, Astro \parencite{astro}, and Hugo \Parencite{hugo}. Each provides templates that allow users to customize their website's appearance. A popular Jekyll theme, Just the Docs \Parencite{just-the-docs}, converts Markdown files into well-formatted HTML pages for online use, making web development more accessible. Documentation should be easy to write; otherwise, it is less likely to be created.
+
+Jekyll, written in Ruby, powers GitHub Pages \Parencite{GitHubPagesJekyll} and organizes content using a simple directory structure. Key folders include \texttt{assets}, \texttt{\_layouts} (for templates), \texttt{\_includes} (for reusable components), \texttt{\_sass} (for styling) and the configuration file \texttt{\_config.yml}. The complete directory structure is available on Jekyll's homepage \Parencite{jekyll}. Content is typically written in Markdown and converted to HTML during the build process. HTML can be directly hardcoded into layouts. The final website consists of static files placed in the \texttt{\_site} folder, which a web server can serve.
+
+\subsection{Web Servers}
+Web servers are the backbone of the internet -- they handle requests from users and deliver content like websites, images, and other resources. 
+
+GitHub Pages is a free service to host a static website. It is a great option for hosting documentation, as it is easy to set up and integrates well with GitHub repositories -- it is not even necessary to create a pipeline to deploy the website, as everything is handled by GitHub after enabling the feature. GitHub pages allow one site per repository \Parencite{GitHubPagesLimits}.
+
+NGINX is an HTTP(S) server, reverse proxy, content cache, load balancer, TCP/UDP proxy server, and mail proxy server, distributed under the 2-clause BSD License. It is widely used due to its performance and resource efficiency, making it one of the most deployed web servers and a frequently used Docker image. NGINX also supports multiple Kubernetes Ingress Controllers, including its own \Parencite{NginxWebsite}. 
+
+Using Docker's multi-stage builds, a static website can be created using a single Dockerfile. Earlier stages contain the necessary build tools, while the final image only includes the static files and configuration. This approach optimizes the final Docker image by excluding unnecessary build dependencies, leaving only the NGINX application, its configuration file, and the static HTML files.
+
+\section{Private Registry}
+A private registry is used to store and manage container images, allowing organizations to host their own images, control access, and track versions. While Docker Hub is a public registry, it also provides private repositories. GitLab and GitHub offer similar repository services. In some cases, hosting a private registry locally is preferable to prevent images from being pushed outside the firewall. This approach can reduce costs associated with hosted registries or ensure images remain airgapped.
+
+Docker Hub introduced new rate limits, setting a maximum of 10 pulls per hour for unauthenticated users and 100 pulls per hour for authenticated users. This was a significant reduction from the previous limits of 200 pulls per six hours for unauthenticated users and 200 pulls per six hours for authenticated users. In response to user feedback, Docker revisited its policies and decided to maintain the current rate limits \Parencite{DockerHubPolicies}.
+
+To address the limitations, that was later called off, local registries can be implemented as pull-through caches for Docker. Two methods for achieving this are using mirrors \Parencite{dockerhubmirror} or a more advanced solution with Harbor \Parencite{harbor}. This makes Docker pull all images from the local private registry, which in turn pulls the images from Docker Hub if unavailable in the pull-through cache.
+
 \subsection{Mirror}
+Mirrors are natively supported in Docker but cannot mirror private registries -- only the central Hub can be mirrored \Parencite{dockerhubmirror}. Configuration consists of two steps.
+
+To set up a registry as a pull-through cache, a proxy section must be added to the configuration file. Parameters include \texttt{remoteurl}, \texttt{username}, and \texttt{password}. The \texttt{remoteurl} specifies the URL of the remote registry to mirror, while \texttt{username} and \texttt{password} provide authentication credentials \Parencite{dockerhubmirror}.
+
+To configure the Docker daemon to use a registry mirror, either pass the \texttt{--registry-mirror} option when starting dockerd, or modify \texttt{/etc/docker/\allowbreak daemon.json} to include the registry-mirrors key \Parencite{dockerhubmirror}.
+
 \subsection{Harbor}
+Harbor serves a similar function to a mirror while offering additional capabilities. It is a cloud-native registry that stores, signs, and analyzes content. As an open-source project under the Cloud Native Computing Foundation (CNCF), it is licensed under the Apache License 2.0. Harbor includes a web interface for image management, user authentication, and role-based access control (RBAC). It supports security assessments and integrates with CI/CD pipelines \Parencite{harbor}.
+
+Docker must be configured to use the pull-through cache as described above. In Harbor, proxy settings are established by creating a proxy cache project that connects to a target registry via a registry endpoint \Parencite{harbor}.
 
 \section{Virtual Machines \& Containers} \label{sec:vm_vs_container}
+e
 \subsection{Containers}
 \subsection{KubeVirt}
 \subsection{NixOS qcow2 Images}
+
+\newpage
 
 \section{Static Code Analysis}
 \subsection{Dependabot}
@@ -502,6 +531,8 @@ Generating secrets during deployment streamlines password rotation. Updating the
 
 A key word to remember here is \textit{Stack Reference}. When working with micro-stacks, it may be necessary to share information between stacks -- this is trivially given when working with a monolithic approach, as everything is in the same stack. Stack references enable you to access outputs of one stack from another stack. These outputs could include the name of a randomly generated secret, secret values, or any other user-defined stack output.
 
+\section{Networking}
+
 \chapter{Discussion}
 
 \chapter{Conclusion}
@@ -511,50 +542,6 @@ A key word to remember here is \textit{Stack Reference}. When working with micro
 \addcontentsline{toc}{chapter}{References}
 \printbibliography
 \end{document}
-
-
-\chapter{Kubernetes}
-
-\section{Helm Chart}
-
-\section{Horizontal Scaling}
-
-\section{Vertical Scaling}
-
-\section{Health Check}
-
-\section{Probes}
-
-\subsection{Liveness}
-
-\subsection{Readiness}
-
-\subsection{Statup}
-
-\chapter{Development Environment}
-
-\section{Automated Tasks}
-
-\section{Domains}
-
-\chapter{Infrastructure as Code}
-
-\section{Pulumi}
-
-\section{Alternatives}
-
-\section{Developing a Provider}
-
-\chapter{UCloud}
-
-\section{Limited Network Access}
-
-\section{Starting a Virtual Machine}
-
-\section{Domain Name}
-
-\chapter{Monitoring}
-
 
 \section{A Single Entry Point}
 Monitoring should be straightforward; otherwise, people will not use it! While the initial setup requires some effort, once it is running, all data should be readily available. Therefore, we want all our monitoring to be accessible from a single entry point, so that responsible personnel will not have to aggregate multiple sources to make a rational conclusion about the Kubernetes cluster's health.
