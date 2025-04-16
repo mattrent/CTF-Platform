@@ -422,18 +422,60 @@ Harbor serves a similar function to a mirror while offering additional capabilit
 
 Docker must be configured to use the pull-through cache as described above. In Harbor, proxy settings are established by creating a proxy cache project that connects to a target registry via a registry endpoint \Parencite{harbor}.
 
-\section{Virtual Machines \& Containers} \label{sec:vm_vs_container}
-e
-\subsection{Containers}
-\subsection{KubeVirt}
-\subsection{NixOS qcow2 Images}
+\section{Containers \& Virtual Machines} \label{sec:vm_vs_container}
+Modern infrastructure relies on technologies that package applications and dependencies while keeping them isolated from the system they run on. Containers provide lightweight environments managed by Kubernetes. KubeVirt extends Kubernetes to support virtual machines, allowing traditional workloads to run alongside containers. NixOS offers a reproducible way to build disk images and manage system configurations.
 
-\newpage
+Virtualization allows a single physical resource, such as RAM, CPU, disk, or networking, to be divided into multiple virtual instances. The main difference between them is that virtual machines simulate an entire system, including hardware, while containers virtualize only the software environment above the operating system \Parencite{atlassian_containers_vs_vms}.
+
+\subsection{Containers}
+Containers are lightweight software packages that bundle all necessary dependencies to run an application, including system libraries, third-party code, and other operating system components. They allow quick modifications and iteration, with most container runtime systems providing public repositories of pre-configured containers. These repositories offer access to widely used applications like databases and messaging systems, reducing setup time and simplifying deployment \Parencite{atlassian_containers_vs_vms}.
+
+Shared host exploits may occur because containers share the same underlying hardware below the operating system layer. A vulnerability in one container could allow unauthorized access to the host system, affecting other containers running on the same infrastructure. Public repositories of pre-built containers also introduce risks, as images may contain exploits or be compromised \Parencite{atlassian_containers_vs_vms}.
+
+\subsection{Virtual Machines}
+Virtual machines are software packages that emulate low-level hardware components such as CPU, disk, and networking devices. They may also include a software stack to operate on the emulated hardware, creating a fully functional computational system snapshot \Parencite{atlassian_containers_vs_vms}.
+
+Virtual machines provide full isolation security, running as standalone systems. This prevents exploits from spreading between virtual machines on a shared host, ensuring that a compromised machine remains contained. They also support interactive development, allowing manual installation of software and the creation of snapshots to preserve specific configurations. These snapshots can be used to restore a virtual machine to a previous state or deploy additional instances with identical setups \Parencite{atlassian_containers_vs_vms}.
+
+Despite these advantages, virtual machines have limitations. Iteration speed is slower since each snapshot represents an entire system, requiring significant time to regenerate and validate modifications. Additionally, storage size cost can be high, as virtual machines often occupy several gigabytes of disk space, potentially leading to storage constraints on the host system \Parencite{atlassian_containers_vs_vms}.
+
+\subsection{KubeVirt}
+KubeVirt is an open-source virtualization API extension for Kubernetes, licensed under the Apache License 2.0 \Parencite{kubevirt_license} and maintained as a Cloud Native Computing Foundation (CNCF) project \parencite{kubevirt_cncf}. It enables the management of virtual machines alongside containers by introducing custom resource definitions (CRDs), which extend Kubernetes to support VM workloads using its native tools. This allows users to run both containerized and virtualized applications within the same cluster, creating a unified infrastructure for diverse workloads.
+
+KubeVirt uses a Docker image based on \texttt{scratch}, where the container disk image, QCOW2, is stored in the \texttt{/disk} directory. QCOW2 is recommended as it reduces image size. The image contains only the disk with no additional content \Parencite{kubevirt_disks_volumes}.
+
+KubeVirt consists of three main cluster components: \texttt{virt-api}, \texttt{virt-\allowbreak controller}, and \texttt{virt-operator}. The \texttt{virt-controller} manages the lifecycle of VMs, while the \texttt{virt-operator} ensures that KubeVirt components are correctly deployed and functioning. The \texttt{virt-api} provides a RESTful interface for interacting with KubeVirt and managing VM resources.
+
+Each virtual machine instance (VMI) is associated with a pod that contains \texttt{virt-launcher}, \texttt{libvirtd}, and \texttt{qemu}. However, the VMI itself does not run within the pod \Parencite{kubevirt_architecture}. Instead, it operates directly on the host as its own instance type: \texttt{virtualmachineinstance.kubevirt.io}. The \texttt{virt-\allowbreak launcher} is responsible for spawning the VM on the host.
+
+If hardware virtualization is unavailable, software emulation can be used instead \Parencite{kubevirt_installation}. In this mode, virtualization is handled entirely by software rather than relying on CPU extensions. Software emulation is expectedly less efficient than hardware virtualization.
+
+\subsection{NixOS Disk Images}
+NixOS is a declarative operating system that defines system configurations, including installed packages, services, and settings.
+
+It can build Copy-On-Write version 2 (QCOW2) disk images for virtual machines \Parencite{nixos_vm_configuration}. Using a Nix expression, users generate a QCOW2 image with a predefined environment, ensuring consistency and eliminating manual setup \Parencite{nix_language_tutorial}.
+
+NixOS configurations can be tested in virtual machines without installation on physical hardware. Unlike interactive configuration, which lacks documentation, NixOS provides a structured approach. Interactive setups make modifications difficult and do not track changes, leading to uncertainty about the image's contents.
+
+This approach allows image generation at runtime instead of storing large QCOW2 images. Since they cannot be stored in Git due to their size, declarative configuration enables automated, reproducible builds when needed.
 
 \section{Static Code Analysis}
+Static code analysis is a software testing technique that examines code without executing it, serving as the counterpart to dynamic code analysis. It is used to identify potential vulnerabilities, bugs and code smells. Static code analysis can be performed manually or automatically using tools. The latter is more efficient and less error-prone, as it can be integrated into the development process.
+
+In this section we will cover the tools used in this project for static code analysis. These tools include Dependabot, SonarCloud, and Linting.
+
 \subsection{Dependabot}
+Dependabot is a dependency management tool rather than a static code analysis tool. It is included in discussions of repository scanning because it identifies outdated dependencies, checks for updates, and creates pull requests to keep them current. It also provides security alerts for known vulnerabilities in dependencies, helping developers address risks promptly. Dependabot supports package managers such as pip, npm, and Maven and can be configured to check for updates on a schedule \Parencite{GitHubDependabotVersion2025}.
+
 \subsection{SonarCloud}
+SonarCloud is a cloud-based platform for continuous code quality and security inspection. It performs static code analysis to detect bugs, vulnerabilities, and code smells, supporting multiple programming languages. Integrated seamlessly with CI/CD pipelines, it enables automated code quality checks throughout development \Parencite{SonarQubeDocs2025}.
+
+The service offers a web interface for monitoring quality metrics and trends over time. It is free for public repositories; however, private repositories require a paid subscription \Parencite{SonarCloudPricing2025}. In contrast, SonarQube is a self-hosted solution, licensed under the GNU Lesser General Public License v3.0 \Parencite{SonarQubeLicense2025}. It provides similar functionality and supports private repositories -- while the Community Edition is free, advanced plans come at a cost.
+
 \subsection{Linting}
+Linting is a static code analysis technique used to detect errors, enforce coding standards, and improve code readability. Some linters assess cyclomatic complexity, helping developers understand the maintainability of their code. By identifying issues early in the development process, linting ensures consistency and enhances code quality. Linting tools can be integrated into IDEs or run as part of the build process \Parencite{SuperLinter2025}. Popular options include ESLint for JavaScript, Pylint for Python, and SonarQube for IDE (formerly SonarLint), which supports multiple programming languages.
+
+SonarQube for IDE integrates automated code review into your development environment \Parencite{SonarQubeConnectedMode2025}. Connected mode links projects to SonarQube Cloud or Server, ensuring consistent best practices, preventing security vulnerabilities, and reducing technical debt before code is committed.
 
 \chapter{Implementation}\label{chap:implementation}
 
