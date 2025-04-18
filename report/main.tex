@@ -619,38 +619,141 @@ Generating secrets during deployment ensures fresh credentials with each update 
 In a monolithic stack, all information is already available within the same stack. When using a micro-stack architecture, it may be necessary to share information between stacks. Stack references make this possible by allowing one stack to access outputs from another, such as randomly generated secrets, or other stack-specific data. This enables generating all secrets in the Infrastructure stack and exporting them to the services that need them.
 
 \subsection{Helm Charts}
+Pulumi offers two approaches for deploying Helm charts: as a \texttt{Chart} \Parencite{PulumiHelmChart} or a \texttt{Release} \Parencite{PulumiHelmRelease}. The key difference lies in how Pulumi manages these resources. When using \texttt{Chart}, Pulumi treats all resources within the chart as its own, incorporating them into its state. Conversely, the \texttt{Release} option deploys the Helm chart as a release, meaning the resources are not tracked in Pulumi's state and are managed independently. This approach is useful for charts intended to be managed outside of Pulumi or when keeping the Helm release separate from a Pulumi stack.
+
+One important consideration is that Helm hooks are no longer supported in Pulumi Charts v4. While Chart v3 also lacked hook support, it historically emitted hooks as ordinary child resources. Another notable improvement in Chart v4 is enhanced resource ordering \Parencite{PulumiKubernetesChartV4}. For example, in Chart v3, deploying \texttt{kube-prometheus-stack} was problematic because services dependent on CRDs were created before the CRDs themselves were available. This required manually installing the CRDs within the Infrastructure stack. Chart v4 eliminates this workaround by handling resource ordering automatically. However, the CRDs remain in the Infrastructure stack for flexibility, ensuring availability for other stacks beyond Monitoring -- \texttt{ServiceMonitors}, for example, are widely used across different stacks.
+
+Why use Helm charts at all? The primary advantage is their active community maintenance, which ensures regular updates and improvements. Helm charts bundle numerous resources, reducing the complexity of manually defining and managing them. They provide a streamlined, efficient way to configure and deploy applications compared to writing everything from scratch. Given these benefits, we will rely on Helm charts in this project whenever possible.
+
+In conclusion, Helm charts are preferred over manual resource definitions, and Pulumi Charts v4 will be used to manage their deployment.
 
 \section{Ansible}
+Terraform is used to provision the servers. However, since UCloud does not provide a Terraform provider, an alternative approach was required for deploying Kubernetes resources. To address this, we leveraged Ansible -- an agentless automation tool that uses SSH to connect to servers and execute commands remotely, eliminating the need for software installation on target machines.
+
+The majority of the Ansible work has been completed by Matteo Trentin, though I have contributed to specific aspects outlined in this section. My primary contributions include deploying Pulumi stacks, configuring the NFS server, making sure that \texttt{Kubectl} used the Tailscale subnet\footnote{Only needed when deployed on UCloud.}, and developing a deep understanding of the existing Ansible playbooks and roles.
 
 \subsection{Playbook}
+The playbook is a core component of Ansible, defining the automation workflow. It is a YAML file that specifies the target hosts, assigned roles, and the tasks to be executed. The playbook follows a structured process: First, common tools are installed on all nodes, including both control and worker nodes. Next, the control node is configured -- setting up the Kubernetes control plane, mounting MinIO, and starting the NFS server. Then, the worker nodes are configured and joined to the Kubernetes cluster. Finally, the Pulumi stacks are deployed on the control node.
 
-\subsection{Hosts File}
+The target hosts are specified in the \texttt{hosts.ini} file located in the \texttt{ucloud-k8s/\allowbreak ansible} folder. This file contains the IP addresses of the nodes, enabling SSH connections for task execution. The playbook is executed using the \texttt{ansible-playbook} command, which processes the YAML file and runs the defined tasks on the target hosts. Additionally, the host file includes variables required by various tasks. Since \texttt{hosts.ini} contains environment-specific details, it is not stored in version control. Instead, a template file, \texttt{hosts.ini.example}, is provided as a reference.
 
-\subsection{Roles}
+\subsection{Deployment}
+
+Before executing the playbook, it is essential to configure the \texttt{hosts.ini} file and set up the required secrets.
+
+The \texttt{hosts.ini} file in the \texttt{ansible} directory defines the inventory of hosts managed by Ansible -- use the \texttt{hosts.ini.example} template to create it.
+
+A few secrets are required for secure access and configuration management. An SSH key pair must be generated and stored in the location specified in \texttt{ansible/ansible.cfg} for server access. A \texttt{pulumi\_passphrase} file should be placed at the repository root to manage Pulumi stack encryption. If deploying on UCloud, a Tailscale authentication key must be stored in \texttt{tailscale\_key} at the repository root for machine authentication, with its location adjustable in the ``connect to Tailscale'' task within the Tailscale role.
+
+A rigorous and continuously updated deployment guide is available online at \url{https://kianbankelarsen.github.io/CTF-Platform/ucloud-k8s/}. As the codebase evolves, this guide provides the latest instructions to ensure a seamless deployment process.
 
 \section{CTFd Plugins}
-\subsection{Autentication}
+CTFd is a web-based platform designed to host CTF competitions \Parencite{ctfd_github}. It is built using Flask, a Python web framework, and provides a user-friendly interface for managing challenges, teams, and scoring. CTFd is open-source, distributed under Apache License 2.0 \Parencite{ctfd_github}, and can be self-hosted using a Docker image \Parencite{ctfd_docker}. The platform is designed to be extensible, allowing developers to create custom plugins to enhance its functionality. This extensibility is a key feature of CTFd, enabling users to tailor the platform to their specific needs and requirements. 
+
+This section provides insight to the CTFd plugins developed for the platform. The first plugin is a custom authentication plugin that integrates with Keycloak, enabling SSO capabilities. The second plugin is a custom challenge plugin that allows users to start a challenge managed by our Deployer Backend. 
+
+\subsection{Authentication}
+
+CTFd requires an authentication system to manage user access. Instead of handling user creation internally, external identity providers can be integrated to streamline authentication. While Keycloak is not configured to use an external Active Directory, it enables SSO, allowing participants to authenticate using accounts created within Keycloak.
+
+Despite this integration, CTFd does not natively support SSO unless using an enterprise or hosted version \parencite{ctfd_sso}. This limitation presents a challenge and requires a decision on how to proceed. Given that CTFd is open-source, we have two options: modify the source code to implement SSO directly or develop a custom plugin for authentication. Modifying the core code would require freezing the version. Therefore, creating a plugin is the more practical and maintainable approach. Fortunately, creating plugins for CTFd is relatively straightforward and well-documented \parencite{ctfd_plugins}. 
+
+The plugin is configured via \texttt{config.json}, which is loaded at initialization to define its behavior using basic OIDC parameters. A decision is required for handling the client secret—either embedding it in the configuration file or providing it as an environment variable. Storing it in the configuration file would bake it into the image, which is undesirable, while using an environment variable keeps it separate but leaves the configuration file incomplete. Since Pulumi generates the secret dynamically, it cannot be set statically in the configuration. Instead, \texttt{OIDC\_CLIENT\_SECRET} is defined as an environment variable, replaced at runtime. Pulumi loads the config, performs environment substitution, and mounts the updated file in the appropriate location. Additionally, the config file supports specifying the path to a certificate bundle when the connection to the identity provider must be manually trusted.
+
+Overwriting authentication endpoints allows us to redirect authentication flows to our implementation instead of relying on CTFd's default mechanisms. This facilitates integration with Keycloak, ensuring all login and logout operations are managed through our identity provider. Additionally, modifying these endpoints enables control over user management actions, such as disabling registration and password resets. However, disabling the registration endpoint does not remove the registration button, so registration must be set to private during the initial setup wizard of CTFd.
+
+\begin{minted}{py3}
+app.view_functions['auth.login'] = lambda: redirect(url_for('keycloak'))
+app.view_functions['auth.logout'] = lambda: redirect(url_for('keycloak_logout'))
+app.view_functions['auth.register'] = lambda: ('', 204)
+app.view_functions['auth.reset_password'] = lambda: ('', 204)
+app.view_functions['auth.confirm'] = lambda: ('', 204)
+\end{minted}
+
+The implementation uses \texttt{python-keycloak} \parencite{python_keycloak}, a client tool designed for handling authentication with Keycloak. While a more general approach could have involved using a generic OIDC plugin, \texttt{python-keycloak} was chosen for its ease of use and effectiveness in addressing our specific needs. 
+
+The OIDC plugin is configured to follow the authorization code flow as recommended by the Keycloak documentation. The authentication process operates as follows:
+
+\begin{enumerate}
+    \item A user logs into CTFd using their SSO credentials.
+    \item If the user does not exist in CTFd's database, they are created; otherwise, the existing user is retrieved.
+    \item Roles and profile settings are synchronized to align with the SSO user's configurations.
+    \item The user is then authenticated and granted access to CTFd.
+\end{enumerate}
+
+Administrators can disable or ban users from CTFd when necessary. However, if a user is deleted from CTFd's database, they will be recreated upon logging in again. Conversely, deleting a user in Keycloak does not remove them from CTFd, but it prevents them from logging in since authentication is managed by Keycloak. To fully remove a user, they must be deleted from both databases, or at least from CTFd with their roles revoked to prevent authorization upon authentication.
+
+In SQLAlchemy, \texttt{polymorphic\_on} and \texttt{polymorphic\_identity} facilitate inheritance in database models. \texttt{polymorphic\_on} specifies the column used to determine the object's type, while \texttt{polymorphic\_identity} sets the identifier for each subclass. This enables SQLAlchemy to distinguish between different object types within a shared table.
+
+\begin{minted}{py3}
+class Users(db.Model):
+    __tablename__ = "users"
+    __mapper_args__ = {"polymorphic_identity": "user", "polymorphic_on": type}
+    ...
+
+class Admins(Users):
+    __tablename__ = "admins"
+    __mapper_args__ = {"polymorphic_identity": "admin"}
+\end{minted}
+
+The \texttt{Submissions} class has a foreign key \texttt{user\_id} that references the \texttt{users} table. The \texttt{ondelete="CASCADE"} ensures that when a user is deleted, all related submissions are also deleted.
+
+\begin{minted}{py3}
+class Submissions(db.Model):
+    __tablename__ = "submissions"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"))
+\end{minted}
+
+Handling polymorphic types can be challenging, particularly when modifying the type of an existing object. For instance, changing an admin to a user may trigger an \texttt{ObjectDeletedError}. This occurs because altering the polymorphic identity can result in the deletion of the original object, potentially causing issues with related entities such as submissions and comments linked via foreign keys with cascade delete.
+
+To prevent loss of related objects when modifying polymorphic types, the response is generated before applying the type change. This approach avoids the \texttt{ObjectDeletedError} and ensures data integrity. The solution was derived from reviewing the source code of CTFd's public API \parencite{CTFdUsersAPI}.
+
+\begin{minted}{py3}
+def patch_user(user_id, data):
+    user = Users.query.filter_by(id=user_id).first_or_404()
+    data["id"] = user_id
+
+    schema = UserSchema(view="admin", instance=user, partial=True)
+    response = schema.load(data)
+    if response.errors:
+        return {"success": False, "errors": response.errors}, 400
+
+    # This generates the response first before actually changing the type
+    # This avoids an error during User type changes where we change
+    # the polymorphic identity resulting in an ObjectDeletedError
+    # https://github.com/CTFd/CTFd/issues/1794
+    response = schema.dump(response.data)
+    ...
+\end{minted}
+
+The plugin does not impact authentication using tokens. CTFd employs the \texttt{before\_\allowbreak request} decorator to verify user login status. This decorator is universally applied to all routes, ensuring authentication before accessing any part of the application \Parencite{CTFdInitialization}. The plugin operates independently of this mechanism, allowing users to authenticate seamlessly via their SSO credentials without any complications.
+
+The challenge plugin requires a valid access token, issued by Keycloak, which remains active for 5 minutes and is paired with a refresh token valid for 30 minutes. The refresh token allows requesting a new access token when needed. To ensure continuous authentication, the plugin leverages the \texttt{before\_\allowbreak request} decorator to verify the token's validity on every request. If the access token is nearing expiration, it is renewed using the refresh token. If the refresh token expires, the user is logged out and must reauthenticate. Each time the access token is refreshed, the refresh token is also updated.
+
+The token is securely stored in a cookie, as CTFd enforces \texttt{SESSION\_COOKIE\_\allowbreak HTTPONLY} and \texttt{SESSION\_COOKIE\_SAMESITE=Lax} \Parencite{CTFdConfig}. The HTTP-only setting ensures the cookie remains inaccessible to JavaScript, mitigating cross-site scripting (XSS) risks. The \texttt{SameSite=Lax} policy prevents unauthorized cross-site access while allowing cookies to be sent in top-level navigations, reducing the risk of cross-site request forgery (CSRF) attacks.
+
 \subsection{Challenges}
 
-\section{Smallstep} \label{sec:smallstep}
+% \section{Smallstep} \label{sec:smallstep}
 
-\section{Keycloak}
+% \section{Keycloak}
 
-\section{Monitoring}
+% \section{Monitoring}
 
-\section{Deployer Backend}
+% \section{Deployer Backend}
 
-\section{Certbot Proxy}
+% \section{Certbot Proxy}
 
-\section{Docker Registry}
+% \section{Docker Registry}
 
-\section{Unleash}
+% \section{Unleash}
 
-\section{Bastion}
+% \section{Bastion}
 
-\section{Jekyll}
-\subsection{Hompepage}
-\subsection{README}
+% \section{Jekyll}
+% \subsection{Hompepage}
+% \subsection{README}
 
 \chapter{Discussion}
 
@@ -777,95 +880,8 @@ While \texttt{ServiceMonitor} is used to monitor services, \texttt{PodMonitor} i
 
 In summary, use \texttt{ServiceMonitor} when you have services managing multiple pods and need aggregated metrics. Use \texttt{PodMonitor} when you need detailed metrics from individual pods, especially when services are not defined or needed. Everything mentioned in this section has been tested through an experiment.
 
-\chapter{Identity \& Access Management}
-\section{Protocols}
-\todo{Study this}
-
-\section{Realm \& Client}
-When deploying Keycloak, we rely on a Helm chart maintained by Bitnami \parencite{bitnami_keycloak}. Keycloak's documentation can be challenging to navigate, making it difficult to compare the Helm chart with the official documentation to determine how to fill in the Helm \texttt{values.yaml} file. However, after some effort, we managed to configure it. This configuration is part of the monitoring Pulumi project. More interesting is how to configure Keycloak itself to ensure reliable integrations with other services.
-
-\newpage
-
 \section{Integrations}
 The significance of Keycloak lies in its practical application. In the following sections, we will explore how Keycloak plays a crucial role in managing authentication for our services. Some open-source software, such as Grafana, allows for seamless integration with Keycloak, making the process straightforward. In contrast, other software solutions, like CTFd, require more effort to integrate. The specifics of these integrations will be detailed in the associated sections.
-
-\subsection{CTFd}
-CTFd is arguably our most important exposed service from a practical user perspective. As a web-based platform designed to host CTF competitions, it requires an efficient way to manage users. Ideally, we would leverage external identity providers to avoid the hassle of user creation, relying instead on higher-level institutions or organizations to provide these identities.
-
-However, there is a significant challenge: CTFd does not support any form of SSO unless it is either an enterprise or hosted version \parencite{ctfd_sso}. This limitation forces us to make a choice. Given that CTFd is open-source, we can either 1) modify the source code to implement SSO our way, or 2) create a custom plugin to handle authentication. Modifying the source code would necessitate freezing the version, as future updates could disrupt our changes. Therefore, creating a plugin is the more rational approach.
-
-Fortunately, creating plugins for CTFd is relatively straightforward and well-documented \parencite{ctfd_plugins}. However, there is a notable issue with how the Docker image is developed. Plugin requirements are installed at build time rather than at the entrypoint, which complicates the process. This means we cannot simply mount the plugin to the specified folder without building the Docker file from scratch, as the necessary pip packages are not installed. The solution was to update the entrypoint -- a simple but inconvenient fix\todo{revise}.
-
-The most important detail about the Keycloak plugin developed for CTFd is that it can be configured using the \texttt{config.json} file, and that endpoints can be overwritten as follows:
-
-\begin{minted}{py3}
-app.view_functions['auth.login'] = lambda: redirect(url_for('keycloak'))
-app.view_functions['auth.logout'] = lambda: redirect(url_for('keycloak_logout'))
-app.view_functions['auth.register'] = lambda: ('', 204)
-app.view_functions['auth.reset_password'] = lambda: ('', 204)
-app.view_functions['auth.confirm'] = lambda: ('', 204)
-\end{minted}
-
-When the user clicks the login button, they are redirected to our custom login page instead of the usual login page. The same applies to the logout button. Additionally, endpoints can be disabled in this manner, resulting in a 204 status code (indicating that the request has been successfully processed, but no content is returned). The code block above demonstrates that if the register button is made public during setup, it will not function as it redirects to nowhere. The same logic applies to the reset password and confirm (login callback) endpoints.
-
-The implementation has been done using \texttt{python-keycloak} \parencite{python_keycloak}, a tool specialized for handling authentication with Keycloak, utilizing the \textit{authorization code} grant type. While a more general approach could have involved using a generic OIDC plugin, \texttt{python-keycloak} was chosen for its ease of use and effectiveness in solving our specific problem.
-
-The login flow utilizes the Authorization Code Grant (see Section \ref{sec:auth_code}) and operates as follows:
-
-\begin{enumerate}
-    \item A user logs into CTFd using their SSO credentials.
-    \item If the user does not exist in CTFd's database, they are created; otherwise, the existing user is fetched.
-    \item Roles and other profile settings are synchronized to match the configurations of the SSO user.
-    \item The user is then logged into CTFd with their SSO credentials.
-\end{enumerate}
-
-If necessary, administrators can disable or ban users from CTFd. It is important to note that even if a user is deleted from CTFd's database, they will be recreated upon logging in again. Conversely, if a user is deleted in Keycloak, they will still exist in CTFd's database but will be unable to log in, as authentication is handled by Keycloak. Therefore, to properly delete a user, they must be removed from both databases, or at least from CTFd's database with their roles revoked to prevent authorization upon authentication.
-
-In SQLAlchemy, \texttt{polymorphic\_on} and \texttt{polymorphic\_identity} are used to handle inheritance in database models. The \texttt{polymorphic\_on} attribute specifies the column used to determine the type of the object, while \texttt{polymorphic\_identity} sets the identity for each subclass. This allows SQLAlchemy to distinguish between different types of objects stored in the same table.
-
-\begin{minted}{py3}
-class Users(db.Model):
-    __tablename__ = "users"
-    __mapper_args__ = {"polymorphic_identity": "user", "polymorphic_on": type}
-    ...
-
-class Admins(Users):
-    __tablename__ = "admins"
-    __mapper_args__ = {"polymorphic_identity": "admin"}
-\end{minted}
-
-The \texttt{Submissions} class has a foreign key \texttt{user\_id} that references the \texttt{users} table. The \texttt{ondelete="CASCADE"} ensures that when a user is deleted, all related submissions are also deleted.
-
-\begin{minted}{py3}
-class Submissions(db.Model):
-    __tablename__ = "submissions"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"))
-\end{minted}
-
-Handling polymorphic types can be challenging, especially when changing the type of an existing object. For example, if you add an admin and later change its type to user, you might encounter an \texttt{ObjectDeletedError}. This error occurs because changing the polymorphic identity can lead to the deletion of the original object, causing issues with related objects like submissions and comments that are linked via foreign keys with cascade delete.
-
-To handle the issue of changing polymorphic types without losing related objects, you can generate the response first before actually changing the type. This avoids the \texttt{ObjectDeletedError}. This solution was found by reading through the source code for CTFd's public API \cite{CTFdUsersAPI}.
-
-\begin{minted}{py3}
-def patch_user(user_id, data):
-    user = Users.query.filter_by(id=user_id).first_or_404()
-    data["id"] = user_id
-
-    schema = UserSchema(view="admin", instance=user, partial=True)
-    response = schema.load(data)
-    if response.errors:
-        return {"success": False, "errors": response.errors}, 400
-
-    # This generates the response first before actually changing the type
-    # This avoids an error during User type changes where we change
-    # the polymorphic identity resulting in an ObjectDeletedError
-    # https://github.com/CTFd/CTFd/issues/1794
-    response = schema.dump(response.data)
-    ...
-\end{minted}
-
-By understanding and properly handling polymorphic types in SQLAlchemy, you can avoid issues like \texttt{ObjectDeletedError} and ensure that related objects are preserved when changing the type of a user. This involves generating responses before changing types and using methods to manage related objects effectively. This approach ensures that properties and linked objects like submissions and comments are not lost during the type change.\todo{explain API keys}
 
 \subsection{Grafana}\label{sec:grafana_auth}
 Integrating Grafana with Keycloak addresses the critical challenges of secure and efficient user authentication and authorization by leveraging standardized protocols. This section details the configuration process, focusing on protocol integration, PKCE, refresh tokens, role mapping, and the underlying protocols \parencite{GrafanaKeycloak}.
@@ -907,9 +923,6 @@ Role mapping in Grafana is achieved using JMESPath, a query language for JSON. T
 
 Integrating Grafana with Keycloak for authentication provides a secure and efficient solution for managing user access in modern web applications. By leveraging OAuth2 and OIDC protocols, utilizing PKCE, implementing refresh tokens, and employing dynamic role mapping, this integration enhances security and user experience, ensuring that only authorized users can access sensitive data visualized in Grafana.
 
-\subsection{Step Certificates}
-
-\subsection{APIs}
 
 \chapter{Certificate Management}
 
@@ -918,187 +931,6 @@ It’s both. The CRD (Custom Resource Definition) StepIssuer defines how cert-ma
 The StepIssuer CRD is what allows cert-manager to understand and utilize Step Issuer-specific configurations. The apiVersion specifies that this CRD is part of cert-manager’s ecosystem, linking the certificate management workflow to the Step Issuer capabilities.
 
 So, it’s the combination of the StepIssuer CRD defining the step-issuer's specifics and the API version that ties it into cert-manager’s functionality.
-
-\section{Zero Trust}
-
-\section{Certificate Authority}
-
-\section{ACME for TLS}
-
-\section{SSH Certificates}
-
-\section{Smallstep}
-
-\subsection{Smallstep SSH}
-
-\subsection{Step Certificates}
-
-\subsection{Autocert}
-
-\subsection{Issuer}
-
-\subsection{Bootstrap}
-
-\begin{minted}{bash}
-fingerprint=$(
-    curl -k https://myhost/roots.pem | 
-    openssl x509 -noout -sha256 -fingerprint | 
-    sed 's/://g' | 
-    tr 'A-F' 'a-f' | 
-    awk -F= '{print $2}'
-)
-
-step ca bootstrap --ca-url https://myhost \
-    --fingerprint $fingerprint \
-    --force \
-    --install
-\end{minted}
-
-
-% https://github.com/smallstep/cli/blob/3d38cfeadb8f90e8b916a7b7e9c1d4fe9e80a43f/command/oauth/cmd.go#L331
-
-% step will expect to be able to perform a TLS handshake with the proxy, and use the CA's root certificate to complete the trust chain. So, for inbound TLS connections, the proxy should use a server certificate issued by step-ca. See below for an example.
-
-% Layer 4 (Transport Layer): This deals with transportation of data between systems. It doesn’t concern itself with what the data is, but with the movement of the data packets. In a layer 4 proxy, this means forwarding traffic based purely on TCP/UDP protocols without looking at the actual content. This is often referred to as "TLS passthrough" because the proxy doesn’t terminate the SSL/TLS connection—it just passes it through to the backend server.
-
-% Layer 7 (Application Layer): This goes a step further, inspecting and potentially modifying the data itself because it operates at the application level. A layer 7 proxy can make decisions based on HTTP headers, cookies, and other data in the web traffic, allowing for more sophisticated routing and filtering. The proxy terminates the SSL/TLS connection, decrypts the data, and then possibly re-encrypts it before sending it to the backend server.
-
-% Layer 1 - Physical: Deals with the physical connection between devices, including cables and switches.
-
-% Layer 2 - Data Link: Manages data transfer between adjacent network nodes, using MAC addresses.
-
-% Layer 3 - Network: Handles routing of data packets using IP addresses.
-
-% Layer 4 - Transport: Ensures reliable data transfer with error correction and flow control (e.g., TCP/UDP).
-
-% Layer 5 - Session: Manages sessions or connections between applications.
-
-% Layer 6 - Presentation: Translates data between the application layer and the network, dealing with data encryption and compression.
-
-% Layer 7 - Application: Provides network services directly to end-user applications, such as web browsers and email clients.
-
-% The Root function in the step-ca client code requires no TLS termination because it relies on a direct, secure connection to the CA to ensure the integrity and authenticity of the root certificate. Here’s a detailed explanation:
-
-% Key Points of the Root Function
-% Direct HTTPS Request:
-% Go
-
-% resp, err := c.httpClient.Get(c.baseURL + "/root/" + fingerprint)
-% Kode genereret af kunstig intelligens. Gennemse og brug forsigtigt. Flere oplysninger om ofte stillede spørgsmål.
-% This line makes an HTTPS request to the CA to retrieve the root certificate. The httpClient is configured to establish a secure TLS connection directly to the CA.
-% Certificate Validation:
-% Go
-
-% defer resp.Body.Close()
-% // Parse and validate the certificate
-% Kode genereret af kunstig intelligens. Gennemse og brug forsigtigt. Flere oplysninger om ofte stillede spørgsmål.
-% After receiving the response, the function parses and validates the certificate. This validation process ensures that the certificate matches the expected fingerprint and is trusted.
-% Why No TLS Termination is Required
-% End-to-End Encryption:
-% The Root function expects the entire communication path to be encrypted from the client to the CA. TLS termination at the ingress would break this end-to-end encryption, as the ingress would decrypt and then re-encrypt the traffic. This intermediate step can introduce security risks and prevent the client from validating the CA’s certificate directly.
-% Certificate Integrity:
-% The client needs to ensure that the root certificate it receives is authentic and has not been tampered with. By maintaining a direct TLS connection, the client can securely retrieve and validate the certificate against the provided fingerprint. Any interruption in this secure channel could compromise the integrity of the certificate.
-% Security Policies:
-% The step CLI and step-ca are designed with strict security policies that require direct, secure communication with the CA. Allowing TLS termination would violate these policies and potentially expose the communication to man-in-the-middle attacks.
-% Summary
-% In summary, the Root function requires a direct, uninterrupted TLS connection to ensure the security and integrity of the root certificate retrieval process. SSL passthrough is necessary to maintain this secure connection from the client to the CA, preventing any intermediate decryption and re-encryption that could compromise the security.
-
-% // BootstrapClient is a helper function that using the given bootstrap token
-% // return an http.Client configured with a Transport prepared to do TLS
-% // connections using the client certificate returned by the certificate
-% // authority. By default the server will kick off a routine that will renew the
-% // certificate after 2/3rd of the certificate's lifetime has expired.
-% //
-% // Usage:
-% //
-% //	// Default example with certificate rotation.
-% //	client, err := ca.BootstrapClient(ctx.Background(), token)
-% //
-% //	// Example canceling automatic certificate rotation.
-% //	ctx, cancel := context.WithCancel(context.Background())
-% //	defer cancel()
-% //	client, err := ca.BootstrapClient(ctx, token)
-% //	if err != nil {
-% //	  return err
-% //	}
-% //	resp, err := client.Get("https://internal.smallstep.com")
-% func BootstrapClient(ctx context.Context, token string, options ...TLSOption) (*http.Client, error) {
-% 	b, err := createBootstrap(token) //nolint:contextcheck // deeply nested context; temporary
-% 	if err != nil {
-% 		return nil, err
-% 	}
-
-% 	// Make sure the tlsConfig has all supported roots on RootCAs.
-% 	//
-% 	// The roots request is only supported if identity certificates are not
-% 	// required. In all cases the current root is also added after applying all
-% 	// options too.
-% 	if !b.RequireClientAuth {
-% 		options = append(options, AddRootsToRootCAs())
-% 	}
-
-% 	transport, err := b.Client.Transport(ctx, b.SignResponse, b.PrivateKey, options...)
-% 	if err != nil {
-% 		return nil, err
-% 	}
-
-% 	return &http.Client{
-% 		Transport: transport,
-% 	}, nil
-% }
-
-
-% The real trust chain verification happens because of the setup performed by the transport layer. Here’s how it works:
-
-% Add Root Certificate:
-
-% go
-
-% Kopiér
-% options = append(options, AddRootsToRootCAs())
-% This function ensures the root certificate is included in the client's trust store, making it available for the TLS handshake.
-
-% Transport Configuration:
-
-% go
-
-% Kopiér
-% transport, err := b.Client.Transport(ctx, b.SignResponse, b.PrivateKey, options...)
-% This sets up the transport layer with the necessary certificates and keys. The Transport method configures the client to use these certificates for TLS connections.
-
-% TLSConfig Setup: The Transport function uses the root certificate to create a tls.Config object. This object is part of the Go standard library and handles the TLS handshake.
-
-% Here's a snippet of what happens under the hood in the Transport method:
-
-% go
-
-% Kopiér
-% tlsConfig := &tls.Config{
-%     Certificates: []tls.Certificate{clientCert},
-%     RootCAs:      rootCertPool,
-% }
-% TLS Handshake: When the client makes a request, the tls.Config object handles the TLS handshake, verifying the server’s certificate against the root certificates in the rootCertPool.
-
-% So, the key part of the process is the creation and configuration of the tls.Config object, which includes the root certificate and client certificate. This configuration allows the TLS handshake to verify the server certificate and complete the trust chain
-
-
-% Ah, let me clarify that. The BootstrapServer function in step-ca sets up the server's TLS configuration, ensuring it can handle secure inbound TLS connections. This is more about the server's preparation to securely interact with clients.
-
-% When you use the step ca bootstrap command with the step-cli, it interacts with the step-ca server to download the root certificate and configure the client environment. The client-side setup is done by the BootstrapClient function, ensuring the client can make secure connections to the server.
-
-% So, while BootstrapServer prepares the server, the client’s bootstrap process is handled by BootstrapClient. Both sides work together to ensure secure communication, but they handle different parts of the setup.
-
-
-% Yes, you’ve got it! When the BootstrapClient function returns an http.Client object, it’s the step-cli that receives it. Specifically, the step-cli uses this returned http.Client to make secure HTTP requests to the step-ca server.
-
-% So, the client configured by BootstrapClient allows the step-cli to securely communicate with the CA server, leveraging the configured TLS settings to ensure the trust chain is validated.
-
-
-% "command": "/bin/bash -c \"echo $name:*:19156:0:99999:7:::\""
-
-% That string of numbers and symbols represents various fields in the shadow file entry. Here's a breakdown:
-
-% $name: Username.
 
 % *: Password field (an asterisk means no password is set).
 
