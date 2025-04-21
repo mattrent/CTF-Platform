@@ -223,7 +223,7 @@ However, Smallstep also provides OSS tools for certificate management. Step Cert
 \subsection{Service Mesh}
 Digital certificates enable authentication, allowing mutual TLS (mTLS) when both parties verify each other. Even with automated issuance, service configuration can be challenging. Istio, an open-source service mesh licensed under Apache License 2.0 \Parencite{istio_license}, simplifies microservice management with traffic control, security, and observability. It enforces mTLS using Envoy sidecar proxies, routing traffic through them via IP tables \Parencite{istio_architecture}. A service mesh enables mTLS without modifying application code. Other options exist, like NGINX Service Mesh, but Istio is the most widely used \Parencite{toptal_service_mesh}.
 
-\section{Identity \& Access Management}
+\section{Identity \& Access Management}\label{chap:IAM}
 In today's digital landscape, software platforms must support a diverse array of users, each with distinct organizational roles and access rights. Authentication verifies a user's identity, while authorization determines their access rights.
 
 \subsection{Architectures}
@@ -658,7 +658,7 @@ CTFd requires an authentication system to manage user access. Instead of handlin
 
 Despite this integration, CTFd does not natively support SSO unless using an enterprise or hosted version \parencite{ctfd_sso}. This limitation presents a challenge and requires a decision on how to proceed. Given that CTFd is open-source, we have two options: modify the source code to implement SSO directly or develop a custom plugin for authentication. Modifying the core code would require freezing the version. Therefore, creating a plugin is the more practical and maintainable approach. Fortunately, creating plugins for CTFd is relatively straightforward and well-documented \parencite{ctfd_plugins}. 
 
-The plugin is configured via \texttt{config.json}, which is loaded at initialization to define its behavior using basic OIDC parameters. A decision is required for handling the client secret—either embedding it in the configuration file or providing it as an environment variable. Storing it in the configuration file would bake it into the image, which is undesirable, while using an environment variable keeps it separate but leaves the configuration file incomplete. Since Pulumi generates the secret dynamically, it cannot be set statically in the configuration. Instead, \texttt{OIDC\_CLIENT\_SECRET} is defined as an environment variable, replaced at runtime. Pulumi loads the config, performs environment substitution, and mounts the updated file in the appropriate location. Additionally, the config file supports specifying the path to a certificate bundle when the connection to the identity provider must be manually trusted.
+The plugin is configured via \texttt{config.json}, which is loaded at initialization to define its behavior using basic OIDC parameters. A decision is required for handling the client secret -- either embedding it in the configuration file or providing it as an environment variable. Storing it in the configuration file would bake it into the image, which is undesirable, while using an environment variable keeps it separate but leaves the configuration file incomplete. Since Pulumi generates the secret dynamically, it cannot be set statically in the configuration. Instead, \texttt{OIDC\_CLIENT\_SECRET} is defined as an environment variable, replaced at runtime. Pulumi loads the config, performs environment substitution, and mounts the updated file in the appropriate location. Additionally, the config file supports specifying the path to a certificate bundle when the connection to the identity provider must be manually trusted.
 
 Overwriting authentication endpoints allows us to redirect authentication flows to our implementation instead of relying on CTFd's default mechanisms. This facilitates integration with Keycloak, ensuring all login and logout operations are managed through our identity provider. Additionally, modifying these endpoints enables control over user management actions, such as disabling registration and password resets. However, disabling the registration endpoint does not remove the registration button, so registration must be set to private during the initial setup wizard of CTFd.
 
@@ -734,12 +734,83 @@ The challenge plugin requires a valid access token, issued by Keycloak, which re
 The token is securely stored in a cookie, as CTFd enforces \texttt{SESSION\_COOKIE\_\allowbreak HTTPONLY} and \texttt{SESSION\_COOKIE\_SAMESITE=Lax} \Parencite{CTFdConfig}. The HTTP-only setting ensures the cookie remains inaccessible to JavaScript, mitigating cross-site scripting (XSS) risks. The \texttt{SameSite=Lax} policy prevents unauthorized cross-site access while allowing cookies to be sent in top-level navigations, reducing the risk of cross-site request forgery (CSRF) attacks.
 
 \subsection{Challenges}
+The Challenge Plugin allows users to start and stop challenges, working alongside the Deployer Backend, which manages the challenge lifecycle. When a user initiates a challenge, the plugin triggers the backend to create and maintain a new instance. CTFd provides documentation for Challenge Type Plugins, along with associated templates on GitHub \parencite{CTFdChallengeTypes}. The frontend is built using JavaScript, while the backend is developed in Python with Flask.
+
+In addition to adhering to Flask's backend guidelines, the plugin implements a custom decay function and provides API endpoints for frontend interaction. API calls are made directly to the Flask backend running on the same domain, which then communicates with the Deployer Backend. This ensures server-to-server communication and avoids Cross-Origin Resource Sharing (CORS) issues.
+
+The plugin's frontend extends CTFd's existing markup templates using Jinja template inheritance to create a custom challenge type, defining the challenge's view and description. Additional functionality includes a start and stop button for managing challenges.
+
+Originally developed by Henrik Rossen, the plugin was later modified by me. My contributions include adding a verification badge to indicate whether a challenge has been automatically verified as solvable via a script. This required modifying the status endpoint in both the Challenge Plugin and the Deployer Backend, integrating CSS into the challenge frontend, and dynamically toggling the badge's appearance based on backend responses, as illustrated in Figure \ref{fig:verification_badge}.
+
+\begin{figure}[h]
+    \centering
+    % First subfigure
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{example-image-b}
+        \caption{Challenge marked as unverified.}
+        \label{fig:unverified_badge}
+    \end{subfigure}
+    \hfill
+    % Second subfigure
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{example-image-c}
+        \caption{Challenge marked as verified.}
+        \label{fig:verified_badge}
+    \end{subfigure}
+    \caption{Verification badge indicating whether a challenge has been automatically validated for solvability.}
+    \label{fig:verification_badge}
+\end{figure}
+
+\section{Keycloak}
+Implementing Keycloak requires a solid understanding of its initialization process and configuration, as outlined in Chapter \ref{chap:IAM}. In this project, Keycloak was deployed twice -- first as individual Kubernetes resources and later as a Helm Chart \Parencite{bitnamiKeycloakHelm}. The initial approach was chosen for hands-on experience but was later replaced with the Helm Chart for better maintainability and simpler upgrades.
+
+The first implementation used a \texttt{Deployment}, while the Helm Chart correctly employs a \texttt{StatefulSet} to manage Keycloak, mainly due to differences in volume handling. Additionally, the Helm Chart includes extra resources such as service monitors, network policies, and a configuration CLI job. The config CLI job automates the setup by defining the initial realm, client, and user, removing the need for manual post-deployment configuration or embedding the setup in the Keycloak Docker image build.
+
+A key consideration when implementing Keycloak is the ability to configure two separate ingress routes: one for general access, handling authentication requests from applications and users interacting with realms, and another dedicated to administrative functions. Separating these ingress routes can improve security by applying stricter controls to the administrative ingress. Configuring the Admin ingress also sets the \texttt{KEYCLOAK\_HOSTNAME\_ADMIN} environment variable, ensuring that the administration console is kept distinct from public access. The current implementation uses only the general-purpose ingress, but the Helm Chart allows for easy addition of the admin ingress if needed in the future.
+
+The environment variables listed in the official Keycloak documentation differ from those used in the Bitnami Keycloak Docker image \parencite{bitnamiKeycloak}. Instead, the correct variables can be found in the Bitnami documentation, which specifies each environment variable's name, description, and default value.
+
+\subsection{Configuration}
+Keycloak is configured using a Kubernetes \texttt{Job} resource that runs a container with the \texttt{keycloak-config-cli} image, executing configuration commands. The job loads a JSON-formatted realm file, which can define multiple realms, clients, users and more. In this project, the exported realm file contains only the \texttt{ctf} realm, its clients and groups. The file is complete, meaning it includes all necessary details to recreate the realm. However, many values such as client IDs, default settings, and states are redundant when creating a new realm. Removing these values from the realm export simplifies modifications, making the file easier to manage and extending its usability.
+
+The \texttt{ctf} realm consists of four clients: three confidential (\texttt{ctfd}, \texttt{grafana}, and \texttt{step}) and one public (\texttt{deployer}). Each client has its own roles assigned to users:
+
+\begin{itemize} 
+    \item CTFd defines the roles \texttt{admin} and \texttt{user}. 
+    \item Grafana manages access levels with \texttt{admin}, \texttt{editor}, and \texttt{viewer}. 
+    \item Step provides a single role, \texttt{bastion}. 
+    \item Deployer includes the roles \texttt{admin} and \texttt{developer}. \end{itemize}
+
+Confidential clients require a client secret, which is generated upon creation but omitted from the exported realm file for security reasons. Instead, the realm file references client secrets via environment variables, which are substituted during deployment using Pulumi before being injected into the Keycloak Helm chart. These client secrets are generated within the \texttt{infrastructure} Pulumi stack.
+
+The CTF platform supports two user types: administrators and students. Administrators have full access to the platform, while students are restricted to accessing the bastion, using CTFd as a regular user, and interacting with the Deployer backend on their behalf. To streamline role management, user groups are configured to bundle roles relevant to a specific user type. This approach simplifies user creation -- an administrator can assign a user to a group, automatically granting them the associated roles.
+
+Keycloak is not connected to an external Active Directory (AD), requiring us to manage user creation manually. This can be done either by scripting bulk user creation or by enabling self-registration in the CTF realm. Initially, we opted for self-registration and configured Keycloak to automatically assign new users to the student group. However, this approach allows unrestricted account creation, meaning unauthorized users might gain access. To mitigate this, self-registration may only be available for a limited time. It can be toggled in the realm settings under the login tab, and this configuration is included in the exported realm file. Registration is available on the relative endpoint \texttt{/realms/ctf/account/\#/register}. 
+
+\subsection{Pulumi Provider}
+Using the Pulumi provider for Keycloak \parencite{pulumiKeycloak} is a more effective alternative to the CLI job for managing Keycloak resources. It enables direct integration within Pulumi stacks, eliminating the need for a separate job while providing a structured, code-based approach to configuring groups, clients, realms and more.
+
+Similar to the CLI job, the provider interacts with Keycloak's REST API. However, instead of relying on a realm file, it allows configurations to be defined as code, offering several advantages:
+
+\begin{itemize}
+    \item More efficient to manage and maintain.
+    \item Better integration with the rest of the stack.
+    \item Built-in documentation through code definitions.
+\end{itemize}
+
+A key drawback of realm files is that they can become outdated with newer Keycloak versions, an issue encountered multiple times during this project's development. While incorporating Pulumi for authentication would offer long-term benefits, it was not implemented in this project due to time constraints.
+
+\section{Monitoring}
+
+\subsection{Technology Stack}
+
+\subsection{Service Monitors}
+
+\subsection{Non-Intrusive Logging}
 
 % \section{Smallstep} \label{sec:smallstep}
-
-% \section{Keycloak}
-
-% \section{Monitoring}
 
 % \section{Deployer Backend}
 
