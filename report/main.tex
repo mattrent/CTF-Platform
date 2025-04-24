@@ -831,6 +831,19 @@ A key drawback of realm files is that they can become outdated with newer Keyclo
 \chapter{Discussion}
 
 \chapter{Conclusion}
+A review of state-of-the-art technologies provided valuable insights into popular solutions suitable for building a CTF platform. The development process followed an extreme programming approach, adapting to emerging needs as the project evolved. The platform's infrastructure is based on OSS, with the only custom-developed component being the Deployer Backend. While integrating OSS is not always easier than developing software from scratch, it significantly reduces time and effort and offers the advantage of community-driven maintenance.
+
+The CTF platform was deployed on UCloud, demonstrating the feasibility of mitigating its constrained network environment using Headscale and Tailscale. By running the platform on a VPN network under our administration, we maintained control over network security. However, UCloud's stability issues and lack of hardware virtualization led to the decision to migrate the platform to GCP, which provides a more reliable environment with necessary virtualization support. This transition comes with additional costs, as GCP is significantly more expensive than UCloud.
+
+Chaos testing conducted by Matteo Trentin confirmed the platform's fault tolerance. Storage is persisted across deployments using NFS dynamic storage provisioning combined with either MinIO or a persistent disk in GCP. The platform supports any block storage, requiring only proper provisioner configuration. In the event of server node restarts or shutdowns, the system remains recoverable, though PKI-related challenges may sometimes require minor manual intervention.
+
+The platform implements IAM via Keycloak, with many services configured for authentication and authorization. Grafana natively supports OIDC, while a custom authentication plugin was developed for CTFd to enable OIDC compatibility. The PKI is also integrated with Keycloak, securing infrastructure through a bastion host that restricts access to users possessing an SSH certificate issued by the PKI with a bastion principal. The Deployer Backend does not directly authenticate users via Keycloak but relies on access tokens signed by Keycloak for authorization, verifying each token's integrity and validity -- users must obtain these tokens themselves. A more user-friendly approach would have been to support basic authentication with a username and password, allowing the API to request a token from Keycloak using the Resource Owner Password Credentials grant.
+
+The Deployer Backend has been enhanced to support solutions -- automated tests that verify whether a challenge is solvable by a script. Due to the resource-heavy nature of VMs, the Deployer Backend was adapted to support both containers and VMs, with a feature flag in Unleash allowing administrators to toggle between the two. Additionally, its ingress configuration has been updated to correctly utilize certificates issued by the PKI. The Swagger documentation has also been updated to include all new endpoints, as well as previously existing endpoints that were missing documentation.
+
+The platform is designed to rely on the PKI for certificate management, strictly for internal components rather than user-facing interactions. While users can manually trust these certificates, this was never the intended approach. Due to DNS provider limitations preventing automated wildcard certificate requests, proving domain ownership via \texttt{HTTP01} challenges is simpler than using \texttt{DNS01} challenges. Consequently, Certbot and NGINX were implemented to automate certificate requests for known domains, such as the main domain and the deployer subdomain. This solution was preferred over modifying ingress configurations between development and production environments, as placing a proxy in front of the platform offers a more elegant and maintainable approach. As a result, automatically generated subdomains for challenges are configured to use PKI-issued certificates, which users can manually configure their systems to trust by adding the PKI's root certificate to their trusted certificate store.
+
+Future development of the platform includes improving log retrieval by replacing direct pod scraping with persisted logs in Loki, ensuring users can access logs even after challenges or solutions have stopped running. Additionally, an authentication hook for Unleash will be implemented, allowing users to authenticate with their Keycloak credentials. While the Deployer Backend provides the necessary functionality, its current implementation is difficult to extend and may require a refactor for better flexibility and maintainability. Using NixOS for VM disk image creation and Pulumi for provisioning the Keycloak realm and clients would enhance automation and infrastructure management, while also allowing Pulumi to replace Terraform, simplifying the technology stack and reducing the number of required tools.
 
 \cleardoublepage
 \phantomsection
@@ -1004,25 +1017,3 @@ It’s both. The CRD (Custom Resource Definition) StepIssuer defines how cert-ma
 The StepIssuer CRD is what allows cert-manager to understand and utilize Step Issuer-specific configurations. The apiVersion specifies that this CRD is part of cert-manager’s ecosystem, linking the certificate management workflow to the Step Issuer capabilities.
 
 So, it’s the combination of the StepIssuer CRD defining the step-issuer's specifics and the API version that ties it into cert-manager’s functionality.
-
-% *: Password field (an asterisk means no password is set).
-
-% 19156: Days since the Unix epoch (1 January 1970) when the password was last changed.
-
-% 0: Minimum number of days before a password change is allowed.
-
-% 99999: Maximum number of days the password is valid.
-
-% 7: Number of days before the password expires that the user is warned.
-
-% :::: These fields are left blank, typically for inactivity period, expiration date, and reserved for future use.
-
-% Each field has a specific purpose in managing user passwords and their expiration policies. It's part of the system's security mechanisms. Quite the intricate dance of digits and colons!
-
-
-% TODO remembe to discuss that the CTFd OIDC auth does not conflict with API
-
-% CORS, same-site cookie attribute and same-origin policy
-
-% sudo apt-get install libvirt-clients
-% virt-host-validate qemu
