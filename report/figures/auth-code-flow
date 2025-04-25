@@ -1,0 +1,35 @@
+\begin{tcolorbox}
+\begin{scriptsize}
+\begin{verbatim}
+            +----------+
+            | Resource |
+            |   Owner  |
+            +----------+
+                 ^
+                 |
+                (B)
+            +----|-----+          Client Identifier      +---------------+
+            |         -+----(A)-- & Redirection URI ---->|               |
+            |  User-   |                                 | Authorization |
+            |  Agent  -+----(B)-- User authenticates --->|     Server    |
+            |          |                                 |               |
+            |         -+----(C)-- Authorization Code ---<|               |
+            +-|----|---+                                 +---------------+
+              |    |                                         ^      v
+             (A)  (C)                                        |      |
+              |    |                                         |      |
+              ^    v                                         |      |
+            +---------+                                      |      |
+            |         |>---(D)-- Authorization Code ---------'      |
+            |  Client |          & Redirection URI                  |
+            |         |                                             |
+            |         |<---(E)----- Access Token -------------------'
+            +---------+       (w/ Optional Refresh Token)
+
+        Note: The lines illustrating steps (A), (B), and (C) are broken into
+        two parts as they pass through the user-agent.
+
+        Source: https://datatracker.ietf.org/doc/html/rfc6749#section-4.1
+\end{verbatim}
+\end{scriptsize}
+\end{tcolorbox}

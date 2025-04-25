@@ -77,15 +77,15 @@ With the increasing number of cyber threats and attacks, organizations are const
 
 \begin{itemize}
     \item Jeopardy revolve around a set of challenges provided by the competition organizers. They are mainly focusing on exploiting a system in order to reveal a small piece of text or ``flag''. 
-    \item Attach \& Defense is a kind of CTF where the participants are given a set of vulnerable server software. The goal is to attack the other teams' servers while defending their own. A successful attack is one that retrieves a flag. Its purpose is to simulate digital warfare.
+    \item Attack \& Defense is a kind of CTF where the participants are given a set of vulnerable server software. The goal is to attack the other teams' servers while defending their own. A successful attack is one that retrieves a flag. Its purpose is to simulate digital warfare.
 \end{itemize}
 
 This thesis will not go into detail regarding the CTF challenges themselves, but rather focus on the infrastructure and architecture of a platform hosting such challenges. We will though provide some very simplistic Jeopardy challenges to demonstrate the platform's capabilities.
 
 \section{Motivation}
-The motivation behind this thesis is to develop a CTF platform tailored for educational purposes, particularly for Computer Science bachelor's students at the University of Southern Denmark. The platform was initially designed to be hosted on UCloud \Parencite{SDUCloud}, a cloud service managed by the University of Southern Denmark and supported by servers from Aarhus University. However, due to the missing support for hardware virtualization, we decided to migrate the platform to Hetzner \Parencite{Hetzner}. This change in setting enabled us to eliminate certain complexities that were otherwise imposed by using UCloud, as detailed in Chapter \ref{chap:architecture}. UCloud was initially chosen because of its cost-effectiveness and the fact that it is a service provided by the university.
+The motivation behind this thesis is to develop a CTF platform tailored for educational purposes, particularly for Computer Science bachelor's students at the University of Southern Denmark. The platform was initially designed to be hosted on UCloud \Parencite{SDUCloud}, a cloud service managed by the University of Southern Denmark and supported by servers from Aarhus University. However, due to the missing support for hardware virtualization, we decided to migrate the platform to Hetzner \Parencite{Hetzner}. To our surprise Hetnzer does not support hardware virtualization either \Parencite{hetzner_nested_virtualization}, forcing us to use the Google Cloud Platform (GCP). This change in setting enabled us to eliminate certain complexities that were otherwise imposed by using UCloud, as detailed in Section \ref{sec:architecture}. UCloud was initially chosen because of its cost-effectiveness and the fact that it is a service provided by the university.
 
-Although this Master's Thesis was developed independently, it is essential to acknowledge the contributions of the individuals who played a role in the project. The group composition was as follows: Henrik Rossen Jakobsen, a former Master's student, began his Thesis in January 2024. His initial research focused on analyzing different CTF platforms by comparing their strengths and weaknesses. This analysis established a set of requirements for the platform to be developed. I joined Henrik in September 2024 to assist in the platform's development. Due to the limitations of UCloud, Matteo Trentin, a PhD student, joined the project to establish a distributed Kubernetes cluster on both UCloud and Hetzner. Following this, we worked independently while contributing features to a unified platform. We all share the same supervisor, Jacopo Mauro, who provided guidance and support throughout the project.
+Although this Master's Thesis was developed independently, it is essential to acknowledge the contributions of the individuals who played a role in the project. The group composition was as follows: Henrik Rossen Jakobsen, a former Master's student, began his Thesis in January 2024. His initial research focused on analyzing different CTF platforms by comparing their strengths and weaknesses. This analysis established a set of requirements for the platform to be developed. I joined Henrik in September 2024 to assist in the platform's development. Due to the limitations of UCloud, Matteo Trentin, a PhD student, joined the project to establish a distributed Kubernetes cluster on both UCloud and GCP. Following this, we worked independently while contributing features to a unified platform. We all share the same supervisor, Jacopo Mauro, who provided guidance and support throughout the project.
 
 By reading Henrik's Thesis, I was able to gain insights into the main state-of-the-art competitor, namely Haaukins. This platform is also used to host the De Danske Cybermesterskaber (DDC). The drawbacks of the platform is that it is complicated to deploy due to limited documentation and manual steps, and there is no way to check the validity of a challenge without creating a CTFd event. Additionally, containers are a widely used solution for deploying challenges. However, they carry the risk of container escape, where an attacker could exploit a vulnerability to gain access to the host system. This risk is heightened in the context of CTF competitions, as challenges may deliberately include vulnerabilities -- we have mitigated this risk by using Virtual Machines (VMs) instead of containers.
 
@@ -137,7 +137,7 @@ When using a Cloud Provider, you agree to their terms and conditions, which may 
 
 To address the challenges of vendor lock-in and ensure true cloud-agnostic architecture, containerization has emerged as a powerful solution. By packaging software and its dependencies into containers, it becomes possible to isolate applications and ensure consistent runtime environments across any underlying infrastructure. Orchestrating these containers, especially in complex production environments, often requires tools like Kubernetes (K8s or K3s), Docker Swarm, or OpenShift -- with Kubernetes widely regarded as the industry standard for managing containerized workloads and services \Parencite{opsramp_kubernetes_origin}. Kubernetes' container orchestraing capabilities is further discussed in chapter \ref{sec:vm_vs_container}.
 
-\subsection{Cloud Providers}
+\subsection{Cloud Providers}\label{sec:cloud_providers}
 
 Choosing a cloud provider is often influenced by cost considerations. Other important factors can include capabilities such as nested virtualization and access to external storage services. The cost of a provider depends on aspects like the range of services available, the quality of their infrastructure, and their servers geographical location. For this project, the following providers were evaluated: UCloud, Hetzner, and Google Cloud Platform (GCP).
 
@@ -223,38 +223,321 @@ However, Smallstep also provides OSS tools for certificate management. Step Cert
 \subsection{Service Mesh}
 Digital certificates enable authentication, allowing mutual TLS (mTLS) when both parties verify each other. Even with automated issuance, service configuration can be challenging. Istio, an open-source service mesh licensed under Apache License 2.0 \Parencite{istio_license}, simplifies microservice management with traffic control, security, and observability. It enforces mTLS using Envoy sidecar proxies, routing traffic through them via IP tables \Parencite{istio_architecture}. A service mesh enables mTLS without modifying application code. Other options exist, like NGINX Service Mesh, but Istio is the most widely used \Parencite{toptal_service_mesh}.
 
-\section{Identity \& Access Management}
+\section{Identity \& Access Management}\label{chap:IAM}
+In today's digital landscape, software platforms must support a diverse array of users, each with distinct organizational roles and access rights. Authentication verifies a user's identity, while authorization determines their access rights.
 
-\section{Virtual Machines \& Containers} \label{sec:vm_vs_container}
-\subsection{NixOS qcow2 Images}
+\subsection{Architectures}
+Different Identity \& Access Management (IAM) architectures exist, including centralized, decentralized, and distributed approaches. The centralized approach is an architecture that consolidates identity management into a single system. It simplifies administration and enforces uniform policies but creates a single point of failure. Scaling is limited because it often relies on a single database for identity storage. A distributed approach solves this by involving multiple synchronized databases or identity stores. However, the decentralized blockchain approach manages to validity identity without a central governing instance \Parencite{geeksforgeeks2025}. Every approach has its own advantages and disadvantages, which can be described with models such as the CAP theorem. 
 
-\section{Registry as a Pull-Through Cache}
-\section{Feature Flag System}
-\section{Static Website}
+\subsection{Market Leaders}
+Few OSS options are available for on-premise deployment. Essential IAM features include support for OpenID Connect (OIDC) and OAuth. Based on the certified OpenID provider list from the OpenID Foundation \parencite{openidImplementations}, only two high-quality OSS options remain after subjective filtering:
+
+\begin{itemize}
+    \item ZITADEL 1.53.1 (Apache 2.0)
+    \item Keycloak 18.0.0 (Apache 2.0)
+\end{itemize}
+
+Further review of an article by Grafana confirms Keycloak as a recommended OAuth 2.0 provider \parencite{keycloak}, identifying it as the only OSS option on their list \parencite{grafana_oauth}. Combined with prior experience using Keycloak, this validates our choice to adopt it as our IAM solution.
+
+\subsection{Realm \& Client}
+The fundamental pillars of Keycloak consist of configuring the realm and corresponding clients. First, what is a realm? A realm is a fundamental concept used to manage a set of users, credentials, roles, and groups. Realms offer isolation, as each realm is independent of others, meaning users, roles, and configurations in one realm do not affect those in another. This isolation enables multi-tenancy, allowing different organizations or projects to use the same Keycloak instance without interfering with each other. Each realm can be configured to use its own identity providers, user federations, authentication flows, and more \Parencite{keycloakDocs}. Our CTF platform only has a single tenant, so one realm is sufficient. Let us call this realm \texttt{CTF} for clarity.
+
+Next, what is a client? In a typical server-client communication model, Keycloak functions as the authentication server, receiving requests from clients that rely on it. A good practice is to create a separate client for each \textit{client} interacting with Keycloak. This setup allows for precise configuration of allowed hosts and redirect URIs and enables the creation of a client secret when confidential access is required.
+
+The default settings should generally suffice, as we plan to rely primarily on the access token, with no expectation of using the ID token -- more details on this can be found in Subsection \ref{sec:token_claims}.
+
+\subsection{Token Claims \& Scopes}\label{sec:token_claims}
+Authenticating using Keycloak will return a JWT in response. This JWT contains both an ID token and an access token. The access token can be used to query the \texttt{userinfo} endpoint if needed. The content or claims within the JWT must be configured in Keycloak. If roles are needed in either the userinfo or the ID token, a predefined mapper must be configured to include these claims. The access- and ID token is by default encoded using the RS256 algorithm -- RSA Digital Signature Algorithm with the SHA-256 hash function \todo{Check this}.
+
+The JWT includes some default metadata claims that provide information about who issued the token, when it was issued, and other essential details. The mandatory claims are listed below:
+
+\begin{itemize} 
+    \item \textbf{iss (Issuer)}: Identifies the principal that issued the JWT.
+    \item \textbf{aud (Audience)}: Identifies the recipients that the JWT is intended for. 
+    \item \textbf{exp (Expiration Time)}: Identifies the expiration time on or after which the JWT must not be accepted for processing. 
+    \item \textbf{iat (Issued At)}: Identifies the time at which the JWT was issued. 
+    \item \textbf{jti (JWT ID)}: Provides a unique identifier for the JWT, which can be used to prevent the JWT from being replayed. 
+\end{itemize}
+
+Keycloak includes certain scopes by default without needing to request them explicitly. Each scope can encompass multiple claims, and the descriptions below provide an idea of what those claims might include:
+
+\begin{itemize} 
+    \item \textbf{acr}: The Authentication Context Class Reference, indicating the level or method of authentication. 
+    \item \textbf{basic}: Typically includes basic user information such as user ID (the \texttt{sub} claim) and authentication time. 
+    \item \textbf{email}: Contains the user's email address and a flag indicating whether the email has been verified. 
+    \item 
+    \textbf{profile}: Includes profile information such as name, family name, given name, nickname, and profile picture. 
+    \item \textbf{roles}: Lists the roles assigned to the user, which can be used for authorization purposes. 
+\end{itemize}
+
+There are also scopes that must be explicitly requested. This includes information like address and phone number:
+
+\begin{itemize} 
+    \item \textbf{address}: Contains the user's address information. 
+    \item \textbf{microprofile-jwt}: A claim used in MicroProfile JWT for additional JWT token information. 
+    \item \textbf{offline\_access}: Indicates that the token can be used to obtain a refresh token for offline access. 
+    \item \textbf{phone}: Includes the user's phone number and a flag indicating whether the phone number has been verified. 
+\end{itemize}
+
+Being aware of the JWT's content is definitely useful during authorization.\todo{Check information in this subsection.}
+
+\subsection{Supported Grant Types}
+Keycloak supports various OAuth 2.0 grant types, defining how clients obtain access tokens for different authentication scenarios, each with specific security considerations. This section is based on the official Keycloak documentation \Parencite{keycloakGrantTypes}.
+
+\paragraph{Authorization Code}\label{sec:auth_code}
+The Authorization Code Grant involves a two-step process where the client first obtains an authorization code, which is then exchanged for an access token. The authentication is handled by Keycloak, which ensures that the client never directly handles the user's credentials. Figure \ref{fig:authorization_code_flow} illustrates the flow of this process. The exchange of the authorization code for an access token happens server-to-server, reducing the risk of exposing sensitive information through client-side scripts, which could be subject to Cross-Origin Resource Sharing (CORS) restrictions.
+
+\begin{figure}[h]
+    \centering
+    \input{./figures/auth-code-flow}
+    \caption{Authorization Code Flow.}
+    \label{fig:authorization_code_flow}
+\end{figure}
+
+\paragraph{Implicit}
+The Implicit flow works similarly to Authorization Code flow but directly provides the Access Token and ID Token instead of an Authorization Code. This eliminates the step of exchanging the Authorization Code for an Access Token. However, it does not provide a Refresh Token. The OAuth 2.0 Security Best Current Practice discourages the Implicit Grant flow. It has also been excluded from the upcoming OAuth 2.1 specification.
+
+\paragraph{Resource Owner Password Credentials}
+This flow exchanges user credentials (username and password) for tokens, allowing applications, as well as users (if the client in question is public), to request personal tokens from Keycloak. According to OAuth 2.0 Security Best Practices, this flow is discouraged, with alternatives like Device Authorization Grant or Authorization Code recommended. 
+
+\paragraph{Client Credentials} Confidential clients can use the Client Credentials flow to obtain an access token for the client itself, using either a secret or with public/private keys -- this flow is designed for machine-to-machine authentication. This flow is part of the OAuth 2.0 specification but is not included in OpenID Connect.
+
+\paragraph{Device Authorization Grant} The Device Authorization Grant is designed for devices with limited input capabilities, such as smart TVs or IoT devices, or lacks a suitable browser. The user authenticates using a verification URI together with a user code and device code generated by Keycloak. The user uses this information to complete the authentication on another more suitable device.
+
+\paragraph{Client Initiated Backchannel Authentication Grant} This flow operates like the Device Authorization Grant but bypasses browser redirection, sending authentication directly to a registered device (e.g., mobile app or SMS).
+
+We are only interested in using the Authorization Code flow, Resource Owner Password Credentials and possibly Client Credentials -- elaborated in Chapter \ref{chap:implementation}.
+
 \section{Monitoring}
+
+Monitoring is essential for managing a Kubernetes cluster. It provides visibility into service health and performance, enabling early anomaly detection and resolution. Rather than reacting like firefighters, we aim to prevent issues before they arise, ensuring stability and reliability.
+
+This chapter covers technologies and tools for monitoring, including health metrics and logs. A single entry point for data access is essential, with dashboards aiding interpretation and action.
+
+\subsection{Dashboards}
+Artificial Intelligence for IT Operations (AIOps) tools analyze and transform data into actionable insights. These insights are displayed through dashboards or alerts. Choosing the right technology can be challenging. To start, we will use the DevSecOps Period Table \parencite{digitalai2025devsecops}. The orange section lists AIOps tools relevant to our decision-making.
+
+\begin{multicols}{2} 
+    \begin{itemize} 
+        \item Datadog (proprietary) 
+        \item Big Panda (proprietary) 
+        \item Instana (proprietary) 
+        \item Splunk (proprietary) 
+        \item AppDynamics (proprietary) 
+        \item Kibana (Elastic License, SSPL, AGPLv3) 
+        \item Dynatrace (proprietary) 
+        \item New Relic (proprietary) 
+        \item Grafana (AGPLv3) 
+    \end{itemize} 
+\end{multicols}
+
+Research shows that only Kibana and Grafana are open-source. Kibana's triple-licensing is complex, but its source code is publicly available, and a Docker image is provided on Docker Hub \Parencite{kibana-docker2025}. Grafana originated as a fork of Kibana in 2014 \Parencite{odegaard2019grafana}, making them closely related. Their key features are:
+
+\paragraph{Kibana} Part of the Elasticsearch, Logstash, and Kibana (ELK) stack, Kibana provides a web interface for searching, analyzing, and visualizing data in Elasticsearch. It includes machine learning for anomaly detection and reporting.
+
+\paragraph{Grafana} Grafana supports multiple data sources, making it more flexible than Kibana. It provides alerting and notification when thresholds are exceeded and offers community-driven plugins.
+
+Grafana is the most popular open-source visualization tool, with extensive documentation and community support. It has 67.5k stars and 12.5k forks on GitHub \Parencite{grafana2025}, compared to Kibana's 20.4k stars and 8.3k forks \Parencite{kibana2025}. Grafana's features align best with our needs, making it the preferred choice for monitoring.
+
+\subsection{Metrics}
+
+Metrics quantify system performance, enabling trend analysis, anomaly detection, and resource optimization. This project examines Prometheus, Graphite, and VictoriaMetrics for metric storage and scraping, all licensed under the Apache License 2.0.
+
+\paragraph{Graphite} Developed by Chris Davis in 2006, Graphite stores time-series data using a push-based model, where applications send metrics to a central server \Parencite{grafana_graphite}. The first version of Grafana included a graph panel called ``graphite'', initially supporting Graphite exclusively \Parencite{odegaard2019grafana}.
+
+\paragraph{Prometheus} Prometheus collects metrics as time-series data with timestamps, uses PromQL for queries, and supports built-in alerting and visualization. It scrapes metrics from configured endpoints using a pull-based model \Parencite{grafana_graphite}. Prometheus Pushgateway enables push-based metric collection.
+
+\paragraph{VictoriaMetrics} Supports Prometheus querying API and Graphite API, enabling use as a replacement for both in Grafana \Parencite{VictoriaMetricsDocs}. Functions as Prometheus storage or a full replacement \Parencite{victoriametrics2025}. Uses both push and pull models and is considered more efficient than Prometheus \Parencite{last9_prometheus_vs_victoriametrics}.
+
+Graphite only supports the push model, making it less suitable for our needs. This leaves the final decision between Prometheus and VictoriaMetrics. While VictoriaMetrics appears to be superior to Prometheus, Prometheus is more popular on GitHub, with 58.1k stars and 9.5k forks \Parencite{prometheus_github}, compared to VictoriaMetrics' 13.7k stars and 1.3k forks \Parencite{victoriametrics2025}. Additionally, Grafana promotes Prometheus in its guides \Parencite{grafana_prometheus_intro} and has developed Grafana Mimir \Parencite{grafana_mimir}, a time-series database designed for Prometheus' long-term storage. Prometheus was chosen for this project, but VictoriaMetrics remains a viable alternative for further exploration.
+
+\subsection{Logging}
+Logging involves log aggregation and log collection.
+
+For log aggregation, Grafana Loki was chosen because it is part of the same ecosystem and provides an open-source set of components that can be composed into a fully featured logging stack \parencite{grafana_loki}. Loki is licensed under AGPLv3 \Parencite{grafana_loki_license}.
+
+Log collection requires more consideration. Grafana offers several options, including Promtail, Grafana Alloy, OpenTelemetry, and Fluent Bit \Parencite{grafana_loki_send_data}. All are licensed under the Apache License, Version 2.0. Promtail was historically a preferred choice due to its direct integration with Loki; however, it has been deprecated in favor of Grafana Alloy \Parencite{grafana_promtail}. Despite this, Promtail was selected for this project based on prior experience and ease of use.
+
+Fluent Bit is a flexible alternative but was not chosen, as Promtail is tailored for Loki \Parencite{grafana_loki_send_data}. OpenTelemetry, while powerful in collecting metrics, logs, and traces \Parencite{opentelemetry_overview}, was deemed excessive for this use case, where the focus is only on log collection. Given the project's requirements and the goal of achieving a Minimal Viable Product (MVP), Promtail remained the preferred option despite its deprecation.
+
+The logging architecture is illustrated in Figure \ref{fig:logging_architecture}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1\textwidth]{./images/loki-promtail.png}
+    \caption{Logging architecture.}
+    \label{fig:logging_architecture}
+\end{figure}
+
+\section{Feature Flag System}
+Feature flags are a useful tool for managing software features. They allow system administrators to enable or disable features based on contextual information, such as user roles or location. Feature flags also support A/B testing by enabling controlled rollout, allowing only a subset of users to access a new feature. Additionally, they can be used when integrating a new API into production, allowing testing before deprecating the previous API.
+
+We will not focus on selecting a Feature Flag System. Unleash has provided an objective list of OSS tools that address this need \Parencite{UnleashFeatureFlags}. This is notable, given that Unleash specializes in Feature Flags. It is licensed under the Apache-2.0 license, has 12k stars and 759 forks on GitHub \Parencite{UnleashRepo}, and has been ranked as the top Feature Management Software on G2 \Parencite{UnleashFeatureFlags}. Based on this, we will examine the main features of Unleash rather than other tools. While Unleash offers a more feature-rich enterprise version, the OSS features are sufficient for this project.
+
+\subsection{The Anatomy of Unleash}
+Unleash manages feature flags using a client-server architecture. The server controls the feature flags, while the client retrieves and evaluates them via a REST API. The exported endpoints are typically wrapped by a client library, such as the unleash-client-go library for Go, developed by Unleash \Parencite{unleash_client_go_v3}.
+
+Feature flags are organized within projects, which can be used to group related feature flags, teams, or modules. A project can also be assigned per tenant to simulate multi-tenancy. The OSS version supports one project, the Pro version allows up to three, and the Enterprise version supports up to 500 \Parencite{unleash_resource_limits}.
+
+Projects contain environments. The OSS version permits two environments \Parencite{unleash_resource_limits}, which is sufficient for a production environment and an optional development environment if the environments differ. A feature flag is then assigned to an environment. 
+
+\subsection{Activation Strategies}
+An activation strategy defines which users receive a feature. It is assigned to a feature flag within an environment. A feature flag can have multiple activation strategies, each evaluated independently. A collection of such reusable activation strategies is called a segment \Parencite{unleash_activation_strategies}.
+
+The default activation strategy is a 100\% gradual rollout, adjustable by setting rollout percentage, targeting, and variants. The rollout percentage determines how many users receive the feature. Targeting specifies which users should be affected, using constraints defined by a context field, an operator, and a value. This allows filtering based on any context. Variants extend a feature flag's payload with additional data to create different versions \Parencite{unleash_activation_strategies}.
+
+\section{Static Website}
+Web development involves various technologies and frameworks. Some websites, such as blogs or online CVs, only need to display informational content. In these cases, the Model-View-Controller (MVC) pattern may not be necessary. Instead, static site generators can be used to create static websites. These tools convert plain text files into static HTML pages and are commonly used for blogs, documentation, and content-driven sites.
+
+\subsection{Static Site Generators}
+Several static site generators are available, including Jekyll \Parencite{jekyll}, Astro \parencite{astro}, and Hugo \Parencite{hugo}. Each provides templates that allow users to customize their website's appearance. A popular Jekyll theme, Just the Docs \Parencite{just-the-docs}, converts Markdown files into well-formatted HTML pages for online use, making web development more accessible. Documentation should be easy to write; otherwise, it is less likely to be created.
+
+Jekyll, written in Ruby, powers GitHub Pages \Parencite{GitHubPagesJekyll} and organizes content using a simple directory structure. Key folders include \texttt{assets}, \texttt{\_layouts} (for templates), \texttt{\_includes} (for reusable components), \texttt{\_sass} (for styling) and the configuration file \texttt{\_config.yml}. The complete directory structure is available on Jekyll's homepage \Parencite{jekyll}. Content is typically written in Markdown and converted to HTML during the build process. HTML can be directly hardcoded into layouts. The final website consists of static files placed in the \texttt{\_site} folder, which a web server can serve.
+
+\subsection{Web Servers}
+Web servers are the backbone of the internet -- they handle requests from users and deliver content like websites, images, and other resources. 
+
+GitHub Pages is a free service to host a static website. It is a great option for hosting documentation, as it is easy to set up and integrates well with GitHub repositories -- it is not even necessary to create a pipeline to deploy the website, as everything is handled by GitHub after enabling the feature. GitHub pages allow one site per repository \Parencite{GitHubPagesLimits}.
+
+NGINX is an HTTP(S) server, reverse proxy, content cache, load balancer, TCP/UDP proxy server, and mail proxy server, distributed under the 2-clause BSD License. It is widely used due to its performance and resource efficiency, making it one of the most deployed web servers and a frequently used Docker image. NGINX also supports multiple Kubernetes Ingress Controllers, including its own \Parencite{NginxWebsite}. 
+
+Using Docker's multi-stage builds, a static website can be created using a single Dockerfile. Earlier stages contain the necessary build tools, while the final image only includes the static files and configuration. This approach optimizes the final Docker image by excluding unnecessary build dependencies, leaving only the NGINX application, its configuration file, and the static HTML files.
+
+\section{Private Registry}
+A private registry is used to store and manage container images, allowing organizations to host their own images, control access, and track versions. While Docker Hub is a public registry, it also provides private repositories. GitLab and GitHub offer similar repository services. In some cases, hosting a private registry locally is preferable to prevent images from being pushed outside the firewall. This approach can reduce costs associated with hosted registries or ensure images remain airgapped.
+
+Docker Hub introduced new rate limits, setting a maximum of 10 pulls per hour for unauthenticated users and 100 pulls per hour for authenticated users. This was a significant reduction from the previous limits of 200 pulls per six hours for unauthenticated users and 200 pulls per six hours for authenticated users. In response to user feedback, Docker revisited its policies and decided to maintain the current rate limits \Parencite{DockerHubPolicies}.
+
+To address the limitations, that was later called off, local registries can be implemented as pull-through caches for Docker. Two methods for achieving this are using mirrors \Parencite{dockerhubmirror} or a more advanced solution with Harbor \Parencite{harbor}. This makes Docker pull all images from the local private registry, which in turn pulls the images from Docker Hub if unavailable in the pull-through cache.
+
+\subsection{Mirror}
+Mirrors are natively supported in Docker but cannot mirror private registries -- only the central Hub can be mirrored \Parencite{dockerhubmirror}. Configuration consists of two steps.
+
+To set up a registry as a pull-through cache, a proxy section must be added to the configuration file. Parameters include \texttt{remoteurl}, \texttt{username}, and \texttt{password}. The \texttt{remoteurl} specifies the URL of the remote registry to mirror, while \texttt{username} and \texttt{password} provide authentication credentials \Parencite{dockerhubmirror}.
+
+To configure the Docker daemon to use a registry mirror, either pass the \texttt{--registry-mirror} option when starting dockerd, or modify \texttt{/etc/docker/\allowbreak daemon.json} to include the registry-mirrors key \Parencite{dockerhubmirror}.
+
+\subsection{Harbor}
+Harbor serves a similar function to a mirror while offering additional capabilities. It is a cloud-native registry that stores, signs, and analyzes content. As an open-source project under the Cloud Native Computing Foundation (CNCF), it is licensed under the Apache License 2.0. Harbor includes a web interface for image management, user authentication, and role-based access control (RBAC). It supports security assessments and integrates with CI/CD pipelines \Parencite{harbor}.
+
+Docker must be configured to use the pull-through cache as described above. In Harbor, proxy settings are established by creating a proxy cache project that connects to a target registry via a registry endpoint \Parencite{harbor}.
+
+\section{Containers \& Virtual Machines} \label{sec:vm_vs_container}
+Modern infrastructure relies on technologies that package applications and dependencies while keeping them isolated from the system they run on. Containers provide lightweight environments managed by Kubernetes. KubeVirt extends Kubernetes to support virtual machines, allowing traditional workloads to run alongside containers. NixOS offers a reproducible way to build disk images and manage system configurations.
+
+Virtualization allows a single physical resource, such as RAM, CPU, disk, or networking, to be divided into multiple virtual instances. The main difference between them is that virtual machines simulate an entire system, including hardware, while containers virtualize only the software environment above the operating system \Parencite{atlassian_containers_vs_vms}.
+
+\subsection{Containers}
+Containers are lightweight software packages that bundle all necessary dependencies to run an application, including system libraries, third-party code, and other operating system components. They allow quick modifications and iteration, with most container runtime systems providing public repositories of pre-configured containers. These repositories offer access to widely used applications like databases and messaging systems, reducing setup time and simplifying deployment \Parencite{atlassian_containers_vs_vms}.
+
+Shared host exploits may occur because containers share the same underlying hardware below the operating system layer. A vulnerability in one container could allow unauthorized access to the host system, affecting other containers running on the same infrastructure. Public repositories of pre-built containers also introduce risks, as images may contain exploits or be compromised \Parencite{atlassian_containers_vs_vms}.
+
+\subsection{Virtual Machines}
+Virtual machines are software packages that emulate low-level hardware components such as CPU, disk, and networking devices. They may also include a software stack to operate on the emulated hardware, creating a fully functional computational system snapshot \Parencite{atlassian_containers_vs_vms}.
+
+Virtual machines provide full isolation security, running as standalone systems. This prevents exploits from spreading between virtual machines on a shared host, ensuring that a compromised machine remains contained. They also support interactive development, allowing manual installation of software and the creation of snapshots to preserve specific configurations. These snapshots can be used to restore a virtual machine to a previous state or deploy additional instances with identical setups \Parencite{atlassian_containers_vs_vms}.
+
+Despite these advantages, virtual machines have limitations. Iteration speed is slower since each snapshot represents an entire system, requiring significant time to regenerate and validate modifications. Additionally, storage size cost can be high, as virtual machines often occupy several gigabytes of disk space, potentially leading to storage constraints on the host system \Parencite{atlassian_containers_vs_vms}.
+
+\subsection{KubeVirt}
+KubeVirt is an open-source virtualization API extension for Kubernetes, licensed under the Apache License 2.0 \Parencite{kubevirt_license} and maintained as a Cloud Native Computing Foundation (CNCF) project \parencite{kubevirt_cncf}. It enables the management of virtual machines alongside containers by introducing custom resource definitions (CRDs), which extend Kubernetes to support VM workloads using its native tools. This allows users to run both containerized and virtualized applications within the same cluster, creating a unified infrastructure for diverse workloads.
+
+KubeVirt uses a Docker image based on \texttt{scratch}, where the container disk image, QCOW2, is stored in the \texttt{/disk} directory. QCOW2 is recommended as it reduces image size. The image contains only the disk with no additional content \Parencite{kubevirt_disks_volumes}.
+
+KubeVirt consists of three main cluster components: \texttt{virt-api}, \texttt{virt-\allowbreak controller}, and \texttt{virt-operator}. The \texttt{virt-controller} manages the lifecycle of VMs, while the \texttt{virt-operator} ensures that KubeVirt components are correctly deployed and functioning. The \texttt{virt-api} provides a RESTful interface for interacting with KubeVirt and managing VM resources.
+
+Each virtual machine instance (VMI) is associated with a pod that contains \texttt{virt-launcher}, \texttt{libvirtd}, and \texttt{qemu}. However, the VMI itself does not run within the pod \Parencite{kubevirt_architecture}. Instead, it operates directly on the host as its own instance type: \texttt{virtualmachineinstance.kubevirt.io}. The \texttt{virt-\allowbreak launcher} is responsible for spawning the VM on the host.
+
+If hardware virtualization is unavailable, software emulation can be used instead \Parencite{kubevirt_installation}. In this mode, virtualization is handled entirely by software rather than relying on CPU extensions. Software emulation is expectedly less efficient than hardware virtualization.
+
+\subsection{NixOS Disk Images}
+NixOS is a declarative operating system that defines system configurations, including installed packages, services, and settings.
+
+It can build Copy-On-Write version 2 (QCOW2) disk images for virtual machines \Parencite{nixos_vm_configuration}. Using a Nix expression, users generate a QCOW2 image with a predefined environment, ensuring consistency and eliminating manual setup \Parencite{nix_language_tutorial}.
+
+NixOS configurations can be tested in virtual machines without installation on physical hardware. Unlike interactive configuration, which lacks documentation, NixOS provides a structured approach. Interactive setups make modifications difficult and do not track changes, leading to uncertainty about the image's contents.
+
+This approach allows image generation at runtime instead of storing large QCOW2 images. Since they cannot be stored in Git due to their size, declarative configuration enables automated, reproducible builds when needed.
+
 \section{Static Code Analysis}
+Static code analysis is a software testing technique that examines code without executing it, serving as the counterpart to dynamic code analysis. It is used to identify potential vulnerabilities, bugs and code smells. Static code analysis can be performed manually or automatically using tools. The latter is more efficient and less error-prone, as it can be integrated into the development process.
 
+In this section we will cover the tools used in this project for static code analysis. These tools include Dependabot, SonarCloud, and Linting.
 
-\chapter{Implementation}
+\subsection{Dependabot}
+Dependabot is a dependency management tool rather than a static code analysis tool. It is included in discussions of repository scanning because it identifies outdated dependencies, checks for updates, and creates pull requests to keep them current. It also provides security alerts for known vulnerabilities in dependencies, helping developers address risks promptly. Dependabot supports package managers such as pip, npm, and Maven and can be configured to check for updates on a schedule \Parencite{GitHubDependabotVersion2025}.
 
-\section{Infrastructure as Code}
+\subsection{SonarCloud}
+SonarCloud is a cloud-based platform for continuous code quality and security inspection. It performs static code analysis to detect bugs, vulnerabilities, and code smells, supporting multiple programming languages. Integrated seamlessly with CI/CD pipelines, it enables automated code quality checks throughout development \Parencite{SonarQubeDocs2025}.
 
-In this chapter, we will explore the IaC tools used in this project. We will discuss the chosen technologies as well as why they were even brought to use in the first place. The tools covered include Pulumi, Terraform, and Ansible. While pipelines -- and even Ansible -- are not typically classified as IaC, we will also provide a brief overview of GitHub Actions, which plays a role in deploying the platform.
+The service offers a web interface for monitoring quality metrics and trends over time. It is free for public repositories; however, private repositories require a paid subscription \Parencite{SonarCloudPricing2025}. In contrast, SonarQube is a self-hosted solution, licensed under the GNU Lesser General Public License v3.0 \Parencite{SonarQubeLicense2025}. It provides similar functionality and supports private repositories -- while the Community Edition is free, advanced plans come at a cost.
 
-Despite this adaptability, both Pulumi and Terraform are utilized in this project. The author of this thesis is responsible for development with Pulumi, while Terraform is managed by Matteo Trentin -- a division of tasks determined solely by proficiency. While creating simple (minimal technology stack), state-of-the-art software is the goal, compromises are inevitable in team environments with tight deadlines. Nonetheless, this complexity can be transparently adjusted in the future, if strictly necessary. This thesis will not go into detail of the development of Terraform IaC, as it has not been developed by the author.
+\subsection{Linting}
+Linting is a static code analysis technique used to detect errors, enforce coding standards, and improve code readability. Some linters assess cyclomatic complexity, helping developers understand the maintainability of their code. By identifying issues early in the development process, linting ensures consistency and enhances code quality. Linting tools can be integrated into IDEs or run as part of the build process \Parencite{SuperLinter2025}. Popular options include ESLint for JavaScript, Pylint for Python, and SonarQube for IDE (formerly SonarLint), which supports multiple programming languages.
 
-\subsection{Pulumi Projects \& Stacks}
+SonarQube for IDE integrates automated code review into your development environment \Parencite{SonarQubeConnectedMode2025}. Connected mode links projects to SonarQube Cloud or Server, ensuring consistent best practices, preventing security vulnerabilities, and reducing technical debt before code is committed.
+
+\chapter{Implementation}\label{chap:implementation}
+This chapter outlines the implementation of a scalable, secure, and fault-tolerant CTF platform, building on prior concepts and technologies. The MVP is considered complete when the platform supports multiple users who can create, manage, and participate in challenges. Additionally, it must provide documentation for users, administrative monitoring, and robust security measures, including encrypted access and fault tolerance.
+
+\section{Architecture}\label{sec:architecture}
+The architecture of the CTF platform is designed to be modular and extensible, allowing for easy integration of new features and services. The platform is built on a microservice architecture, with each service responsible for a specific functionality. This approach enables independent development, deployment, and scaling of services, ensuring that the platform can adapt to changing requirements and user needs.
+
+UCloud was never selected for its capabilities but for its affordability. While the availability of UCloud resources through the university was an advantage, the challenges of building a usable and widely accessible platform remained significant -- though solving them was an engaging task. This section first presents the architecture as it was successfully implemented on UCloud before detailing its final deployment on GCP. Although GCP is an expensive option, it was the only one investigated that provides hardware virtualization, a required capability for the platform.
+
+\subsection{Services}
+
+Figure \ref{fig:architecture} illustrates the UCloud architecture. Network limitations posed a significant challenge, which was mitigated by implementing a Headscale network overlay and integrating a GCP VM. The GCP VM served as the entry point and login server for the Headscale network. All nodes, including GCP itself, are connected through this login server using Tailscale, enabling communication across nodes without the usual network restrictions. Tailscale is a VPN based on WireGuard \Parencite{TailscaleDocs}, while Headscale is a self-hosted alternative to Tailscale's coordination server \Parencite{TailscaleOpenSource}. 
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1\textwidth]{images/ucloud-architecture.png}
+    \caption{Architecture of the CTF platform deployed on UCloud.}
+    \label{fig:architecture}
+\end{figure}
+
+The NGINX instance on GCP facilitates TCP streaming to UCloud, as this approach proves optimal for the Bastion. Initially, GCP was only used as a login server, since SDU offered a domain name for free. The domain name had to point to a UCloud VM and was linked to a proxy that applied the certificate and forwarded requests to the UCloud server. While the wildcard certificate was useful, handling TLS termination at the cluster level was preferred.
+
+SSLH is a protocol multiplexer that routes traffic to different services based on the detected protocol. It is used to direct SSH traffic to the Bastion while forwarding HTTP(S) traffic to the NGINX/Certbot proxy. This setup prevents SSH traffic from reaching the proxy, which is unable to handle it, and ensures that no certificates are applied to SSH connections, avoiding the need for users to tunnel SSH via TLS.
+
+The trusted TLS certificate could have been managed at the ingress controller instead of the Certbot proxy. This approach was chosen because it simplifies the setup, allowing all internal services to use certificates issued by our own PKI. Rather than modifying this configuration for production deployment, adding a proxy in front of the system to handle TLS termination makes the adjustment more straightforward.
+
+The remaining architectural details will be covered in their respective sections, as they pertain to platform functionality rather than system architecture. The \textit{services} box in Figure \ref{fig:architecture} represents the core components of the platform, while all other elements ensure secure access to these services for users.
+
+Migrating this architecture to GCP simplifies the setup significantly. In fact, everything outside the UCloud Kubernetes box in Figure \ref{fig:architecture} can be removed. With this change, SSLH serves as the new entry point, eliminating both the network overlay and the additional proxy forward. 
+
+\subsection{Storage}
+
+We recognize that building a completely fail-safe system is unrealistic; instead, our priority is to create a safe-to-fail system. When shit hits the fan, a full redeployment of the platform may be necessary. In such cases, minimizing downtime is crucial, but protecting data integrity is non-negotiable. To eliminate this risk, we have opted for object storage buckets in MinIO, ensuring robust and reliable data management. The setup is illustrated in Figure \ref{fig:storage-provisioning}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1\textwidth]{images/storage-provisioner.png}
+    \caption{Storage provisioning architecture of the CTF platform on UCloud using MinIO.}
+    \label{fig:storage-provisioning}
+\end{figure}
+
+The architecture initially relied on the Rancher Local Path Provisioner, configured as a shared filesystem using the \texttt{hostPath} volume type to store data on a specified path on the host. As retaining data across VM restarts became a necessity, we introduced MinIO as an object storage solution \Parencite{miniosdu}. To integrate MinIO, we first adopted S3FS, a FUSE-based filesystem, but it lacked support for certain filesystem operations, causing databases to crash when interacting with it \Parencite{s3fsrepo}. To resolve this, we replaced S3FS with S3QL, another FUSE-based filesystem that provides full filesystem functionality \Parencite{s3qlrepo}. However, S3QL could not be mounted on multiple nodes simultaneously \Parencite{s3qlfaq} -- a critical requirement for the current setup. To address this limitation, we transitioned from the Local Path Provisioner to an NFS storage provisioner, consolidating all storage within a single folder on the control node, where S3QL is mounted on the same path as MinIO, allowing MinIO to provide block storage while S3QL handles filesystem operations.
+
+The NFS provisioner provides the same benefits as a shared filesystem: pods are not restricted to the same node as the storage, allowing them to be scheduled on the least-loaded node -- even after restarts.
+
+Migrating this architecture to GCP introduces minimal changes. Instead of using MinIO, we leverage GCP's persistent disks for storage, while the rest of the architecture remains unchanged.
+
+\section{Pulumi}
+Pulumi's ability to use Terraform providers makes it well-suited for managing the entire infrastructure. However, Terraform was introduced in this project primarily due to existing expertise within the team. The author of this thesis works with Pulumi, while Matteo Trentin manages Terraform -- this division is based on individual proficiency. While the goal is to maintain a simple technology stack, compromises are necessary in a team environment with tight deadlines. If needed, this setup can be adjusted in the future. This thesis focuses on Pulumi, as the Terraform IaC was not developed by the author.
+
+\subsection{Projects \& Stacks}
 When starting a new project, it is essential to determine how to organize the Pulumi project and its stacks. To assist in this decision, the Pulumi documentation provides insights into the trade-offs between different approaches \Parencite{pulumiProjects2025}.
 
 The monolithic approach is well-suited for projects that prioritize simplicity, version control, and agility. This method makes it easier to track dependencies, configure package managers, and manage code efficiently, as everything can be previewed and handled in a unified manner.
 
 The micro-stacks approach, similar to microservices but applied to projects and stacks, offers greater independence. Each stack can be deployed separately, making it ideal for projects with varying deployment cadences. Security is another key factor. Large organizations often require Role-Based Access Control (RBAC), which makes micro-stacks advantageous. This approach enables fine-grained access control, ensuring that critical infrastructure can only be modified by selected team members.
 
-For this project, a hybrid approach was adopted. While it primarily relies on micro-stacks, keeping related components together, it also incorporates monolithic elements since the stacks are not entirely independent. The stack organization follows a layered structure. The base layer includes essential components like Custom Resource Definitions (CRDs), secret generation, storage provisioner, KubeVirt, namespaces, and the ingress controller. Directly above this is the Private Key Infrastructure (PKI), responsible for certificate issuance. 
+For this project, a hybrid approach was adopted. While it primarily relies on micro-stacks, keeping related components together, it also incorporates monolithic elements since the stacks are not entirely independent. The stack organization follows a layered structure. The base layer includes essential components like Custom Resource Definitions (CRDs), secret generation, storage provisioner, KubeVirt, namespaces, and the ingress controller. Directly above this is the PKI, responsible for certificate issuance. 
 
-The remaining stacks exist on the same hierarchical level. The Monitoring stack is completely independent, collecting metrics and logs from the Kubernetes cluster in a passive, non-intrusive manner. Monolithic traits arise in the Application stack, as it combines various unrelated services. While the authentication stack is independent, certificates depend on it for issuing personal SSH certificates, creating a circular dependency (explained in Chapter \ref{chap:pki}).
+The remaining stacks exist on the same hierarchical level. The Monitoring stack is completely independent, collecting metrics and logs from the Kubernetes cluster in a passive, non-intrusive manner. Monolithic traits arise in the Application stack, as it combines various unrelated services. While the authentication stack is independent, certificates depend on it for issuing personal SSH certificates, creating a circular dependency (explained in Section \ref{sec:smallstep}).
 
-High coherence and low coupling are vital for effective stack design. While it is important to group related elements together, the decision to create new stacks should align with the project's scope and complexity. For smaller projects, maintaining simplicity is often more practical. The stack relationships are visually represented in Figure \ref{fig:pulumi_stacks}.
+High coherence and low coupling are vital for effective stack design. While it is important to group only related elements together, the decision to create new stacks should align with the project's scope and complexity. For smaller projects, maintaining simplicity is often more practical. The stack relationships are visually represented in Figure \ref{fig:pulumi_stacks}.
 
 \begin{figure}[h]
     \centering
@@ -275,23 +558,8 @@ Our project consists of five Pulumi projects, each with a specific role to play:
         \item \textbf{SSLH protocol multiplexer:} A protocol multiplexer that allows multiple services to share a single port, such as SSH and HTTPS.
         \item \textbf{NGINX Proxies:} Proxies to upgrade connection and/or move SSL termination to pod.
         \item \textbf{Unleash:} An open-source solution for feature flagging.
-    \end{itemize}
-    \item \textbf{Authentication:} Manages SSO capabilities provided by Keycloak.
-    \begin{itemize}
-        \item \textbf{Keycloak:} An open-source identity and access management solution for Single Sign-On (SSO), enabling secure authentication and authorization.
-    \end{itemize}
-    \item \textbf{Certificates:} Handles certificate CA and issuers.
-    \begin{itemize}
-        \item \textbf{Step Certificates:} A Certificate Authority (CA) toolkit for managing and issuing certificates within your environment.
-        \item \textbf{Step Autocert:} Automates the issuance and renewal of TLS certificates to ensure your services remain secure.
-        \item \textbf{Step Issuer:} An issuer that integrates with Cert-Manager to manage certificate lifecycles.
-        \item \textbf{Cert-Manager:} A Kubernetes add-on to automate the management and issuance of TLS certificates from various issuing sources.
-    \end{itemize}
-    \item \textbf{Infrastructure:} Takes care of basic cluster configuration.
-    \begin{itemize}
-        \item \textbf{Rancher Local Path Storage Provisioner:} Manages dynamic storage provisioning for Kubernetes using NFS, enabling shared storage across nodes.
-        \item \textbf{Nginx Ingress Controller:} Manages external access to services in a Kubernetes cluster through HTTP and HTTPS.
-        \item \textbf{KubeVirt:} Extends Kubernetes by adding support for running virtual machine workloads alongside container workloads.
+        \item \textbf{Reflector:} A Kubernetes utility that automatically mirror secrets across namespaces.
+        \item \textbf{Docker Registry:} A system for storing and sharing Docker images.
     \end{itemize}
     \item \textbf{Monitoring:} Ensures cluster observability and log collection.
     \begin{itemize}
@@ -302,9 +570,28 @@ Our project consists of five Pulumi projects, each with a specific role to play:
         \item \textbf{Promtail:} An agent that ships the contents of local logs to a Loki instance.
         \item \textbf{Node-exporter:} Exports hardware and OS metrics exposed by Linux kernels for monitoring.
     \end{itemize}
+    \item \textbf{Authentication:} Manages SSO capabilities provided by Keycloak.
+    \begin{itemize}
+        \item \textbf{Keycloak:} An open-source identity and access management solution for SSO, enabling secure authentication and authorization.
+    \end{itemize}
+    \item \textbf{Certificates:} Handles certificate CA and issuers.
+    \begin{itemize}
+        \item \textbf{Step Certificates:} A CA toolkit for managing and issuing certificates within your environment.
+        \item \textbf{Step Autocert:} Automates the issuance and renewal of TLS certificates to ensure your services remain secure.
+        \item \textbf{Step Issuer:} An issuer that integrates with Cert-Manager to manage certificate lifecycles.
+        \item \textbf{Cert-Manager:} A Kubernetes add-on to automate the management and issuance of TLS certificates from various issuing sources.
+    \end{itemize}
+    \item \textbf{Infrastructure:} Takes care of basic cluster configuration.
+    \begin{itemize}
+        \item \textbf{NFS Storage Provisioner:} Manages dynamic storage provisioning for Kubernetes using NFS, enabling shared storage across nodes.
+        \item \textbf{Nginx Ingress Controller:} Manages external access to services in a Kubernetes cluster through HTTP and HTTPS.
+        \item \textbf{KubeVirt:} Extends Kubernetes by adding support for running virtual machine workloads alongside container workloads.
+    \end{itemize}
 \end{itemize}
 
-\subsection{Managing Secrets in Pulumi}
+These are the core services of the platform. Some provide direct user-facing functionality, while others support essential technical operations. Additionally, the platform includes sidecar containers, which are not listed here.
+
+\subsection{Managing Secrets}
 Pulumi includes a built-in mechanism for managing secrets. The user provides a passphrase, which is combined with the encryption salt stored in each stack to encrypt secrets. However, these stacks can also include configuration values in plain text. Secrets can be added using the following command:
 
 \begin{minted}{bash}
@@ -327,9 +614,219 @@ In case the passphrase have been compromised, it can be updated using the comman
 
 Only passwords that must be explicitly known, such as Keycloak login credentials, are stored within the stacks. Passwords that only need to be used by the system are generated during deployment. For example, knowing the database password provides no benefit since it is solely used by the application. Similarly, client credentials for OAuth2 clients are designed to remain confidential. By ensuring that these passwords are not accessible, the risk of them being leaked is eliminated, at least to some extent -- any application can be compromised from within.
 
-Generating secrets during deployment streamlines password rotation. Updating the Infrastructure stack triggers the creation of new credentials, and updating referencing stacks applies these changes. However, Kubernetes does not always restart services automatically, so a rollout restart may be necessary to ensure the updates take effect.
+Generating secrets during deployment ensures fresh credentials with each update but introduces challenges in password rotation. The current implementation generates most passwords at deployment, simplifying initial setup but causing issues for components that rely on persistent credentials, particularly databases that retain old passwords tied to user accounts. If passwords are sourced from the state file, stack updates would not generate new credentials, preventing automatic password rotation. Conversely, enabling password rotation requires migration steps to avoid authentication failures. This suggests that dynamically generating secrets may not always be ideal. Hardcoding secrets directly in the Pulumi stack offers a predictable and controlled approach but increases the risk of exposure. Choosing between these methods requires careful consideration of security, operational needs, and long-term maintainability.
 
-A key word to remember here is \textit{Stack Reference}. When working with micro-stacks, it may be necessary to share information between stacks -- this is trivially given when working with a monolithic approach, as everything is in the same stack. Stack references enable you to access outputs of one stack from another stack. These outputs could include the name of a randomly generated secret, secret values, or any other user-defined stack output.
+In a monolithic stack, all information is already available within the same stack. When using a micro-stack architecture, it may be necessary to share information between stacks. Stack references make this possible by allowing one stack to access outputs from another, such as randomly generated secrets, or other stack-specific data. This enables generating all secrets in the Infrastructure stack and exporting them to the services that need them.
+
+\subsection{Helm Charts}
+Pulumi offers two approaches for deploying Helm charts: as a \texttt{Chart} \Parencite{PulumiHelmChart} or a \texttt{Release} \Parencite{PulumiHelmRelease}. The key difference lies in how Pulumi manages these resources. When using \texttt{Chart}, Pulumi treats all resources within the chart as its own, incorporating them into its state. Conversely, the \texttt{Release} option deploys the Helm chart as a release, meaning the resources are not tracked in Pulumi's state and are managed independently. This approach is useful for charts intended to be managed outside of Pulumi or when keeping the Helm release separate from a Pulumi stack.
+
+One important consideration is that Helm hooks are no longer supported in Pulumi Charts v4. While Chart v3 also lacked hook support, it historically emitted hooks as ordinary child resources. Another notable improvement in Chart v4 is enhanced resource ordering \Parencite{PulumiKubernetesChartV4}. For example, in Chart v3, deploying \texttt{kube-prometheus-stack} was problematic because services dependent on CRDs were created before the CRDs themselves were available. This required manually installing the CRDs within the Infrastructure stack. Chart v4 eliminates this workaround by handling resource ordering automatically. However, the CRDs remain in the Infrastructure stack for flexibility, ensuring availability for other stacks beyond Monitoring -- \texttt{ServiceMonitors}, for example, are widely used across different stacks.
+
+Why use Helm charts at all? The primary advantage is their active community maintenance, which ensures regular updates and improvements. Helm charts bundle numerous resources, reducing the complexity of manually defining and managing them. They provide a streamlined, efficient way to configure and deploy applications compared to writing everything from scratch. Given these benefits, we will rely on Helm charts in this project whenever possible.
+
+In conclusion, Helm charts are preferred over manual resource definitions, and Pulumi Charts v4 will be used to manage their deployment.
+
+\section{Ansible}
+Terraform is used to provision the servers. However, since UCloud does not provide a Terraform provider, an alternative approach was required for deploying Kubernetes resources. To address this, we leveraged Ansible -- an agentless automation tool that uses SSH to connect to servers and execute commands remotely, eliminating the need for software installation on target machines.
+
+The majority of the Ansible work has been completed by Matteo Trentin, though I have contributed to specific aspects outlined in this section. My primary contributions include deploying Pulumi stacks, configuring the NFS server, making sure that \texttt{Kubectl} used the Tailscale subnet\footnote{Only needed when deployed on UCloud.}, and developing a deep understanding of the existing Ansible playbooks and roles.
+
+\subsection{Playbook}
+The playbook is a core component of Ansible, defining the automation workflow. It is a YAML file that specifies the target hosts, assigned roles, and the tasks to be executed. The playbook follows a structured process: First, common tools are installed on all nodes, including both control and worker nodes. Next, the control node is configured -- setting up the Kubernetes control plane, mounting MinIO, and starting the NFS server. Then, the worker nodes are configured and joined to the Kubernetes cluster. Finally, the Pulumi stacks are deployed on the control node.
+
+The target hosts are specified in the \texttt{hosts.ini} file located in the \texttt{ucloud-k8s/\allowbreak ansible} folder. This file contains the IP addresses of the nodes, enabling SSH connections for task execution. The playbook is executed using the \texttt{ansible-playbook} command, which processes the YAML file and runs the defined tasks on the target hosts. Additionally, the host file includes variables required by various tasks. Since \texttt{hosts.ini} contains environment-specific details, it is not stored in version control. Instead, a template file, \texttt{hosts.ini.example}, is provided as a reference.
+
+\subsection{Deployment}
+
+Before executing the playbook, it is essential to configure the \texttt{hosts.ini} file and set up the required secrets.
+
+The \texttt{hosts.ini} file in the \texttt{ansible} directory defines the inventory of hosts managed by Ansible -- use the \texttt{hosts.ini.example} template to create it.
+
+A few secrets are required for secure access and configuration management. An SSH key pair must be generated and stored in the location specified in \texttt{ansible/ansible.cfg} for server access. A \texttt{pulumi\_passphrase} file should be placed at the repository root to manage Pulumi stack encryption. If deploying on UCloud, a Tailscale authentication key must be stored in \texttt{tailscale\_key} at the repository root for machine authentication, with its location adjustable in the ``connect to Tailscale'' task within the Tailscale role.
+
+A rigorous and continuously updated deployment guide is available online at \url{https://kianbankelarsen.github.io/CTF-Platform/ucloud-k8s/}. As the codebase evolves, this guide provides the latest instructions to ensure a seamless deployment process.
+
+\section{CTFd Plugins}
+CTFd is a web-based platform designed to host CTF competitions \Parencite{ctfd_github}. It is built using Flask, a Python web framework, and provides a user-friendly interface for managing challenges, teams, and scoring. CTFd is open-source, distributed under Apache License 2.0 \Parencite{ctfd_github}, and can be self-hosted using a Docker image \Parencite{ctfd_docker}. The platform is designed to be extensible, allowing developers to create custom plugins to enhance its functionality. This extensibility is a key feature of CTFd, enabling users to tailor the platform to their specific needs and requirements. 
+
+This section provides insight to the CTFd plugins developed for the platform. The first plugin is a custom authentication plugin that integrates with Keycloak, enabling SSO capabilities. The second plugin is a custom challenge plugin that allows users to start a challenge managed by our Deployer Backend. 
+
+\subsection{Authentication}
+
+CTFd requires an authentication system to manage user access. Instead of handling user creation internally, external identity providers can be integrated to streamline authentication. While Keycloak is not configured to use an external Active Directory, it enables SSO, allowing participants to authenticate using accounts created within Keycloak.
+
+Despite this integration, CTFd does not natively support SSO unless using an enterprise or hosted version \parencite{ctfd_sso}. This limitation presents a challenge and requires a decision on how to proceed. Given that CTFd is open-source, we have two options: modify the source code to implement SSO directly or develop a custom plugin for authentication. Modifying the core code would require freezing the version. Therefore, creating a plugin is the more practical and maintainable approach. Fortunately, creating plugins for CTFd is relatively straightforward and well-documented \parencite{ctfd_plugins}. 
+
+The plugin is configured via \texttt{config.json}, which is loaded at initialization to define its behavior using basic OIDC parameters. A decision is required for handling the client secret -- either embedding it in the configuration file or providing it as an environment variable. Storing it in the configuration file would bake it into the image, which is undesirable, while using an environment variable keeps it separate but leaves the configuration file incomplete. Since Pulumi generates the secret dynamically, it cannot be set statically in the configuration. Instead, \texttt{OIDC\_CLIENT\_SECRET} is defined as an environment variable, replaced at runtime. Pulumi loads the config, performs environment substitution, and mounts the updated file in the appropriate location. Additionally, the config file supports specifying the path to a certificate bundle when the connection to the identity provider must be manually trusted.
+
+Overwriting authentication endpoints allows us to redirect authentication flows to our implementation instead of relying on CTFd's default mechanisms. This facilitates integration with Keycloak, ensuring all login and logout operations are managed through our identity provider. Additionally, modifying these endpoints enables control over user management actions, such as disabling registration and password resets. However, disabling the registration endpoint does not remove the registration button, so registration must be set to private during the initial setup wizard of CTFd.
+
+\begin{minted}{py3}
+app.view_functions['auth.login'] = lambda: redirect(url_for('keycloak'))
+app.view_functions['auth.logout'] = lambda: redirect(url_for('keycloak_logout'))
+app.view_functions['auth.register'] = lambda: ('', 204)
+app.view_functions['auth.reset_password'] = lambda: ('', 204)
+app.view_functions['auth.confirm'] = lambda: ('', 204)
+\end{minted}
+
+The implementation uses \texttt{python-keycloak} \parencite{python_keycloak}, a client tool designed for handling authentication with Keycloak. While a more general approach could have involved using a generic OIDC plugin, \texttt{python-keycloak} was chosen for its ease of use and effectiveness in addressing our specific needs. 
+
+The OIDC plugin is configured to follow the authorization code flow as recommended by the Keycloak documentation. The authentication process operates as follows:
+
+\begin{enumerate}
+    \item A user logs into CTFd using their SSO credentials.
+    \item If the user does not exist in CTFd's database, they are created; otherwise, the existing user is retrieved.
+    \item Roles and profile settings are synchronized to align with the SSO user's configurations.
+    \item The user is then authenticated and granted access to CTFd.
+\end{enumerate}
+
+Administrators can disable or ban users from CTFd when necessary. However, if a user is deleted from CTFd's database, they will be recreated upon logging in again. Conversely, deleting a user in Keycloak does not remove them from CTFd, but it prevents them from logging in since authentication is managed by Keycloak. To fully remove a user, they must be deleted from both databases, or at least from CTFd with their roles revoked to prevent authorization upon authentication.
+
+In SQLAlchemy, \texttt{polymorphic\_on} and \texttt{polymorphic\_identity} facilitate inheritance in database models. \texttt{polymorphic\_on} specifies the column used to determine the object's type, while \texttt{polymorphic\_identity} sets the identifier for each subclass. This enables SQLAlchemy to distinguish between different object types within a shared table.
+
+\begin{minted}{py3}
+class Users(db.Model):
+    __tablename__ = "users"
+    __mapper_args__ = {"polymorphic_identity": "user", "polymorphic_on": type}
+    ...
+
+class Admins(Users):
+    __tablename__ = "admins"
+    __mapper_args__ = {"polymorphic_identity": "admin"}
+\end{minted}
+
+The \texttt{Submissions} class has a foreign key \texttt{user\_id} that references the \texttt{users} table. The \texttt{ondelete="CASCADE"} ensures that when a user is deleted, all related submissions are also deleted.
+
+\begin{minted}{py3}
+class Submissions(db.Model):
+    __tablename__ = "submissions"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"))
+\end{minted}
+
+Handling polymorphic types can be challenging, particularly when modifying the type of an existing object. For instance, changing an admin to a user may trigger an \texttt{ObjectDeletedError}. This occurs because altering the polymorphic identity can result in the deletion of the original object, potentially causing issues with related entities such as submissions and comments linked via foreign keys with cascade delete.
+
+To prevent loss of related objects when modifying polymorphic types, the response is generated before applying the type change. This approach avoids the \texttt{ObjectDeletedError} and ensures data integrity. The solution was derived from reviewing the source code of CTFd's public API \parencite{CTFdUsersAPI}.
+
+\begin{minted}{py3}
+def patch_user(user_id, data):
+    user = Users.query.filter_by(id=user_id).first_or_404()
+    data["id"] = user_id
+
+    schema = UserSchema(view="admin", instance=user, partial=True)
+    response = schema.load(data)
+    if response.errors:
+        return {"success": False, "errors": response.errors}, 400
+
+    # This generates the response first before actually changing the type
+    # This avoids an error during User type changes where we change
+    # the polymorphic identity resulting in an ObjectDeletedError
+    # https://github.com/CTFd/CTFd/issues/1794
+    response = schema.dump(response.data)
+    ...
+\end{minted}
+
+The plugin does not impact authentication using tokens. CTFd employs the \texttt{before\_\allowbreak request} decorator to verify user login status. This decorator is universally applied to all routes, ensuring authentication before accessing any part of the application \Parencite{CTFdInitialization}. The plugin operates independently of this mechanism, allowing users to authenticate seamlessly via their SSO credentials without any complications.
+
+The challenge plugin requires a valid access token, issued by Keycloak, which remains active for 5 minutes and is paired with a refresh token valid for 30 minutes. The refresh token allows requesting a new access token when needed. To ensure continuous authentication, the plugin leverages the \texttt{before\_\allowbreak request} decorator to verify the token's validity on every request. If the access token is nearing expiration, it is renewed using the refresh token. If the refresh token expires, the user is logged out and must reauthenticate. Each time the access token is refreshed, the refresh token is also updated.
+
+The token is securely stored in a cookie, as CTFd enforces \texttt{SESSION\_COOKIE\_\allowbreak HTTPONLY} and \texttt{SESSION\_COOKIE\_SAMESITE=Lax} \Parencite{CTFdConfig}. The HTTP-only setting ensures the cookie remains inaccessible to JavaScript, mitigating cross-site scripting (XSS) risks. The \texttt{SameSite=Lax} policy prevents unauthorized cross-site access while allowing cookies to be sent in top-level navigations, reducing the risk of cross-site request forgery (CSRF) attacks.
+
+\subsection{Challenges}
+The Challenge Plugin allows users to start and stop challenges, working alongside the Deployer Backend, which manages the challenge lifecycle. When a user initiates a challenge, the plugin triggers the backend to create and maintain a new instance. CTFd provides documentation for Challenge Type Plugins, along with associated templates on GitHub \parencite{CTFdChallengeTypes}. The frontend is built using JavaScript, while the backend is developed in Python with Flask.
+
+In addition to adhering to Flask's backend guidelines, the plugin implements a custom decay function and provides API endpoints for frontend interaction. API calls are made directly to the Flask backend running on the same domain, which then communicates with the Deployer Backend. This ensures server-to-server communication and avoids Cross-Origin Resource Sharing (CORS) issues.
+
+The plugin's frontend extends CTFd's existing markup templates using Jinja template inheritance to create a custom challenge type, defining the challenge's view and description. Additional functionality includes a start and stop button for managing challenges.
+
+Originally developed by Henrik Rossen, the plugin was later modified by me. My contributions include adding a verification badge to indicate whether a challenge has been automatically verified as solvable via a script. This required modifying the status endpoint in both the Challenge Plugin and the Deployer Backend, integrating CSS into the challenge frontend, and dynamically toggling the badge's appearance based on backend responses, as illustrated in Figure \ref{fig:verification_badge}.
+
+\begin{figure}[h]
+    \centering
+    % First subfigure
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{example-image-b}
+        \caption{Challenge marked as unverified.}
+        \label{fig:unverified_badge}
+    \end{subfigure}
+    \hfill
+    % Second subfigure
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{example-image-c}
+        \caption{Challenge marked as verified.}
+        \label{fig:verified_badge}
+    \end{subfigure}
+    \caption{Verification badge indicating whether a challenge has been automatically validated for solvability.}
+    \label{fig:verification_badge}
+\end{figure}
+
+\section{Keycloak}
+Implementing Keycloak requires a solid understanding of its initialization process and configuration, as outlined in Chapter \ref{chap:IAM}. In this project, Keycloak was deployed twice -- first as individual Kubernetes resources and later as a Helm Chart \Parencite{bitnamiKeycloakHelm}. The initial approach was chosen for hands-on experience but was later replaced with the Helm Chart for better maintainability and simpler upgrades.
+
+The first implementation used a \texttt{Deployment}, while the Helm Chart correctly employs a \texttt{StatefulSet} to manage Keycloak, mainly due to differences in volume handling. Additionally, the Helm Chart includes extra resources such as service monitors, network policies, and a configuration CLI job. The config CLI job automates the setup by defining the initial realm, client, and user, removing the need for manual post-deployment configuration or embedding the setup in the Keycloak Docker image build.
+
+A key consideration when implementing Keycloak is the ability to configure two separate ingress routes: one for general access, handling authentication requests from applications and users interacting with realms, and another dedicated to administrative functions. Separating these ingress routes can improve security by applying stricter controls to the administrative ingress. Configuring the Admin ingress also sets the \texttt{KEYCLOAK\_HOSTNAME\_ADMIN} environment variable, ensuring that the administration console is kept distinct from public access. The current implementation uses only the general-purpose ingress, but the Helm Chart allows for easy addition of the admin ingress if needed in the future.
+
+The environment variables listed in the official Keycloak documentation differ from those used in the Bitnami Keycloak Docker image \parencite{bitnamiKeycloak}. Instead, the correct variables can be found in the Bitnami documentation, which specifies each environment variable's name, description, and default value.
+
+\subsection{Configuration}
+Keycloak is configured using a Kubernetes \texttt{Job} resource that runs a container with the \texttt{keycloak-config-cli} image, executing configuration commands. The job loads a JSON-formatted realm file, which can define multiple realms, clients, users and more. In this project, the exported realm file contains only the \texttt{ctf} realm, its clients and groups. The file is complete, meaning it includes all necessary details to recreate the realm. However, many values such as client IDs, default settings, and states are redundant when creating a new realm. Removing these values from the realm export simplifies modifications, making the file easier to manage and extending its usability.
+
+The \texttt{ctf} realm consists of four clients: three confidential (\texttt{ctfd}, \texttt{grafana}, and \texttt{step}) and one public (\texttt{deployer}). Each client has its own roles assigned to users:
+
+\begin{itemize} 
+    \item CTFd defines the roles \texttt{admin} and \texttt{user}. 
+    \item Grafana manages access levels with \texttt{admin}, \texttt{editor}, and \texttt{viewer}. 
+    \item Step provides a single role, \texttt{bastion}. 
+    \item Deployer includes the roles \texttt{admin} and \texttt{developer}. \end{itemize}
+
+Confidential clients require a client secret, which is generated upon creation but omitted from the exported realm file for security reasons. Instead, the realm file references client secrets via environment variables, which are substituted during deployment using Pulumi before being injected into the Keycloak Helm chart. These client secrets are generated within the \texttt{infrastructure} Pulumi stack.
+
+The CTF platform supports two user types: administrators and students. Administrators have full access to the platform, while students are restricted to accessing the bastion, using CTFd as a regular user, and interacting with the Deployer backend on their behalf. To streamline role management, user groups are configured to bundle roles relevant to a specific user type. This approach simplifies user creation -- an administrator can assign a user to a group, automatically granting them the associated roles.
+
+Keycloak is not connected to an external Active Directory (AD), requiring us to manage user creation manually. This can be done either by scripting bulk user creation or by enabling self-registration in the CTF realm. Initially, we opted for self-registration and configured Keycloak to automatically assign new users to the student group. However, this approach allows unrestricted account creation, meaning unauthorized users might gain access. To mitigate this, self-registration may only be available for a limited time. It can be toggled in the realm settings under the login tab, and this configuration is included in the exported realm file. Registration is available on the relative endpoint \texttt{/realms/ctf/account/\#/register}. 
+
+\subsection{Pulumi Provider}
+Using the Pulumi provider for Keycloak \parencite{pulumiKeycloak} is a more effective alternative to the CLI job for managing Keycloak resources. It enables direct integration within Pulumi stacks, eliminating the need for a separate job while providing a structured, code-based approach to configuring groups, clients, realms and more.
+
+Similar to the CLI job, the provider interacts with Keycloak's REST API. However, instead of relying on a realm file, it allows configurations to be defined as code, offering several advantages:
+
+\begin{itemize}
+    \item More efficient to manage and maintain.
+    \item Better integration with the rest of the stack.
+    \item Built-in documentation through code definitions.
+\end{itemize}
+
+A key drawback of realm files is that they can become outdated with newer Keycloak versions, an issue encountered multiple times during this project's development. While incorporating Pulumi for authentication would offer long-term benefits, it was not implemented in this project due to time constraints.
+
+\section{Monitoring}
+
+\subsection{Technology Stack}
+
+\subsection{Service Monitors}
+
+\subsection{Non-Intrusive Logging}
+
+% \section{Smallstep} \label{sec:smallstep}
+
+% \section{Ingress Controller}
+
+% \section{Deployer Backend}
+
+% \section{Certbot Proxy}
+
+% \section{Docker Registry}
+
+% \section{Unleash}
+
+% \section{Bastion}
+
+% \section{Jekyll}
+% \subsection{Hompepage}
+% \subsection{README}
 
 \chapter{Discussion}
 
@@ -340,52 +837,6 @@ A key word to remember here is \textit{Stack Reference}. When working with micro
 \addcontentsline{toc}{chapter}{References}
 \printbibliography
 \end{document}
-
-
-\chapter{Kubernetes}
-
-\section{Helm Chart}
-
-\section{Horizontal Scaling}
-
-\section{Vertical Scaling}
-
-\section{Health Check}
-
-\section{Probes}
-
-\subsection{Liveness}
-
-\subsection{Readiness}
-
-\subsection{Statup}
-
-\chapter{Development Environment}
-
-\section{Automated Tasks}
-
-\section{Domains}
-
-\chapter{Infrastructure as Code}
-
-\section{Pulumi}
-
-\section{Alternatives}
-
-\section{Developing a Provider}
-
-\chapter{UCloud}
-
-\section{Limited Network Access}
-
-\section{Starting a Virtual Machine}
-
-\section{Domain Name}
-
-\chapter{Monitoring}
-Monitoring is an essential aspect of managing a Kubernetes cluster. It provides a comprehensive overview of the health and performance of our services, enabling us to detect and address anomalies before they escalate into critical issues. Effective monitoring allows us to be proactive, ensuring the stability and reliability of our production environment. Rather than reacting to problems like firefighters, we aim to prevent issues from occurring in the first place.
-
-In this chapter, we will explore the various technologies and tools used to achieve effective monitoring. Whether it involves sampling health metrics or gathering logs, the information should be accessible from a single entry point. Dashboards play a crucial role in this process, enhancing and contextualizing the data to make it meaningful and actionable. By leveraging these tools, we can maintain a robust and resilient Kubernetes cluster.
 
 \section{A Single Entry Point}
 Monitoring should be straightforward; otherwise, people will not use it! While the initial setup requires some effort, once it is running, all data should be readily available. Therefore, we want all our monitoring to be accessible from a single entry point, so that responsible personnel will not have to aggregate multiple sources to make a rational conclusion about the Kubernetes cluster's health.
@@ -502,237 +953,8 @@ While \texttt{ServiceMonitor} is used to monitor services, \texttt{PodMonitor} i
 
 In summary, use \texttt{ServiceMonitor} when you have services managing multiple pods and need aggregated metrics. Use \texttt{PodMonitor} when you need detailed metrics from individual pods, especially when services are not defined or needed. Everything mentioned in this section has been tested through an experiment.
 
-\chapter{Identity \& Access Management}
-In today's digital landscape, software platforms must support a diverse array of users, each with distinct organizational roles and access rights. This is particularly crucial when developing a CTF platform, where managing user authentication and authorization becomes essential. Authentication verifies a user's identity, while authorization determines their access rights.
-
-A key decision in Identity and Access Management (IAM) is whether to adopt a centralized or decentralized approach. Centralized IAM simplifies management by consolidating user data and access controls in one place, making it easier for administrators to configure and maintain. This approach also facilitates Single Sign-On (SSO), allowing users to authenticate once and gain access to multiple services.
-
-On the other hand, decentralized IAM, though more complex to develop, offers significant benefits. It distributes authentication and authorization responsibilities across various services, enhancing security and resilience. Fortunately, open-source solutions implementing standardized protocols can handle these complexities, providing robust IAM capabilities without the need for extensive in-house development.
-
-By leveraging these solutions, organizations can ensure secure, efficient, and scalable management of user identities and access rights, ultimately enhancing the overall user experience and system security.
-
-For this project, we decided to use the multi-tenant open-source service named Keycloak \parencite{keycloak}. The choice was not based on academic reasons but rather on prior experience configuring this service. Several alternatives could have been considered, such as Zitadel, Apereo CAS, LemonLDAP::NG, and Gluu Server. These services support the same protocols, with some exceptions: Gluu Server also supports SCIM, while Zitadel does not support SAML. 
-
-It is important to mention that for configuring external authentication on Grafana, we rely on Generic OAuth. This protocol is only surpassed by LDAP in terms of preference \parencite{grafana_authentication}. Further investigation led us to an article by Grafana, which directly recommends Keycloak as an OAuth2 provider, highlighting it as the only open-source service on the list \parencite{grafana_oauth}. This confirms that Keycloak is a sufficient and reliable solution for our needs.
-
-\section{Protocols}
-\todo{Study this}
-
-\section{Realm \& Client}
-When deploying Keycloak, we rely on a Helm chart maintained by Bitnami \parencite{bitnami_keycloak}. Keycloak's documentation can be challenging to navigate, making it difficult to compare the Helm chart with the official documentation to determine how to fill in the Helm \texttt{values.yaml} file. However, after some effort, we managed to configure it. This configuration is part of the monitoring Pulumi project. More interesting is how to configure Keycloak itself to ensure reliable integrations with other services.
-
-The fundamental pillars consist of configuring the realm and corresponding clients. First, what is a realm? A realm is a fundamental concept used to manage a set of users, credentials, roles, and groups. Realms offer isolation, as each realm is independent of others, meaning users, roles, and configurations in one realm do not affect those in another. This isolation enables multi-tenancy, allowing different organizations or projects to use the same Keycloak instance without interfering with each other. Each realm can be configured to use its own identity providers, user federations, authentication flows, and more. Our CTF platform only has a single tenant, so one realm is sufficient. Let's call this realm \texttt{CTF} for clarity.
-
-Next, what is a client? The answer is simple when thinking about typical server-client communication. The server (Keycloak) receives requests from clients (services). It is good practice to create a client for each service using Keycloak. This approach allows for configuring allowed hosts, allowed redirects, and each client having its own client secret (if enabled). This ensures that no clients can conflict, as only the client that should be able to make requests would have the secret to do so. The default settings should be sufficient, as we intend to rely on the access token and foresee the ID token -- more on this in section \ref{sec:token_claims}.
-
-When the realm and clients have been configured, we will need to export the configuration so that it can be stored statically and loaded dynamically when needed. The realm and client settings should not be lost just because the Kubernetes cluster is reset!
-
-\todo{Generating the client secret?}
-
-\section{Token Claims \& Scopes}\label{sec:token_claims}
-Authenticating using Keycloak will return a JWT in response. This JWT contains both an ID token and an access token. The access token can be used to query the userinfo endpoint if needed. The content or claims within the JWT must be configured in Keycloak. This project uses the default settings, which already provide the necessary information in the access token. However, if roles are needed in either the userinfo or the ID token, a predefined mapper must be configured to include these claims. The access- and ID token is by default encoded using the RS256 algorithm -- RSA Digital Signature Algorithm with the SHA-256 hash function.
-
-The JWT includes some default metadata claims that provide information about who issued the token, when it was issued, and other essential details. The mandatory claims are listed below:
-
-\begin{itemize} 
-    \item \textbf{iss (Issuer)}: Identifies the principal that issued the JWT.
-    \item \textbf{aud (Audience)}: Identifies the recipients that the JWT is intended for. 
-    \item \textbf{exp (Expiration Time)}: Identifies the expiration time on or after which the JWT must not be accepted for processing. 
-    \item \textbf{iat (Issued At)}: Identifies the time at which the JWT was issued. 
-    \item \textbf{jti (JWT ID)}: Provides a unique identifier for the JWT, which can be used to prevent the JWT from being replayed. 
-\end{itemize}
-
-Keycloak includes certain scopes by default without needing to request them explicitly. Each scope can encompass multiple claims, and the descriptions below provide an idea of what those claims might include:
-
-\begin{itemize} 
-    \item \textbf{acr}: The Authentication Context Class Reference, indicating the level or method of authentication. 
-    \item \textbf{basic}: Typically includes basic user information such as user ID (the \texttt{sub} claim) and authentication time. 
-    \item \textbf{email}: Contains the user's email address and a flag indicating whether the email has been verified. 
-    \item 
-    \textbf{profile}: Includes profile information such as name, family name, given name, nickname, and profile picture. 
-    \item \textbf{roles}: Lists the roles assigned to the user, which can be used for authorization purposes. 
-\end{itemize}
-
-There are also scopes that must be explicitly requested. This includes information like address and phone number, which are not included by default to protect user privacy:
-
-\begin{itemize} 
-    \item \textbf{address}: Contains the user's address information. 
-    \item \textbf{microprofile-jwt}: A claim used in MicroProfile JWT for additional JWT token information. 
-    \item \textbf{offline\_access}: Indicates that the token can be used to obtain a refresh token for offline access. 
-    \item \textbf{phone}: Includes the user's phone number and a flag indicating whether the phone number has been verified. 
-\end{itemize}
-
-Being aware of the JWT's content is definitely useful, as will become evident when discussing some of the difficulties that arose when configuring Grafana to use Keycloak for authentication, as detailed in section \ref{sec:grafana_auth}.
-
-\section{Supported Grant Types}
-Keycloak supports various OAuth 2.0 grant types to cater to different authentication scenarios. These grant types define the methods through which clients can obtain access tokens, each suited for specific use-cases and accompanied by unique security considerations.
-
-The information presented in this section is based on the official Keycloak documentation, which provides comprehensive details on the supported grant types and their respective use-cases and security considerations \Parencite{keycloak2024}.
-
-\subsection*{Authorization Code}\label{sec:auth_code}
-The Authorization Code Grant is primarily used by web and mobile applications. It involves a two-step process where the client first obtains an authorization code, which is then exchanged for an access token. This method ensures that the client never directly handles the user's credentials, enhancing security by reducing the risk of credential exposure.
-
-A diagram showing the flow is given below:
-
-\begin{tcolorbox}
-\begin{scriptsize}
-\begin{verbatim}
-            +----------+
-            | Resource |
-            |   Owner  |
-            +----------+
-                 ^
-                 |
-                (B)
-            +----|-----+          Client Identifier      +---------------+
-            |         -+----(A)-- & Redirection URI ---->|               |
-            |  User-   |                                 | Authorization |
-            |  Agent  -+----(B)-- User authenticates --->|     Server    |
-            |          |                                 |               |
-            |         -+----(C)-- Authorization Code ---<|               |
-            +-|----|---+                                 +---------------+
-              |    |                                         ^      v
-             (A)  (C)                                        |      |
-              |    |                                         |      |
-              ^    v                                         |      |
-            +---------+                                      |      |
-            |         |>---(D)-- Authorization Code ---------'      |
-            |  Client |          & Redirection URI                  |
-            |         |                                             |
-            |         |<---(E)----- Access Token -------------------'
-            +---------+       (w/ Optional Refresh Token)
-
-        Note: The lines illustrating steps (A), (B), and (C) are broken into
-        two parts as they pass through the user-agent.
-
-                            Authorization Code Flow
-
-        https://datatracker.ietf.org/doc/html/rfc6749#section-4.1
-\end{verbatim}
-\end{scriptsize}
-\end{tcolorbox}
-
-This two-step process is essential for avoiding issues with Cross-Origin Resource Sharing (CORS). CORS is a security feature implemented by web browsers to prevent web pages from making requests to a different domain than the one that served the web page, known as the same-origin policy. By using the Authorization Code Grant, the exchange of the authorization code for an access token happens server-to-server, reducing the risk of exposing sensitive information through client-side scripts, which could be subject to CORS restrictions.
-
-\subsection*{Implicit}
-The Implicit Grant is designed for browser-based applications like single-page applications (SPAs). In this flow, the access token is issued directly without an intermediate authorization code. A key security risk is that the token is provided in the URL, which can be logged in browser history, server logs, or shared inadvertently, exposing the token to malicious actors. On the positive side, the client does not handle user credentials directly.\todo{revise SPA}
-
-Including the access token in the URL is necessary to address CORS restrictions. CORS policies can block requests from the browser to a different domain if the access token is included in the response body, as this can trigger a preflight request.
-
-To mitigate these risks, the token is short-lived, minimizing the window for misuse. This flow is used for quick authentication, where the token is used briefly and then discarded. Additionally, the Implicit Grant does not provide a refresh token, as these are long-lived and pose a significant security risk if exposed. By not issuing a refresh token, the access token's lifespan is limited, reducing the impact of potential interception.
-
-According to the current OAuth 2.0 Security Best Current Practice, the Implicit Grant flow is discouraged due to its security vulnerabilities. Consequently, this flow has been removed from the upcoming OAuth 2.1 specification.
-
-\subsection*{Resource Owner Password Credentials}
-The Resource Owner Password Credentials (ROPC) Grant is intended for scenarios where the user has a high level of trust in the client application, such as first-party clients. In this flow, the client application directly collects the user's credentials (username and password) and exchanges them for an access token from the authorization server. This method is straightforward but comes with significant security risks, as the client handles the user's credentials directly.
-
-A major drawback of the ROPC Grant is the potential exposure of user credentials. If the client application is compromised, the user's credentials can be intercepted and misused. Additionally, this flow does not support multi-factor authentication (MFA), which further reduces its security robustness.
-
-Despite these risks, the ROPC Grant can be useful in specific cases, such as when migrating legacy applications that already collect user credentials. It allows these applications to transition to OAuth 2.0 without requiring significant changes to their authentication mechanisms.
-
-The OAuth 2.0 Security Best Current Practice advises against using the ROPC Grant due to its inherent vulnerabilities. As a result, this flow is being deprecated in favor of more secure alternatives like the Authorization Code Grant.
-
-\subsection*{Client Credentials}
-The Client Credentials Grant is used when clients (applications and services) need to obtain access on behalf of themselves rather than on behalf of a user. This flow is particularly useful for background services that apply changes to the system in general rather than for a specific user. In this flow, the client application authenticates with the authorization server using its client credentials (client ID and client secret) and directly obtains an access token.
-
-Keycloak supports client authentication using either a secret or public/private keys. This flexibility allows for secure authentication methods tailored to the specific needs of the client application.
-
-One of the main advantages of the Client Credentials Grant is its simplicity and efficiency in scenarios where user context is not required. However, it also means that the access token obtained is limited to the permissions granted to the client application itself, rather than any specific user.
-
-\subsection*{Device Authorization Grant}
-The Device Authorization Grant is used by clients running on internet-connected devices that have limited input capabilities or lack a suitable browser, such as smart TVs, gaming consoles, or IoT devices. In this flow, the application requests that Keycloak provide a device code and a user code. Keycloak creates these codes and returns them to the application.
-
-The application then provides the user with the user code and a verification URI. The user accesses this verification URI on another device with a suitable browser to authenticate. Meanwhile, the application repeatedly polls Keycloak until the user completes the authorization process.
-
-Once user authentication is complete, the application obtains the device code. The application then uses this device code along with its credentials to obtain an Access Token, Refresh Token, and ID Token from Keycloak.
-
-This grant type is particularly useful for scenarios where user interaction with the device is limited or cumbersome. It allows the user to authenticate on a more convenient device, such as a smartphone or computer, while the original device remains in a waiting state.
-
-\subsection*{Client Initiated Backchannel Authentication Grant}
-The Client Initiated Backchannel Authentication (CIBA) Grant is used by clients to initiate the authentication flow without redirecting through the user's browser. This is particularly useful for devices with limited input capabilities, such as smart TVs or IoT devices. The app requests an \texttt{auth\_req\_id} from Keycloak, and the user completes authentication on a separate device. This flow allows for secure login without direct user interaction with the app.
-
-\newpage
-
 \section{Integrations}
 The significance of Keycloak lies in its practical application. In the following sections, we will explore how Keycloak plays a crucial role in managing authentication for our services. Some open-source software, such as Grafana, allows for seamless integration with Keycloak, making the process straightforward. In contrast, other software solutions, like CTFd, require more effort to integrate. The specifics of these integrations will be detailed in the associated sections.
-
-\subsection{CTFd}
-CTFd is arguably our most important exposed service from a practical user perspective. As a web-based platform designed to host CTF competitions, it requires an efficient way to manage users. Ideally, we would leverage external identity providers to avoid the hassle of user creation, relying instead on higher-level institutions or organizations to provide these identities.
-
-However, there is a significant challenge: CTFd does not support any form of SSO unless it is either an enterprise or hosted version \parencite{ctfd_sso}. This limitation forces us to make a choice. Given that CTFd is open-source, we can either 1) modify the source code to implement SSO our way, or 2) create a custom plugin to handle authentication. Modifying the source code would necessitate freezing the version, as future updates could disrupt our changes. Therefore, creating a plugin is the more rational approach.
-
-Fortunately, creating plugins for CTFd is relatively straightforward and well-documented \parencite{ctfd_plugins}. However, there is a notable issue with how the Docker image is developed. Plugin requirements are installed at build time rather than at the entrypoint, which complicates the process. This means we cannot simply mount the plugin to the specified folder without building the Docker file from scratch, as the necessary pip packages are not installed. The solution was to update the entrypoint -- a simple but inconvenient fix\todo{revise}.
-
-The most important detail about the Keycloak plugin developed for CTFd is that it can be configured using the \texttt{config.json} file, and that endpoints can be overwritten as follows:
-
-\begin{minted}{py3}
-app.view_functions['auth.login'] = lambda: redirect(url_for('keycloak'))
-app.view_functions['auth.logout'] = lambda: redirect(url_for('keycloak_logout'))
-app.view_functions['auth.register'] = lambda: ('', 204)
-app.view_functions['auth.reset_password'] = lambda: ('', 204)
-app.view_functions['auth.confirm'] = lambda: ('', 204)
-\end{minted}
-
-When the user clicks the login button, they are redirected to our custom login page instead of the usual login page. The same applies to the logout button. Additionally, endpoints can be disabled in this manner, resulting in a 204 status code (indicating that the request has been successfully processed, but no content is returned). The code block above demonstrates that if the register button is made public during setup, it will not function as it redirects to nowhere. The same logic applies to the reset password and confirm (login callback) endpoints.
-
-The implementation has been done using \texttt{python-keycloak} \parencite{python_keycloak}, a tool specialized for handling authentication with Keycloak, utilizing the \textit{authorization code} grant type. While a more general approach could have involved using a generic OIDC plugin, \texttt{python-keycloak} was chosen for its ease of use and effectiveness in solving our specific problem.
-
-The login flow utilizes the Authorization Code Grant (see Section \ref{sec:auth_code}) and operates as follows:
-
-\begin{enumerate}
-    \item A user logs into CTFd using their SSO credentials.
-    \item If the user does not exist in CTFd's database, they are created; otherwise, the existing user is fetched.
-    \item Roles and other profile settings are synchronized to match the configurations of the SSO user.
-    \item The user is then logged into CTFd with their SSO credentials.
-\end{enumerate}
-
-If necessary, administrators can disable or ban users from CTFd. It is important to note that even if a user is deleted from CTFd's database, they will be recreated upon logging in again. Conversely, if a user is deleted in Keycloak, they will still exist in CTFd's database but will be unable to log in, as authentication is handled by Keycloak. Therefore, to properly delete a user, they must be removed from both databases, or at least from CTFd's database with their roles revoked to prevent authorization upon authentication.
-
-In SQLAlchemy, \texttt{polymorphic\_on} and \texttt{polymorphic\_identity} are used to handle inheritance in database models. The \texttt{polymorphic\_on} attribute specifies the column used to determine the type of the object, while \texttt{polymorphic\_identity} sets the identity for each subclass. This allows SQLAlchemy to distinguish between different types of objects stored in the same table.
-
-\begin{minted}{py3}
-class Users(db.Model):
-    __tablename__ = "users"
-    __mapper_args__ = {"polymorphic_identity": "user", "polymorphic_on": type}
-    ...
-
-class Admins(Users):
-    __tablename__ = "admins"
-    __mapper_args__ = {"polymorphic_identity": "admin"}
-\end{minted}
-
-The \texttt{Submissions} class has a foreign key \texttt{user\_id} that references the \texttt{users} table. The \texttt{ondelete="CASCADE"} ensures that when a user is deleted, all related submissions are also deleted.
-
-\begin{minted}{py3}
-class Submissions(db.Model):
-    __tablename__ = "submissions"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"))
-\end{minted}
-
-Handling polymorphic types can be challenging, especially when changing the type of an existing object. For example, if you add an admin and later change its type to user, you might encounter an \texttt{ObjectDeletedError}. This error occurs because changing the polymorphic identity can lead to the deletion of the original object, causing issues with related objects like submissions and comments that are linked via foreign keys with cascade delete.
-
-To handle the issue of changing polymorphic types without losing related objects, you can generate the response first before actually changing the type. This avoids the \texttt{ObjectDeletedError}. This solution was found by reading through the source code for CTFd's public API \cite{CTFdUsersAPI}.
-
-\begin{minted}{py3}
-def patch_user(user_id, data):
-    user = Users.query.filter_by(id=user_id).first_or_404()
-    data["id"] = user_id
-
-    schema = UserSchema(view="admin", instance=user, partial=True)
-    response = schema.load(data)
-    if response.errors:
-        return {"success": False, "errors": response.errors}, 400
-
-    # This generates the response first before actually changing the type
-    # This avoids an error during User type changes where we change
-    # the polymorphic identity resulting in an ObjectDeletedError
-    # https://github.com/CTFd/CTFd/issues/1794
-    response = schema.dump(response.data)
-    ...
-\end{minted}
-
-By understanding and properly handling polymorphic types in SQLAlchemy, you can avoid issues like \texttt{ObjectDeletedError} and ensure that related objects are preserved when changing the type of a user. This involves generating responses before changing types and using methods to manage related objects effectively. This approach ensures that properties and linked objects like submissions and comments are not lost during the type change.\todo{explain API keys}
 
 \subsection{Grafana}\label{sec:grafana_auth}
 Integrating Grafana with Keycloak addresses the critical challenges of secure and efficient user authentication and authorization by leveraging standardized protocols. This section details the configuration process, focusing on protocol integration, PKCE, refresh tokens, role mapping, and the underlying protocols \parencite{GrafanaKeycloak}.
@@ -774,9 +996,6 @@ Role mapping in Grafana is achieved using JMESPath, a query language for JSON. T
 
 Integrating Grafana with Keycloak for authentication provides a secure and efficient solution for managing user access in modern web applications. By leveraging OAuth2 and OIDC protocols, utilizing PKCE, implementing refresh tokens, and employing dynamic role mapping, this integration enhances security and user experience, ensuring that only authorized users can access sensitive data visualized in Grafana.
 
-\subsection{Step Certificates}
-
-\subsection{APIs}
 
 \chapter{Certificate Management}
 
@@ -785,187 +1004,6 @@ It’s both. The CRD (Custom Resource Definition) StepIssuer defines how cert-ma
 The StepIssuer CRD is what allows cert-manager to understand and utilize Step Issuer-specific configurations. The apiVersion specifies that this CRD is part of cert-manager’s ecosystem, linking the certificate management workflow to the Step Issuer capabilities.
 
 So, it’s the combination of the StepIssuer CRD defining the step-issuer's specifics and the API version that ties it into cert-manager’s functionality.
-
-\section{Zero Trust}
-
-\section{Certificate Authority}
-
-\section{ACME for TLS}
-
-\section{SSH Certificates}
-
-\section{Smallstep}
-
-\subsection{Smallstep SSH}
-
-\subsection{Step Certificates}
-
-\subsection{Autocert}
-
-\subsection{Issuer}
-
-\subsection{Bootstrap}
-
-\begin{minted}{bash}
-fingerprint=$(
-    curl -k https://myhost/roots.pem | 
-    openssl x509 -noout -sha256 -fingerprint | 
-    sed 's/://g' | 
-    tr 'A-F' 'a-f' | 
-    awk -F= '{print $2}'
-)
-
-step ca bootstrap --ca-url https://myhost \
-    --fingerprint $fingerprint \
-    --force \
-    --install
-\end{minted}
-
-
-% https://github.com/smallstep/cli/blob/3d38cfeadb8f90e8b916a7b7e9c1d4fe9e80a43f/command/oauth/cmd.go#L331
-
-% step will expect to be able to perform a TLS handshake with the proxy, and use the CA's root certificate to complete the trust chain. So, for inbound TLS connections, the proxy should use a server certificate issued by step-ca. See below for an example.
-
-% Layer 4 (Transport Layer): This deals with transportation of data between systems. It doesn’t concern itself with what the data is, but with the movement of the data packets. In a layer 4 proxy, this means forwarding traffic based purely on TCP/UDP protocols without looking at the actual content. This is often referred to as "TLS passthrough" because the proxy doesn’t terminate the SSL/TLS connection—it just passes it through to the backend server.
-
-% Layer 7 (Application Layer): This goes a step further, inspecting and potentially modifying the data itself because it operates at the application level. A layer 7 proxy can make decisions based on HTTP headers, cookies, and other data in the web traffic, allowing for more sophisticated routing and filtering. The proxy terminates the SSL/TLS connection, decrypts the data, and then possibly re-encrypts it before sending it to the backend server.
-
-% Layer 1 - Physical: Deals with the physical connection between devices, including cables and switches.
-
-% Layer 2 - Data Link: Manages data transfer between adjacent network nodes, using MAC addresses.
-
-% Layer 3 - Network: Handles routing of data packets using IP addresses.
-
-% Layer 4 - Transport: Ensures reliable data transfer with error correction and flow control (e.g., TCP/UDP).
-
-% Layer 5 - Session: Manages sessions or connections between applications.
-
-% Layer 6 - Presentation: Translates data between the application layer and the network, dealing with data encryption and compression.
-
-% Layer 7 - Application: Provides network services directly to end-user applications, such as web browsers and email clients.
-
-% The Root function in the step-ca client code requires no TLS termination because it relies on a direct, secure connection to the CA to ensure the integrity and authenticity of the root certificate. Here’s a detailed explanation:
-
-% Key Points of the Root Function
-% Direct HTTPS Request:
-% Go
-
-% resp, err := c.httpClient.Get(c.baseURL + "/root/" + fingerprint)
-% Kode genereret af kunstig intelligens. Gennemse og brug forsigtigt. Flere oplysninger om ofte stillede spørgsmål.
-% This line makes an HTTPS request to the CA to retrieve the root certificate. The httpClient is configured to establish a secure TLS connection directly to the CA.
-% Certificate Validation:
-% Go
-
-% defer resp.Body.Close()
-% // Parse and validate the certificate
-% Kode genereret af kunstig intelligens. Gennemse og brug forsigtigt. Flere oplysninger om ofte stillede spørgsmål.
-% After receiving the response, the function parses and validates the certificate. This validation process ensures that the certificate matches the expected fingerprint and is trusted.
-% Why No TLS Termination is Required
-% End-to-End Encryption:
-% The Root function expects the entire communication path to be encrypted from the client to the CA. TLS termination at the ingress would break this end-to-end encryption, as the ingress would decrypt and then re-encrypt the traffic. This intermediate step can introduce security risks and prevent the client from validating the CA’s certificate directly.
-% Certificate Integrity:
-% The client needs to ensure that the root certificate it receives is authentic and has not been tampered with. By maintaining a direct TLS connection, the client can securely retrieve and validate the certificate against the provided fingerprint. Any interruption in this secure channel could compromise the integrity of the certificate.
-% Security Policies:
-% The step CLI and step-ca are designed with strict security policies that require direct, secure communication with the CA. Allowing TLS termination would violate these policies and potentially expose the communication to man-in-the-middle attacks.
-% Summary
-% In summary, the Root function requires a direct, uninterrupted TLS connection to ensure the security and integrity of the root certificate retrieval process. SSL passthrough is necessary to maintain this secure connection from the client to the CA, preventing any intermediate decryption and re-encryption that could compromise the security.
-
-% // BootstrapClient is a helper function that using the given bootstrap token
-% // return an http.Client configured with a Transport prepared to do TLS
-% // connections using the client certificate returned by the certificate
-% // authority. By default the server will kick off a routine that will renew the
-% // certificate after 2/3rd of the certificate's lifetime has expired.
-% //
-% // Usage:
-% //
-% //	// Default example with certificate rotation.
-% //	client, err := ca.BootstrapClient(ctx.Background(), token)
-% //
-% //	// Example canceling automatic certificate rotation.
-% //	ctx, cancel := context.WithCancel(context.Background())
-% //	defer cancel()
-% //	client, err := ca.BootstrapClient(ctx, token)
-% //	if err != nil {
-% //	  return err
-% //	}
-% //	resp, err := client.Get("https://internal.smallstep.com")
-% func BootstrapClient(ctx context.Context, token string, options ...TLSOption) (*http.Client, error) {
-% 	b, err := createBootstrap(token) //nolint:contextcheck // deeply nested context; temporary
-% 	if err != nil {
-% 		return nil, err
-% 	}
-
-% 	// Make sure the tlsConfig has all supported roots on RootCAs.
-% 	//
-% 	// The roots request is only supported if identity certificates are not
-% 	// required. In all cases the current root is also added after applying all
-% 	// options too.
-% 	if !b.RequireClientAuth {
-% 		options = append(options, AddRootsToRootCAs())
-% 	}
-
-% 	transport, err := b.Client.Transport(ctx, b.SignResponse, b.PrivateKey, options...)
-% 	if err != nil {
-% 		return nil, err
-% 	}
-
-% 	return &http.Client{
-% 		Transport: transport,
-% 	}, nil
-% }
-
-
-% The real trust chain verification happens because of the setup performed by the transport layer. Here’s how it works:
-
-% Add Root Certificate:
-
-% go
-
-% Kopiér
-% options = append(options, AddRootsToRootCAs())
-% This function ensures the root certificate is included in the client's trust store, making it available for the TLS handshake.
-
-% Transport Configuration:
-
-% go
-
-% Kopiér
-% transport, err := b.Client.Transport(ctx, b.SignResponse, b.PrivateKey, options...)
-% This sets up the transport layer with the necessary certificates and keys. The Transport method configures the client to use these certificates for TLS connections.
-
-% TLSConfig Setup: The Transport function uses the root certificate to create a tls.Config object. This object is part of the Go standard library and handles the TLS handshake.
-
-% Here's a snippet of what happens under the hood in the Transport method:
-
-% go
-
-% Kopiér
-% tlsConfig := &tls.Config{
-%     Certificates: []tls.Certificate{clientCert},
-%     RootCAs:      rootCertPool,
-% }
-% TLS Handshake: When the client makes a request, the tls.Config object handles the TLS handshake, verifying the server’s certificate against the root certificates in the rootCertPool.
-
-% So, the key part of the process is the creation and configuration of the tls.Config object, which includes the root certificate and client certificate. This configuration allows the TLS handshake to verify the server certificate and complete the trust chain
-
-
-% Ah, let me clarify that. The BootstrapServer function in step-ca sets up the server's TLS configuration, ensuring it can handle secure inbound TLS connections. This is more about the server's preparation to securely interact with clients.
-
-% When you use the step ca bootstrap command with the step-cli, it interacts with the step-ca server to download the root certificate and configure the client environment. The client-side setup is done by the BootstrapClient function, ensuring the client can make secure connections to the server.
-
-% So, while BootstrapServer prepares the server, the client’s bootstrap process is handled by BootstrapClient. Both sides work together to ensure secure communication, but they handle different parts of the setup.
-
-
-% Yes, you’ve got it! When the BootstrapClient function returns an http.Client object, it’s the step-cli that receives it. Specifically, the step-cli uses this returned http.Client to make secure HTTP requests to the step-ca server.
-
-% So, the client configured by BootstrapClient allows the step-cli to securely communicate with the CA server, leveraging the configured TLS settings to ensure the trust chain is validated.
-
-
-% "command": "/bin/bash -c \"echo $name:*:19156:0:99999:7:::\""
-
-% That string of numbers and symbols represents various fields in the shadow file entry. Here's a breakdown:
-
-% $name: Username.
 
 % *: Password field (an asterisk means no password is set).
 
