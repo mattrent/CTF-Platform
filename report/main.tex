@@ -83,30 +83,55 @@ With the increasing number of cyber threats and attacks, organizations are const
 This thesis will not go into detail regarding the CTF challenges themselves, but rather focus on the infrastructure and architecture of a platform hosting such challenges. We will though provide some very simplistic Jeopardy challenges to demonstrate the platform's capabilities.
 
 \section{Motivation}
-The motivation behind this thesis is to develop a CTF platform tailored for educational purposes, particularly for Computer Science bachelor's students at the University of Southern Denmark. The platform was initially designed to be hosted on UCloud \Parencite{SDUCloud}, a cloud service managed by the University of Southern Denmark and supported by servers from Aarhus University. However, due to the missing support for hardware virtualization, we decided to migrate the platform to Hetzner \Parencite{Hetzner}. To our surprise Hetnzer does not support hardware virtualization either \Parencite{hetzner_nested_virtualization}, forcing us to use the Google Cloud Platform (GCP). This change in setting enabled us to eliminate certain complexities that were otherwise imposed by using UCloud, as detailed in Section \ref{sec:architecture}. UCloud was initially chosen because of its cost-effectiveness and the fact that it is a service provided by the university.
+The motivation behind this thesis is to develop a CTF platform tailored for educational purposes, particularly for Computer Science bachelor's students at the University of Southern Denmark.
 
-Although this Master's Thesis was developed independently, it is essential to acknowledge the contributions of the individuals who played a role in the project. The group composition was as follows: Henrik Rossen Jakobsen, a former Master's student, began his Thesis in January 2024. His initial research focused on analyzing different CTF platforms by comparing their strengths and weaknesses. This analysis established a set of requirements for the platform to be developed. I joined Henrik in September 2024 to assist in the platform's development. Due to the limitations of UCloud, Matteo Trentin, a PhD student, joined the project to establish a distributed Kubernetes cluster on both UCloud and GCP. Following this, we worked independently while contributing features to a unified platform. We all share the same supervisor, Jacopo Mauro, who provided guidance and support throughout the project.
+Haaukins, a state-of-the-art platform used to host De Danske Cybermesterskaber (DDC), has several limitations. As highlighted in Henrik Rossen Jakobsen's thesis, Haaukins is complex to deploy due to numerous manual steps and limited documentation. Additionally, validating challenges requires setting up a CTFd event, making iterative testing cumbersome.
 
-By reading Henrik's Thesis, I was able to gain insights into the main state-of-the-art competitor, namely Haaukins. This platform is also used to host the De Danske Cybermesterskaber (DDC). The drawbacks of the platform is that it is complicated to deploy due to limited documentation and manual steps, and there is no way to check the validity of a challenge without creating a CTFd event. Additionally, containers are a widely used solution for deploying challenges. However, they carry the risk of container escape, where an attacker could exploit a vulnerability to gain access to the host system. This risk is heightened in the context of CTF competitions, as challenges may deliberately include vulnerabilities -- we have mitigated this risk by using Virtual Machines (VMs) instead of containers.
+To address these challenges, this project builds upon Henrik's work with the CTFd plugin and Deployer Backend. The goal is to enhance its functionality by integrating solutions for challenge validation and introducing container support where VM isolation is unnecessary. However, this is just one component of a larger platform. To ensure full usability, additional infrastructure must be developed, including persistent storage, authentication mechanisms, an introductory GUI for user interaction, and a bastion host for secure SSH access. The platform must also support straightforward deployment and reliable operation on UCloud.
 
-\section{Contributions} 
+\section{Contributions}
+This thesis explores open-source software (OSS) to develop a CTF platform that is easy to deploy and maintain, providing a minimal viable product (MVP) for hosting CTF competitions. The key contributions are:
 
-\begin{figure}
+\begin{itemize}
+    \item Players can start and stop test environments on demand and verify their status through the API or CTFd.
+    \item The platform supports both VMs and containers, with a feature flag controlling the selection.
+    \item Keycloak provides Single Sign-On (SSO), authentication, and role-based access control.
+    \item Grafana, Prometheus, Loki, and Promtail facilitate metrics collection, logging, and system monitoring.
+    \item Dynamic storage provisioning ensures persistent data integrity across deployments.
+    \item A bastion host enforces secure SSH access to challenges, requiring authentication with PKI-issued certificates.
+    \item A Jekyll-powered static website offers documentation on platform usage and API integration.
+    \item The platform is deployable on both UCloud and GCP.
+\end{itemize}
+
+Experiments confirm players can validate challenges efficiently, VM and container support improves adaptability, and authentication ensures controlled access. Monitoring, storage provisioning, and SSH security enhance reliability, while deployment on UCloud and GCP demonstrates scalability. Figure \ref{fig:wordcloud} illustrates the technologies used in this thesis.
+
+\section{Structure} 
+The following chapters outline the structure of this thesis:
+\begin{itemize}
+    \item \textbf{Chapter 2:} \textit{State of the Art} Provides an overview of existing technologies and methodologies relevant to the project.
+    \item \textbf{Chapter 3:} \textit{Implementation} Details the architecture, development, and integration of the platform.
+    \item \textbf{Chapter 4:} \textit{Discussion} Analyzes the outcomes, challenges, and improvements made during the project.
+    \item \textbf{Chapter 5:} \textit{Conclusion} Summarizes key findings, reflections, and future directions.
+\end{itemize}
+
+The project files and documentation are available at \url{https://kianbankelarsen.github.io/CTF-Platform/}, along with additional related resources, all of which can be accessed through this URL.
+
+This report was prepared with the assistance of generative AI tools such as Edge Copilot and GitHub Copilot, specifically for linguistic refinement and error correction purposes.
+
+\vspace*{\fill}
+
+\begin{figure}[H]
     \centering
     \includesvg[width=1\textwidth]{../assets/images/wordcloud.svg}
     \caption{Word cloud generated from technologies applied in this thesis.}
     \label{fig:wordcloud}
 \end{figure}
 
-\section{Structure} 
-
-The project files and documentation are available at \url{https://kianbankelarsen.github.io/CTF-Platform/}, along with additional related resources, all of which can be accessed through this URL.
-
-This report was prepared with the assistance of generative AI tools such as Edge Copilot and GitHub Copilot, specifically for linguistic refinement and error correction purposes.
+\vspace*{\fill}
 
 \chapter{State of the Art}
 
-This chapter provides an overview of the key concepts, tools, and technologies needed to develop a scalable and reliable CTF platform. Building such a platform requires understanding the current approaches and learning from past implementations to make the best use of open-source software (OSS). By looking into established methods and tools, this chapter helps guide the decisions made throughout the project.
+This chapter provides an overview of the key concepts, tools, and technologies needed to develop a scalable and reliable CTF platform. Building such a platform requires understanding the current approaches and learning from past implementations to make the best use of OSS. By looking into established methods and tools, this chapter helps guide the decisions made throughout the project.
 
 Topics covered include Infrastructure as Code (IaC) for easier deployment, Dynamic Storage Provisioning for storage management and backup, Private Key Infrastructure (PKI) for data integrity, and Identity and Access Management (IAM) for access control. These areas and others form the basis for creating a secure and efficient CTF platform.
 
@@ -358,7 +383,7 @@ For log aggregation, Grafana Loki was chosen because it is part of the same ecos
 
 Log collection requires more consideration. Grafana offers several options, including Promtail, Grafana Alloy, OpenTelemetry, and Fluent Bit \Parencite{grafana_loki_send_data}. All are licensed under the Apache License, Version 2.0. Promtail was historically a preferred choice due to its direct integration with Loki; however, it has been deprecated in favor of Grafana Alloy \Parencite{grafana_promtail}. Despite this, Promtail was selected for this project based on prior experience and ease of use.
 
-Fluent Bit is a flexible alternative but was not chosen, as Promtail is tailored for Loki \Parencite{grafana_loki_send_data}. OpenTelemetry, while powerful in collecting metrics, logs, and traces \Parencite{opentelemetry_overview}, was deemed excessive for this use case, where the focus is only on log collection. Given the project's requirements and the goal of achieving a Minimal Viable Product (MVP), Promtail remained the preferred option despite its deprecation.
+Fluent Bit is a flexible alternative but was not chosen, as Promtail is tailored for Loki \Parencite{grafana_loki_send_data}. OpenTelemetry, while powerful in collecting metrics, logs, and traces \Parencite{opentelemetry_overview}, was deemed excessive for this use case, where the focus is only on log collection. Given the project's requirements and the goal of achieving a MVP, Promtail remained the preferred option despite its deprecation.
 
 The logging architecture is illustrated in Figure \ref{fig:logging_architecture}.
 
@@ -740,7 +765,7 @@ In addition to adhering to Flask's backend guidelines, the plugin implements a c
 
 The plugin's frontend extends CTFd's existing markup templates using Jinja template inheritance to create a custom challenge type, defining the challenge's view and description. Additional functionality includes a start and stop button for managing challenges.
 
-Originally developed by Henrik Rossen, the plugin was later modified by me. My contributions include adding a verification badge to indicate whether a challenge has been automatically verified as solvable via a script. This required modifying the status endpoint in both the Challenge Plugin and the Deployer Backend, integrating CSS into the challenge frontend, and dynamically toggling the badge's appearance based on backend responses, as illustrated in Figure \ref{fig:verification_badge}.
+Originally developed by Henrik Rossen Jakobsen, the plugin was later modified by me. My contributions include adding a verification badge to indicate whether a challenge has been automatically verified as solvable via a script. This required modifying the status endpoint in both the Challenge Plugin and the Deployer Backend, integrating CSS into the challenge frontend, and dynamically toggling the badge's appearance based on backend responses, as illustrated in Figure \ref{fig:verification_badge}.
 
 \begin{figure}[h]
     \centering
@@ -831,6 +856,21 @@ A key drawback of realm files is that they can become outdated with newer Keyclo
 \chapter{Discussion}
 
 \chapter{Conclusion}
+A review of state-of-the-art technologies provided valuable insights into popular solutions suitable for building a CTF platform. The development process followed an extreme programming approach, adapting to emerging needs as the project evolved. The platform's infrastructure is based on OSS, with the only custom-developed component being the Deployer Backend. While integrating OSS is not always easier than developing software from scratch, it significantly reduces time and effort and offers the advantage of community-driven maintenance.
+
+The CTF platform was deployed on UCloud, demonstrating the feasibility of mitigating its constrained network environment using Headscale and Tailscale. By running the platform on a VPN network under our administration, we maintained control over network security. However, UCloud's stability issues and lack of hardware virtualization significantly impacted performance, leading to the decision to migrate the platform to GCP. Unlike UCloud, GCP provides a more reliable environment with hardware virtualization, which offers improved efficiency and faster execution. This transition comes with additional costs, as GCP is significantly more expensive than UCloud.
+
+The platform provides users with essential knowledge on its usage through a Jekyll-powered homepage. This homepage includes detailed sections covering an introduction to the platform, API usage, challenge development, SSH-based connections to challenges, and guidance on trusting the root certificate.
+
+Chaos testing conducted by Matteo Trentin confirmed the platform's fault tolerance. Storage is persisted across deployments using NFS dynamic storage provisioning combined with either MinIO or a persistent disk in GCP. The platform supports any block storage, requiring only proper provisioner configuration. In the event of server node restarts or shutdowns, the system remains recoverable, though PKI-related challenges may sometimes require minor manual intervention.
+
+The platform implements IAM via Keycloak, with many services configured for authentication and authorization. Grafana natively supports OIDC, while a custom authentication plugin was developed for CTFd to enable OIDC compatibility. The PKI is also integrated with Keycloak, securing infrastructure through a bastion host that restricts access to users possessing an SSH certificate issued by the PKI with a bastion principal. The Deployer Backend does not directly authenticate users via Keycloak but relies on access tokens signed by Keycloak for authorization, verifying each token's integrity and validity -- users must obtain these tokens themselves. A more user-friendly approach would have been to support basic authentication with a username and password, allowing the API to request a token from Keycloak using the Resource Owner Password Credentials grant.
+
+The Deployer Backend has been enhanced to support solutions -- automated tests that verify whether a challenge is solvable by a script. Due to the resource-heavy nature of VMs, the Deployer Backend was adapted to support both containers and VMs, with a feature flag in Unleash allowing administrators to toggle between the two. Additionally, its ingress configuration has been updated to correctly utilize certificates issued by the PKI. The Swagger documentation has also been updated to include all new endpoints, as well as previously existing endpoints that were missing documentation.
+
+The platform is designed to rely on the PKI for certificate management, strictly for internal components rather than user-facing interactions. While users can manually trust these certificates, this was never the intended approach. Due to DNS provider limitations preventing automated wildcard certificate requests, proving domain ownership via \texttt{HTTP01} challenges is simpler than using \texttt{DNS01} challenges. Consequently, Certbot and NGINX were implemented to automate certificate requests for known domains, such as the main domain and the deployer subdomain. This solution was preferred over modifying ingress configurations between development and production environments, as placing a proxy in front of the platform offers a more elegant and maintainable approach. As a result, automatically generated subdomains for challenges are configured to use PKI-issued certificates, which users can manually configure their systems to trust by adding the PKI's root certificate to their trusted certificate store.
+
+Future development of the platform includes improving log retrieval by replacing direct pod scraping with persisted logs in Loki, ensuring users can access logs even after challenges or solutions have stopped running. Additionally, an authentication hook for Unleash will be implemented, allowing users to authenticate with their Keycloak credentials. While the Deployer Backend provides the necessary functionality, its current implementation is difficult to extend and may require a refactor for better flexibility and maintainability. Using NixOS for VM disk image creation and Pulumi for provisioning the Keycloak realm and clients would enhance automation and infrastructure management, while also allowing Pulumi to replace Terraform, simplifying the technology stack and reducing the number of required tools.
 
 \cleardoublepage
 \phantomsection
@@ -1004,25 +1044,3 @@ It’s both. The CRD (Custom Resource Definition) StepIssuer defines how cert-ma
 The StepIssuer CRD is what allows cert-manager to understand and utilize Step Issuer-specific configurations. The apiVersion specifies that this CRD is part of cert-manager’s ecosystem, linking the certificate management workflow to the Step Issuer capabilities.
 
 So, it’s the combination of the StepIssuer CRD defining the step-issuer's specifics and the API version that ties it into cert-manager’s functionality.
-
-% *: Password field (an asterisk means no password is set).
-
-% 19156: Days since the Unix epoch (1 January 1970) when the password was last changed.
-
-% 0: Minimum number of days before a password change is allowed.
-
-% 99999: Maximum number of days the password is valid.
-
-% 7: Number of days before the password expires that the user is warned.
-
-% :::: These fields are left blank, typically for inactivity period, expiration date, and reserved for future use.
-
-% Each field has a specific purpose in managing user passwords and their expiration policies. It's part of the system's security mechanisms. Quite the intricate dance of digits and colons!
-
-
-% TODO remembe to discuss that the CTFd OIDC auth does not conflict with API
-
-% CORS, same-site cookie attribute and same-origin policy
-
-% sudo apt-get install libvirt-clients
-% virt-host-validate qemu
