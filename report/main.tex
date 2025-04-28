@@ -854,6 +854,56 @@ A key drawback of realm files is that they can become outdated with newer Keyclo
 % \subsection{README}
 
 \chapter{Discussion}
+In this chapter, we will examine the development process and the key decisions made throughout the project. With a critical yet objective approach, we will assess these choices, explore possible alternatives, and provide a comprehensive evaluation of the platform's overall performance.
+
+\section{Local Development}
+Developer experience (DevEx) is critical to a project's success. A positive experience enhances productivity and satisfaction, while a negative one leads to inefficiency and frustration. The tools and practices used in development help ensure a smooth process.
+
+Consistency between development and production environments is essential. Replicating the production setup locally facilitates testing and debugging, allowing developers to resolve issues before deployment. Using identical tools and configurations minimizes discrepancies and improves reliability. The development environment closely mirrors production, with data being the only difference.
+
+For local development, a full Kubernetes K8 setup or the lightweight K3 option will not be used. Instead, Minikube, which runs as a Docker container, will serve this purpose. Pipelines will not be available locally, but tasks in Visual Studio Code (VS Code) can effectively simulate their functionality.
+
+\subsection{Minikube}
+Minikube can run the platform locally with some adjustments. Due to its resource-heavy nature, it is advisable to allocate maximum memory and CPU using the command: \texttt{minikube start --memory=max --cpus=max}.
+
+A challenge in local development is the absence of domain names. Modifying the hosts file allows local domains, but pointing to 127.0.0.1 does not work when referenced from within Minikube, as containers need the host machine's localhost rather than their own. The implemented solution creates a service named after the configured domain in the Pulumi config, ensuring internal DNS resolves it before external routing. In production, this is irrelevant, as records point to the server.
+
+A limitation of this approach is that local domains cannot contain dots, as they must be valid Kubernetes service names. A better alternative could have been configuring the domain record in the hosts file to point to Minikube's IP, retrieved via \texttt{minikube ip}, or using Docker's subnet IP, obtained through \texttt{docker network inspect bridge}. However, relying on a static IP like \texttt{172.17.0.1} risks unexpected changes, complicating configuration.
+
+The current setup only requires adding hostnames to the hosts file. Minikube's IP has not been tested, but Docker's subnet was previously used when multiple Ingress Controllers were active. An advantage of the latter approach is bypassing manual hostname records, as \texttt{https://nip.io} can dynamically resolve domain names to IP addresses. However, this assumes uniform Docker subnet or Minikube IPs across all machines.
+
+\todo{discuss image registry}
+
+\subsection{Pipeline}
+
+\texttt{.vscode/tasks.json}
+
+\begin{minted}{json}
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Deploy infrastructure",
+            "group": "build",
+            "type": "shell",
+            "command": "pulumi up --stack dev -y --cwd src/infrastructure",
+        },
+    ],
+}
+\end{minted}
+
+\begin{minted}{json}
+{
+    "label": "Deploy everything",
+    "group": "build",
+    "dependsOn": ["Deploy infrastructure", "Deploy certificates", "Deploy monitoring", "Deploy authentication", "Deploy application"],
+    "dependsOrder": "sequence"
+}
+\end{minted}
+
+\section{Deployer Backend}
+
+\subsection{Ingress Controller}
 
 \chapter{Conclusion}
 A review of state-of-the-art technologies provided valuable insights into popular solutions suitable for building a CTF platform. The development process followed an extreme programming approach, adapting to emerging needs as the project evolved. The platform's infrastructure is based on OSS, with the only custom-developed component being the Deployer Backend. While integrating OSS is not always easier than developing software from scratch, it significantly reduces time and effort and offers the advantage of community-driven maintenance.
