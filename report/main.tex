@@ -961,11 +961,30 @@ Logging is an essential component of any system, ensuring developers have access
 
 Designed with a focus on administrative insights, the monitoring system has demonstrated the effectiveness of non-intrusive logging through Promtail and Loki. Promtail collects container logs and forwards them to Loki, which persists them for later access. Relying on direct pod log scraping presents challenges, as logs are only accessible while the pod is running. If a pod crashes or is deleted upon completion, its logs become unavailable, complicating troubleshooting for platform users.
 
-A more robust approach would involve querying persisted logs through Loki's exposed endpoints rather than scraping container logs directly. This solution requires additional configuration, particularly due to the use of mTLS, but remains feasible through the Golang client libraries provided. By leveraging Loki's query capabilities, log availability is significantly improved, ensuring that critical debugging data remains accessible even after the deletion of a namespace and its associated deployments.
+A more robust approach would involve querying persisted logs through Loki's exposed endpoints rather than scraping container logs directly. This solution requires additional configuration, particularly due to the use of mTLS, but remains feasible through the Golang client libraries provided. By leveraging Loki's query capabilities, log availability is significantly improved, ensuring that critical debugging data remains accessible even after the deletion of a namespace and its associated resources.
 
 \subsection{Technical Debt}
+The connotation of technical debt often implies a burden to be avoided, yet in this context, it simply reflects suboptimal design choices and implementation decisions that warrant re-evaluation. Rather than continuously adding complexity to an already intricate system, addressing these issues can lead to cleaner, more maintainable code.
+
+Upon code handover, cleanup was necessary. The code base contained unused code that should have been removed and redundant logic that required refactoring. This included access token parsing, where unnecessary validity checks duplicated the verification already handled by the library.
+
+The database schema previously relied on migration files, which are useful for production systems but unnecessary for non-production environments. These migrations have been consolidated into a single file that defines the database tables and constraints. The backend could also have benefited from using an Object-Relational Mapping (ORM) for a more structured approach to database interactions.
+
+Kubernetes resources for the Traefik controller were removed, and \texttt{Ingress} resources were patched to correctly use PKI-issued certificates. With the addition of more dependencies to the Helm chart, maintaining both deployment solutions was deemed impractical. As a result, the Docker-compose file and its associated environment file were deleted.
+
+Furthermore, documentation for the endpoints retrieving challenge logs and downloading challenges was initially missing but was later incorporated into the solution's Swagger documentation. While the download endpoint is primarily intended for internal use, its inclusion ensures consistency and accessibility. Generating documentation is straightforward, as the Swagger endpoint is automatically created from docstrings in the code using the Swag CLI.
+
+The backend code quality is sufficient but follows a rigid flow -- adding a challenge, creating an instance, and provisioning Kubernetes resources -- which makes extensions difficult due to its lack of generic design. Golang's absence of native object-oriented programming (OOP) can be limiting, but leveraging interfaces and functions remains the recommended approach. The implementation currently forces challenge logic onto solutions, which, while convenient, is not ideal. Challenges and solutions share similarities, yet the inability to properly map requests to start an environment as either a challenge or a solution necessitates either distinct processing flows or a workaround that modifies Kubernetes resource labels, making differentiation between the two environments unclear. The database logs when an instance is started but does not track whether it has ever been stopped, meaning this information must be retrieved by querying the Kubernetes API to determine its running state. The implementation relies heavily on Kubernetes labels, which proves useful for efficiently managing such queries.
 
 \newpage
+
+\section{Bastion Authentication}
+
+\section{Certificate Issuance}
+
+\section{Docker Registry}
+
+\section{HTTP Strict Transport Security}
 
 \section{Performance of Hardware Virtualization}
 
