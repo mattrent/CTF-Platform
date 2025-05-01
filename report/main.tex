@@ -137,7 +137,7 @@ Topics covered include Infrastructure as Code (IaC) for easier deployment, Dynam
 
 \section{Infrastructure as Code}
 
-Infrastructure as Code (IaC) is a modern approach to provision and configure resources. IaC is desirable because it offers consistency and repeatability, reducing the risk of human error and ensuring that the infrastructure is always in a known state. The critical importance of such reliability is underscored by incidents like the Knight Capital Group's failed deployment, which resulted in the loss of nearly \$400 million within just 45 minutes \Parencite{seven2014knightmare}. Additional benefits of IaC include version control and documentation. Version control allows for easier disaster recovery, as the entire infrastructure can be restored to a previous state if needed. Documentation is automatically generated, as the code itself serves as documentation. 
+IaC is a modern approach to provision and configure resources. IaC is desirable because it offers consistency and repeatability, reducing the risk of human error and ensuring that the infrastructure is always in a known state. The critical importance of such reliability is underscored by incidents like the Knight Capital Group's failed deployment, which resulted in the loss of nearly \$400 million within just 45 minutes \Parencite{seven2014knightmare}. Additional benefits of IaC include version control and documentation. Version control allows for easier disaster recovery, as the entire infrastructure can be restored to a previous state if needed. Documentation is automatically generated, as the code itself serves as documentation. 
 
 Tools like Pulumi and Terraform, which only require interface implementation, inherently support both Cloud-Native and Multi-Cloud environments. The cloud-agnostic nature of the code simplifies migration between clouds. Ansible, an OSS licensed under Apache License 2.0 \Parencite{ansible_license}, is a complementing tool to Pulumi and Terraform. Ansible specializes in configuration management and software provisioning. It uses YAML-based playbooks to install software and configure servers. Pulumi and Terraform excel at provisioning servers and setting up cloud infrastructure, while Ansible handles fine-tuning and ongoing maintenance. Together, these tools enable full-stack automation.
 
@@ -146,7 +146,7 @@ IaC is not limited to the tools mentioned. Vagrant, Chef, and Puppet also belong
 \subsection{Pulumi versus Terraform}
 Pulumi and Terraform are very similar tools, but they differ in their approach to defining infrastructure. Terraform uses a domain-specific language (DSL) called HashiCorp Configuration Language (HCL), which is declarative. This means that you describe the desired state of your infrastructure, and Terraform figures out how to achieve that state. Pulumi, on the other hand, uses general-purpose programming languages like TypeScript, Python, Go, and C\# \Parencite{pulumi_vs_terraform}. This allows for more flexibility and the ability to use existing libraries and tools. Thereby, Pulumi is primarily declarative, but it incorporates imperative capabilities to include procedural logic alongside infrastructure definitions.
 
-Terraform began its journey in 2014 \Parencite{hashicorpTerraform}, laying the foundation for Infrastructure as Code (IaC) tools, while Pulumi entered the scene in 2017 \Parencite{pulumiAbout}. Pulumi remains open-source software (OSS), distributed under the Apache 2.0 license \Parencite{pulumiLicense2025}. In 2024, IBM's acquisition of HashiCorp resulted in Terraform transitioning to closed-source software (CSS). In response, OpenTofu emerged as a fork of Terraform \Parencite{opentofu}, ensuring the continuation of open-source alternatives. OpenTofu is licensed under the Mozilla Public License 2.0 \Parencite{opentofuLicense2025}. In order to transition users from Terraform to Pulumi, Pulumi provides software to convert template files from HCL into Pulumi programs \Parencite{pulumiMigration2025}.
+Terraform began its journey in 2014 \Parencite{hashicorpTerraform}, laying the foundation for IaC tools, while Pulumi entered the scene in 2017 \Parencite{pulumiAbout}. Pulumi remains open-source software (OSS), distributed under the Apache 2.0 license \Parencite{pulumiLicense2025}. In 2024, IBM's acquisition of HashiCorp resulted in Terraform transitioning to closed-source software (CSS). In response, OpenTofu emerged as a fork of Terraform \Parencite{opentofu}, ensuring the continuation of open-source alternatives. OpenTofu is licensed under the Mozilla Public License 2.0 \Parencite{opentofuLicense2025}. In order to transition users from Terraform to Pulumi, Pulumi provides software to convert template files from HCL into Pulumi programs \Parencite{pulumiMigration2025}.
 
 The functionalities offered by Pulumi and Terraform are largely similar, though there are some technical distinctions. While this project does not require advanced features provided by either tool, we do benefit from Pulumi's capability to support encrypted secrets. This facilitates seamless secret management both locally and in production environments, eliminating the need for paid external secret vaults \Parencite{pulumi_vs_terraform}. Additionally, Pulumi provides dynamic provider support -- a feature not available in Terraform. Conversely, Terraform supports Policy as Code, which is not offered by Pulumi. Pulumi can adapt any Terraform provider, enabling the management of all infrastructure supported by Terraform.
 
@@ -835,25 +835,166 @@ A key drawback of realm files is that they can become outdated with newer Keyclo
 
 \subsection{Non-Intrusive Logging}
 
-% \section{Smallstep} \label{sec:smallstep}
+\section{Smallstep}\label{sec:smallstep}
 
-% \section{Ingress Controller}
+\subsection{Step Certificates}
 
-% \section{Deployer Backend}
+\subsection{Step Autocert}
 
-% \section{Certbot Proxy}
+\section{TLS configuration}
 
-% \section{Docker Registry}
+\subsection{Ingress TLS}
 
-% \section{Unleash}
+\subsection{Services}
 
-% \section{Bastion}
+\subsection{Let's Encrypt}
 
-% \section{Jekyll}
-% \subsection{Hompepage}
-% \subsection{README}
+\section{Deployer Backend}
+
+\subsection{Endpoints}
+
+\subsection{Unleash}
+
+\subsection{Reflector}
+
+\subsection{Building VM Disk Image}
+
+\section{Docker Registry}
+
+\subsection{Authentication}
+\subsection{Exposure}
+
+\section{Bastion}
+\subsection{OS Hardening}
+
+\section{Health Probes}
+
+\section{Jekyll}
+\subsection{Hompepage}
+\subsection{README}
+\subsection{Multistage Build}
 
 \chapter{Discussion}
+In this chapter, we will examine the development process and the key decisions made throughout the project. With a critical yet objective approach, we will assess these choices, explore possible alternatives, and provide a comprehensive evaluation of the platform's overall performance.
+
+\section{Local Development}
+Developer experience (DevEx) is critical to a project's success. A positive experience enhances productivity and satisfaction, while a negative one leads to inefficiency and frustration. The tools and practices used in development help ensure a smooth process.
+
+Consistency between development and production environments is essential. Replicating the production setup locally facilitates testing and debugging, allowing developers to resolve issues before deployment. Using identical tools and configurations minimizes discrepancies and improves reliability. The development environment closely mirrors production, with data being the only difference.
+
+For local development, a full Kubernetes K8 setup or the lightweight K3 option will not be used. Instead, Minikube, which runs as a Docker container, will serve this purpose. Pipelines will not be available locally, but tasks in Visual Studio Code (VS Code) can effectively simulate their functionality.
+
+\subsection{Minikube}
+Minikube can run the platform locally with some adjustments. Due to its resource-heavy nature, it is advisable to allocate maximum memory and CPU using the command: \texttt{minikube start --memory=max --cpus=max}.
+
+A challenge in local development is the absence of domain names. Modifying the hosts file allows local domains, but pointing to 127.0.0.1 does not work when referenced from within Minikube, as containers need the host machine's localhost rather than their own. The implemented solution creates a service named after the configured domain in the Pulumi config, ensuring internal DNS resolves it before external routing. In production, this is irrelevant, as records point to the server.
+
+A limitation of this approach is that local domains cannot contain dots, as they must be valid Kubernetes service names. A better alternative could have been configuring the domain record in the hosts file to point to Minikube's IP, retrieved via \texttt{minikube ip}, or using Docker's subnet IP, obtained through \texttt{docker network inspect bridge}. However, relying on a static IP like \texttt{172.17.0.1} risks unexpected changes, complicating configuration.
+
+The current setup only requires adding hostnames to the hosts file. Minikube's IP has not been tested, but Docker's subnet was previously used when multiple Ingress Controllers were active. An advantage of the latter approach is bypassing manual hostname records, as \url{https://nip.io} can dynamically resolve domain names to IP addresses. However, this assumes uniform Docker subnet or Minikube IPs across all machines.
+
+The Docker image registry is not strictly tied to local development in Minikube, but certain considerations should be kept in mind. When running Minikube on Windows, an alternative domain or tag must be used instead of localhost when pushing images; otherwise, an error occurs. While localhost works with standard Docker, the exact cause of this discrepancy remains unclear, though the workaround effectively resolves it. The registry itself may or may not be configured with a certificate, but this poses no issue, as Docker supports \textit{insecure} registries. By default, Docker permits insecure registries on the subnet \texttt{127.0.0.0/8} and \texttt{hubproxy.docker.internal:5555}, with these settings retrievable via the \texttt{docker info} command. Minikube operates within its own context, and switching to it can be accomplished using \texttt{eval \$(minikube docker-env)}. Within this context, Minikube allows insecure registries within the ranges \texttt{10.96.0.0/12} and \texttt{127.0.0.0/8}. The use of a domain is inconsequential as long as the registry's IP falls within these designated subnets \Parencite{dockerInsecureRegistries}. Locally built images reside within the host's Docker context rather than Minikube's. To enable Minikube to access these images, developers must either switch to the Minikube context or push the images to a registry accessible by the Kubelet. Since Pulumi can build and push images as part of the deployment process, an efficient workflow is to provision the registry, build and push images to it, and subsequently deploy applications using those images. Automating this process simplifies operations compared to manually switching contexts. However, in a full Kubernetes cluster, the registry may not be necessary, as images can be directly accessed from the host's Docker environment.
+
+\subsection{Pipeline}
+What is a pipeline if not just a series of commands being run? A pipeline is convenient because triggers can be defined to run the pipeline automatically on, e.g., merges to some branch. In the spirit of CI/CD, a pipeline has also been implemented in this project -- though outdated -- such that the project could be deployed from a phone or automatically on trigger if desired.
+
+A significant portion of the work has already been implemented as part of the IaC, so the pipeline primarily executes the existing infrastructure definitions. Deploying locally has been simplified using VS Code tasks, which mimic a real pipeline by efficiently managing necessary deployment stages. These tasks are defined in \texttt{.vscode/tasks.json}, and Figure \ref{fig:vscode_tasks} presents an excerpt of the file.
+
+\begin{figure}[h]
+\begin{minted}{json}
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Deploy infrastructure",
+            "group": "build",
+            "type": "shell",
+            "command": "pulumi up --stack dev -y --cwd src/infrastructure"
+        }
+    ]
+}
+\end{minted}
+    \caption{VS Code task for deploying the platform.}
+    \label{fig:vscode_tasks}
+\end{figure}
+
+Tasks streamline the execution of complex commands, reducing manual input and improving efficiency. More importantly, tasks can be chained via dependencies to form a powerful automation system. When a task depends on other tasks, those prerequisite tasks are executed first, effectively structuring deployment stages similar to a pipeline.
+
+Parallel execution can optimize deployment speed, but Pulumi restricts this approach due to its state file locking mechanism, which ensures consistency by allowing only one process to modify the file at a time. Figure \ref{fig:vscode_tasks_deps} illustrates a task dependent on multiple deployment steps, effectively orchestrating the full platform deployment. Automating this process is valuable, as deployments typically take several minutes.
+
+\begin{figure}[h]
+\begin{minted}{json}
+{
+    "label": "Deploy everything",
+    "group": "build",
+    "dependsOn": ["Deploy infrastructure", "Deploy certificates", "Deploy monitoring", "Deploy authentication", "Deploy application"],
+    "dependsOrder": "sequence"
+}
+\end{minted}
+\caption{Task with dependencies simulating pipeline stages.}
+\label{fig:vscode_tasks_deps}
+\end{figure}
+
+To maintain a clean development environment, an additional task facilitates complete teardown. Before shutting down the cluster, developers should either delete the Pulumi state file or destroy resources to prevent inconsistencies. If resources remain undeleted, Pulumi will incorrectly assume they exist even when they do not. Running \texttt{Pulumi refresh} updates the state file to reflect the actual state of the cluster, though the preferred approach is executing the ``destroy everything'' task before terminating Minikube for a clean slate.
+
+\section{Deployer Backend}
+Taking full responsibility for maintaining and extending the Deployer Backend presented challenges due to the lack of documentation and formal onboarding. Understanding the system's flow and underlying design choices required considerable effort, particularly in determining the reasoning behind key implementation decisions. While initially involved in a supporting role, the responsibility eventually expanded to overseeing its continued development, integration into the platform, and cloud-based testing.
+
+The following sections will explore the contributions made to the project prior to its handover, the complications arising from the absence of documentation on the Disk VM Image, and the broader impact of the code's structure and design choices on subsequent development efforts.
+
+\subsection{Ingress Controller}
+The Deployer Backend initially relied on Traefik, an ingress controller with capabilities beyond those required for this project. When not using Traefik CRDs, NGINX and Traefik function interchangeably with standard \texttt{Ingress} resources. However, the Backend unnecessarily created \texttt{IngressRoutes}, introducing avoidable dependencies.
+
+This was problematic because the platform already used the NGINX ingress controller. While Kubernetes supports multiple ingress controllers, complications arose with SSLH, a protocol multiplexer that must route traffic to a defined target. Some routes needed to be handled by Traefik, others by NGINX, creating uncertainty. Redirecting traffic to the Docker bridge network was an option but presented a fragile solution due to potential IP changes.
+
+Using a single ingress controller allows traffic to be routed to the controller's service by hostname, ensuring consistent resolution without reliance on hardcoded IP addresses. Replacing \texttt{IngressRoute} with standard \texttt{Ingress} resources makes the platform adaptable to any ingress controller, eliminating unnecessary dependencies and providing a more reliable approach.
+
+\subsection{VM Disk Image}
+The VM image was built by Henrik Rossen Jakobsen. Its contents remain unknown, presenting challenges, but it is known to be based on Alpine. KubeVirt provides documentation on accessing the virtual machine via console or SSH, which was used by Henrik to implement SSH access. Despite this, authentication via SSH key has not been successful. Console access requires a password, but whether this is a default credential or a custom configuration is unclear, making troubleshooting difficult. The absence of documentation has significantly hindered efforts to understand and work with the image.
+
+Another issue arose when the image was stored in a GitLab-hosted container registry. After Henrik completed his thesis, the GitLab project was deleted, resulting in the loss of the image. The process for constructing a Docker image from the disk image was undocumented, complicating recovery. Information about accessing and handling the VM image was found through KubeVirt's documentation. While the Docker image is now built as part of the deployment using the VM disk image, the lack of transparency regarding its internal structure continues to pose challenges.
+
+A more maintainable solution would have used NixOS, as outlined in the state-of-the-art, to define the Alpine VM declaratively. This method would have ensured transparency, reproducibility, and simplified modifications. A declaratively defined VM eliminates the need for external image storage, as it can be built dynamically during deployment.
+
+\subsection{Logging} 
+Logging is an essential component of any system, ensuring developers have access to crucial logs when issues arise. The current implementation scrapes logs from a specific container within a pod. Henrik's initial approach correctly retrieved pod logs, but they were not exposed by the VM. This limitation was later resolved by Matteo Trentin, and the logging functionality was further extended by the author of this thesis to support container-level log retrieval.
+
+Designed with a focus on administrative insights, the monitoring system has demonstrated the effectiveness of non-intrusive logging through Promtail and Loki. Promtail collects container logs and forwards them to Loki, which persists them for later access. Relying on direct pod log scraping presents challenges, as logs are only accessible while the pod is running. If a pod crashes or is deleted upon completion, its logs become unavailable, complicating troubleshooting for platform users.
+
+A more robust approach would involve querying persisted logs through Loki's exposed endpoints rather than scraping container logs directly. This solution requires additional configuration, particularly due to the use of mTLS, but remains feasible through the Golang client libraries provided. By leveraging Loki's query capabilities, log availability is significantly improved, ensuring that critical debugging data remains accessible even after the deletion of a namespace and its associated resources.
+
+\subsection{Technical Debt}
+The connotation of technical debt often implies a burden to be avoided, yet in this context, it simply reflects suboptimal design choices and implementation decisions that warrant re-evaluation. Rather than continuously adding complexity to an already intricate system, addressing these issues can lead to cleaner, more maintainable code.
+
+Upon code handover, cleanup was necessary. The code base contained unused code that should have been removed and redundant logic that required refactoring. This included access token parsing, where unnecessary validity checks duplicated the verification already handled by the library.
+
+The database schema previously relied on migration files, which are useful for production systems but unnecessary for non-production environments. These migrations have been consolidated into a single file that defines the database tables and constraints. The backend could also have benefited from using an Object-Relational Mapping (ORM) for a more structured approach to database interactions.
+
+Kubernetes resources for the Traefik controller were removed, and \texttt{Ingress} resources were patched to correctly use PKI-issued certificates. With the addition of more dependencies to the Helm chart, maintaining both deployment solutions was deemed impractical. As a result, the Docker-compose file and its associated environment file were deleted.
+
+Furthermore, documentation for the endpoints retrieving challenge logs and downloading challenges was initially missing but was later incorporated into the solution's Swagger documentation. While the download endpoint is primarily intended for internal use, its inclusion ensures consistency and accessibility. Generating documentation is straightforward, as the Swagger endpoint is automatically created from docstrings in the code using the Swag CLI.
+
+The backend code quality is sufficient but follows a rigid flow -- adding a challenge, creating an instance, and provisioning Kubernetes resources -- which makes extensions difficult due to its lack of generic design. Golang's absence of native object-oriented programming (OOP) can be limiting, but leveraging interfaces and functions remains the recommended approach. The implementation currently forces challenge logic onto solutions, which, while convenient, is not ideal. Challenges and solutions share similarities, yet the inability to properly map requests to start an environment as either a challenge or a solution necessitates either distinct processing flows or a workaround that modifies Kubernetes resource labels, making differentiation between the two environments unclear. The database logs when an instance is started but does not track whether it has ever been stopped, meaning this information must be retrieved by querying the Kubernetes API to determine its running state. The implementation relies heavily on Kubernetes labels, which proves useful for efficiently managing such queries.
+
+\newpage
+
+\section{Bastion Authentication}
+
+\section{Certificate Issuance}
+
+\section{Docker Registry}
+
+\section{HTTP Strict Transport Security}
+
+\section{Performance of Hardware Virtualization}
+
+\subsection{Comparison -- is it worth?}
+
+\section{BADM500 Lecture Demonstrations}
+
+\subsection{Deadlines}
+
+\subsection{Feedback}
 
 \chapter{Conclusion}
 A review of state-of-the-art technologies provided valuable insights into popular solutions suitable for building a CTF platform. The development process followed an extreme programming approach, adapting to emerging needs as the project evolved. The platform's infrastructure is based on OSS, with the only custom-developed component being the Deployer Backend. While integrating OSS is not always easier than developing software from scratch, it significantly reduces time and effort and offers the advantage of community-driven maintenance.
